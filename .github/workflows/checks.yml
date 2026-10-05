@@ -3,11 +3,11 @@ name: checks
 # Everything here needs nothing but a Python interpreter, so it runs on every
 # push and on every pull request.
 #
-# There is deliberately no build job and no test job. This volume is twenty
-# written chapters and no code: every project README says so in its first line.
-# A workflow that compiled nothing while being named "build" would imply a suite
-# that does not exist, which is the opposite of what the volume is for. When the
-# first project is started, its job is added then.
+# The build and test jobs live in code.yml, which was added on Sunday 5 October
+# 2026 when P01 brought the first code into this volume. Until then there was
+# deliberately no such job, because a workflow that compiled nothing while being
+# named "build" would imply a suite that did not exist. Nineteen of the twenty
+# projects still have no code and their READMEs say so in their first line.
 #
 # What is checked is the published tree itself: that every chapter is there, that
 # every figure a chapter names is beside the project it belongs to, that every
@@ -105,10 +105,14 @@ jobs:
       # The other half of the same rule. Markdown, SVG and the scripts that
       # produce them are what a clone is for; a reader should not be asked to
       # download anything.
+      # Extended on Sunday 5 October 2026, when P01 brought the first code. The
+      # purpose of this guard is unchanged and is not about source types: it keeps
+      # out the PDF, the HTML and the LaTeX. Source files are what the repository
+      # is for, so the allowlist names the ones the projects carry.
       - name: Only the file types this repository publishes
         run: |
           set -e
-          odd=$(git ls-files | grep -vE '(\.(md|svg|py|yml|cff)$|^LICENSE$|^\.git(ignore|attributes)$)' || true)
+          odd=$(git ls-files | grep -vE '(\.(md|svg|py|yml|cff|c|h|cpp|hpp|rs|toml|conf|overlay)$|^LICENSE$|^\.git(ignore|attributes)$)' || true)
           if [ -n "$odd" ]; then
             echo "Files of a type this repository does not publish:"
             echo "$odd"

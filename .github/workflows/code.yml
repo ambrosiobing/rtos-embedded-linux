@@ -1,0 +1,95 @@
+name: code
+
+# The code half of this volume, which did not exist until P01 started.
+#
+# Why this is a separate workflow from checks.yml: that one reads the published
+# Markdown and needs nothing but Python, so it stays fast and never goes red for a
+# compiler's reasons. This one needs compilers, and it is allowed to be slower.
+#
+# **The point of the matrix is the point of the project.** The same two source
+# files are compiled under three versions of the language, with no per-version
+# source and no ifdefs, because the claim P01 makes is that the table is
+# expressible without reaching for anything a later version added. A version that
+# fails here is a finding about that claim, not a build problem to patch around.
+#
+# The warning set is -Werror with the usual pedantry, so a construct that a newer
+# version merely deprecates fails rather than passing with a note nobody reads.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  c:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        std: [c11, c17, c23]
+    name: C (${{ matrix.std }})
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Which compiler this is
+        run: gcc --version
+
+      # -Wconversion is in the set on purpose. The table carries uint16 runs and
+      # uint32 times, and an implicit narrowing between them is exactly the kind
+      # of defect that passes every behavioural test and then truncates a hold on
+      # a long-running node.
+      - name: Compile and run the row-coverage test
+        run: |
+          set -e
+          mkdir -p build-host
+          gcc -std=${{ matrix.std }} -O2 \
+              -Wall -Wextra -Werror -Wpedantic -Wshadow -Wconversion \
+              -Wstrict-prototypes -Wmissing-prototypes \
+              -o build-host/test_presence_${{ matrix.std }} \
+              projects/01-presence/c/presence.c \
+              projects/01-presence/c/test_presence.c
+          ./build-host/test_presence_${{ matrix.std }}
+
+      # A sanitised run of the same test. The dispatcher indexes a table by a
+      # row number it computed itself, and an off-by-one there would read past
+      # the end; -O2 alone will not say so.
+      - name: The same test under the address and undefined-behaviour sanitisers
+        run: |
+          set -e
+          gcc -std=${{ matrix.std }} -O1 -g \
+              -fsanitize=address,undefined -fno-omit-frame-pointer \
+              -Wall -Wextra -Werror \
+              -o build-host/test_presence_san_${{ matrix.std }} \
+              projects/01-presence/c/presence.c \
+              projects/01-presence/c/test_presence.c
+          ./build-host/test_presence_san_${{ matrix.std }}
+
+  # The same source through a second compiler. Two toolchains disagreeing about a
+  # table of function pointers would be a finding worth having, and a warning one
+  # of them raises and the other does not is the commonest way a portable claim
+  # turns out to be a gcc claim.
+  clang:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        std: [c11, c17, c23]
+    name: C via clang (${{ matrix.std }})
+    steps:
+      - uses: actions/checkout@v4
+      - run: clang --version
+      - name: Compile and run
+        run: |
+          set -e
+          mkdir -p build-host
+          clang -std=${{ matrix.std }} -O2 \
+              -Wall -Wextra -Werror -Wpedantic -Wshadow -Wconversion \
+              -Wstrict-prototypes -Wmissing-prototypes \
+              -o build-host/test_presence_clang_${{ matrix.std }} \
+              projects/01-presence/c/presence.c \
+              projects/01-presence/c/test_presence.c
+          ./build-host/test_presence_clang_${{ matrix.std }}
