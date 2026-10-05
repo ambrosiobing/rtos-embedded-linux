@@ -24,7 +24,12 @@ code, which is the chapter's first requirement.
 | [c/presence.h](c/presence.h) | four states, six events, the context and the invariant check |
 | [c/presence.c](c/presence.c) | the 28 rows and a dispatcher of a dozen lines. No hardware in it |
 | [c/test_presence.c](c/test_presence.c) | the host test: every row reachable, the order traps, and the invariant after every dispatch |
-| C++ and Rust | not started |
+| [cpp/presence.hpp](cpp/presence.hpp) | the same 28 rows in C++17, the baseline that compiles unchanged under all three versions |
+| [cpp/presence23.hpp](cpp/presence23.hpp) | `std::expected` as the dispatch return, and `consteval` proofs that the table is total and its guards are ordered |
+| [cpp/presence26.hpp](cpp/presence26.hpp) | `std::inplace_vector` for the sixteen-deep queue, and the feature report |
+| [cpp/test_presence.cpp](cpp/test_presence.cpp) | the C test's sequences in C++, plus the report of which version-specific additions the compiler provided |
+| [docs/LANGUAGE_IDIOMS.md](docs/LANGUAGE_IDIOMS.md) | what each version actually changes for this table, filled from the CI log |
+| Rust | not started |
 | the kernel adapters | not started |
 
 ## What the table is, and why it is the specification

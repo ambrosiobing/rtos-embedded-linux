@@ -68,6 +68,47 @@ jobs:
               projects/01-presence/c/test_presence.c
           ./build-host/test_presence_san_${{ matrix.std }}
 
+  # The C++ side, three versions, two compilers. presence.hpp is the C++17 baseline
+  # and must compile unchanged under all three; presence23.hpp and presence26.hpp
+  # add only what their version offers, behind feature-test macros. The test's
+  # last lines are a report of which additions this compiler actually provided,
+  # and docs/LANGUAGE_IDIOMS.md is filled from that report rather than from a
+  # standards table. So read the log, not only the badge.
+  cpp:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        std: [c++17, c++23, c++2c]
+        cxx: [g++, clang++]
+    name: C++ ${{ matrix.std }} via ${{ matrix.cxx }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: ${{ matrix.cxx }} --version
+      - name: Compile and run the row-coverage test, and print the feature report
+        run: |
+          set -e
+          mkdir -p build-host
+          ${{ matrix.cxx }} -std=${{ matrix.std }} -O2 \
+              -Wall -Wextra -Werror -Wpedantic -Wshadow -Wconversion \
+              -fno-exceptions -fno-rtti \
+              -o build-host/test_presence_cpp \
+              projects/01-presence/cpp/test_presence.cpp
+          ./build-host/test_presence_cpp
+
+      # -fno-exceptions above is the kernel adapter's reality. std::expected and
+      # std::variant are both fine without exceptions as used here; this step
+      # proves that nothing in the three headers quietly needs them.
+      - name: The same under the sanitisers
+        run: |
+          set -e
+          ${{ matrix.cxx }} -std=${{ matrix.std }} -O1 -g \
+              -fsanitize=address,undefined -fno-omit-frame-pointer \
+              -Wall -Wextra -Werror -fno-exceptions -fno-rtti \
+              -o build-host/test_presence_cpp_san \
+              projects/01-presence/cpp/test_presence.cpp
+          ./build-host/test_presence_cpp_san
+
   # The same source through a second compiler. Two toolchains disagreeing about a
   # table of function pointers would be a finding worth having, and a warning one
   # of them raises and the other does not is the commonest way a portable claim
