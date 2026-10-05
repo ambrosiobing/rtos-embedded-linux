@@ -85,9 +85,13 @@ In WSL on the demo laptop, the same thing by hand:
 
 ## What is not here yet
 
-- **C++ and Rust.** The same table under C++17, C++23 and C++26, and under Rust's
-  editions, with `docs/LANGUAGE_IDIOMS.md` reporting what each version actually
-  buys for this table rather than what its release notes advertise.
+- **A green Rust job.** The three edition crates are written and the C and C++
+  jobs pass, but the `rust` job has not yet run clean: its first contact with a
+  real toolchain refused the source four times, two of those on edition grounds.
+  All four are recorded in
+  [docs/LANGUAGE_IDIOMS.md](docs/LANGUAGE_IDIOMS.md#what-the-compiler-rejected-in-wsl-on-monday-5-october-2026)
+  rather than quietly fixed, because two of them are the only edition-level
+  differences this table has produced.
 - **The kernel adapters.** A thread, a queue, a timer and three lamps per kernel,
   none of which is allowed to make a decision. `docs/RTOS_VARIANTS.md` will carry
   the mapping and name every place the design had to change rather than be

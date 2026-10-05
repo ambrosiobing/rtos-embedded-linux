@@ -8,6 +8,14 @@
 //! `no_std` outside tests, no allocation, no `unsafe`, no panic on a reachable
 //! path: this compiles for the node as well as for the host.
 //!
+//! The `no_std` attribute itself is deliberately NOT in this file. It is a crate
+//! attribute, and in a file included as a module it is inert: rustc reports
+//! `unused_attributes`, and because each crate denies warnings it refuses to
+//! build. An earlier draft had it here, where it said nothing. The three crate
+//! roots carry it instead, which are the only three places that can carry it, so
+//! the central claim about the node is now made where it has an effect. The build
+//! is what found the line that had none.
+//!
 //! # The table is an array, as in the C
 //!
 //! An earlier draft expressed the table as an exhaustive `match` on
@@ -29,7 +37,8 @@
 //! this project exists to make, so it is demonstrated and cross-checked instead
 //! of adopted.
 
-#![cfg_attr(not(test), no_std)]
+// These two are lint attributes, which a module may carry and which apply to
+// everything in it. `no_std` is not one of those; see the note above.
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
@@ -77,7 +86,11 @@ pub struct Settings {
 
 impl Default for Settings {
     fn default() -> Self {
-        Self { arrive_runs: 2, hold_ms: 30_000, range_mm_max: 2500 }
+        Self {
+            arrive_runs: 2,
+            hold_ms: 30_000,
+            range_mm_max: 2500,
+        }
     }
 }
 
@@ -97,15 +110,30 @@ pub struct Ev {
 impl Ev {
     /// A reading at a time.
     pub fn reading(range_mm: u16, at_ms: u32) -> Self {
-        Self { kind: Kind::Reading, at_ms, range_mm, settings: None }
+        Self {
+            kind: Kind::Reading,
+            at_ms,
+            range_mm,
+            settings: None,
+        }
     }
     /// An event with no payload.
     pub fn plain(kind: Kind, at_ms: u32) -> Self {
-        Self { kind, at_ms, range_mm: 0, settings: None }
+        Self {
+            kind,
+            at_ms,
+            range_mm: 0,
+            settings: None,
+        }
     }
     /// A settings change.
     pub fn settings(s: Settings, at_ms: u32) -> Self {
-        Self { kind: Kind::Settings, at_ms, range_mm: 0, settings: Some(s) }
+        Self {
+            kind: Kind::Settings,
+            at_ms,
+            range_mm: 0,
+            settings: Some(s),
+        }
     }
 }
 
@@ -154,9 +182,9 @@ fn out_of_range(p: &Presence, ev: &Ev) -> bool {
     ev.range_mm > p.settings.range_mm_max
 }
 fn run_completes(p: &Presence, ev: &Ev) -> bool {
-    in_range(p, ev)
-        && u32::from(p.run) + 1
-            >= u32::from(if p.settings.arrive_runs == 0 { 1 } else { p.settings.arrive_runs })
+    // The C's `arrive_runs == 0 ? 1 : arrive_runs`, which `max` says in one word.
+    let needed = p.settings.arrive_runs.max(1);
+    in_range(p, ev) && u32::from(p.run) + 1 >= u32::from(needed)
 }
 
 // ---------------------------------------------------------------- actions
@@ -219,6 +247,15 @@ fn apply_settings(p: &mut Presence, ev: &Ev) {
 }
 
 /// The twenty-eight rows, in the C table's order, row for row.
+///
+/// Formatting is suppressed here on purpose, and this is the one place in the
+/// crate where that is true. rustfmt's `struct_lit_width` is 18 characters, so by
+/// default every row becomes an eight-line block and the table becomes two hundred
+/// and twenty-four lines. One row per line is not a preference: `presence.c` uses
+/// a `ROW(...)` macro to get exactly this shape, and reading the two tables beside
+/// each other is how a row that has drifted is found. A reader comparing them
+/// should be comparing rows, not counting braces.
+#[rustfmt::skip]
 pub static TABLE: [Row; ROW_COUNT] = [
     // 0 to 7: Free
     Row { from: State::Free, kind: Kind::Reading, guard: Some(run_completes), action: on_arrive, to: State::Occupied, name: "free reading run_completes" },
@@ -323,10 +360,14 @@ impl Presence {
             if row.from != self.state || row.kind != ev.kind {
                 continue;
             }
-            if let Some(g) = row.guard {
-                if !g(self, ev) {
-                    continue;
-                }
+            // The C writes this as one condition, `row->guarded && !row->guard(p, ev)`,
+            // and `Option::is_some_and` is that same single condition. The nested
+            // `if let` this replaces is what clippy asks to be collapsed into a
+            // let-chain under edition 2024, a form editions 2018 and 2021 cannot
+            // parse. One source for three editions cannot accept that offer, so it
+            // takes this one, which has been available in every edition since 1.70.
+            if row.guard.is_some_and(|g| !g(self, ev)) {
+                continue;
             }
             (row.action)(self, ev);
             self.state = row.to;
@@ -350,7 +391,13 @@ impl Presence {
     pub fn exhaustive_row_of(&self, ev: &Ev) -> u8 {
         match (self.state, ev.kind) {
             (State::Free, Kind::Reading) => {
-                if run_completes(self, ev) { 0 } else if in_range(self, ev) { 1 } else { 2 }
+                if run_completes(self, ev) {
+                    0
+                } else if in_range(self, ev) {
+                    1
+                } else {
+                    2
+                }
             }
             (State::Free, Kind::Tick) => 3,
             (State::Free, Kind::Timeout) => 4,
@@ -358,7 +405,11 @@ impl Presence {
             (State::Free, Kind::Fault) => 6,
             (State::Free, Kind::Settings) => 7,
             (State::Occupied, Kind::Reading) => {
-                if in_range(self, ev) { 8 } else { 9 }
+                if in_range(self, ev) {
+                    8
+                } else {
+                    9
+                }
             }
             (State::Occupied, Kind::Tick) => 10,
             (State::Occupied, Kind::Timeout) => 11,
@@ -366,7 +417,11 @@ impl Presence {
             (State::Occupied, Kind::Fault) => 13,
             (State::Occupied, Kind::Settings) => 14,
             (State::Held, Kind::Reading) => {
-                if in_range(self, ev) { 15 } else { 16 }
+                if in_range(self, ev) {
+                    15
+                } else {
+                    16
+                }
             }
             (State::Held, Kind::Timeout) => 17,
             (State::Held, Kind::Tick) => 18,

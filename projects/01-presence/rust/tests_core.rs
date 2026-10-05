@@ -30,12 +30,21 @@ fn start() -> Presence {
 /// Dispatch and check the invariant after every event, not at the end: a lost
 /// release can be transient and still wrong.
 fn post(p: &mut Presence, ev: &Ev, want_row: u8) {
-    let got = p.dispatch(ev).expect("the table is total, so every event has a row");
-    assert_eq!(got, want_row, "expected row {want_row}, took {got} ({})", TABLE[got as usize].name);
+    let got = p
+        .dispatch(ev)
+        .expect("the table is total, so every event has a row");
+    assert_eq!(
+        got, want_row,
+        "expected row {want_row}, took {got} ({})",
+        TABLE[got as usize].name
+    );
     assert!(
         p.check_invariants(),
         "invariant broken after {:?}: state={:?} run={} hold={}",
-        ev.kind, p.state, p.run, p.hold_running
+        ev.kind,
+        p.state,
+        p.run,
+        p.hold_running
     );
 }
 
@@ -72,7 +81,12 @@ fn the_arrival_is_on_the_reading_that_completes_the_run() {
 
     // arrive_runs of 1 arrives at once, the edge a `>` rather than `>=` would miss.
     let mut p = start();
-    post(&mut p, &Ev::settings(Settings { arrive_runs: 1, hold_ms: 1000, range_mm_max: 2500 }, 5), 7);
+    let arrive_on_the_first = Settings {
+        arrive_runs: 1,
+        hold_ms: 1000,
+        range_mm_max: 2500,
+    };
+    post(&mut p, &Ev::settings(arrive_on_the_first, 5), 7);
     post(&mut p, &Ev::reading(NEAR, 10), 0);
     assert_eq!(p.state, State::Occupied);
 }
@@ -120,7 +134,11 @@ fn a_fault_leaves_only_by_the_button() {
     assert_eq!(p.faults_latched, 1);
     post(&mut p, &Ev::plain(Kind::Tick, 20), 23);
     post(&mut p, &Ev::reading(NEAR, 30), 24);
-    assert_eq!(p.state, State::Fault, "a good reading must not clear a fault");
+    assert_eq!(
+        p.state,
+        State::Fault,
+        "a good reading must not clear a fault"
+    );
     post(&mut p, &Ev::plain(Kind::Timeout, 40), 25);
     post(&mut p, &Ev::plain(Kind::Fault, 50), 26);
     post(&mut p, &Ev::settings(Settings::default(), 60), 27);
@@ -184,10 +202,18 @@ fn every_row_is_reachable() {
     sweep(&p);
 
     let untaken: Vec<usize> = (0..ROW_COUNT).filter(|&i| taken[i] == 0).collect();
+    // The argument is passed rather than captured inline, and the reason is an
+    // edition difference worth knowing: `assert!` hands its message straight to
+    // `panic!`, and a lone literal is `panic!`'s payload form in edition 2018, not
+    // a format string, so the capture would have been printed literally, braces
+    // and all, rather than the list of rows. `assert_eq!` wraps its message in
+    // `format_args!` and does not have the problem, which is why the captures
+    // elsewhere in this file are safe.
     assert!(
         untaken.is_empty(),
-        "rows never taken: {untaken:?}. Either unreachable, which is a defect in \
-         the table, or a gap in this file"
+        "rows never taken: {:?}. Either unreachable, which is a defect in \
+         the table, or a gap in this file",
+        untaken
     );
 }
 
@@ -196,18 +222,31 @@ fn the_exhaustive_match_agrees_with_the_table() {
     // Every state, every kind, and both sides of every guard. This is the check
     // that makes the module's claim about exhaustiveness worth making.
     let states = [State::Free, State::Occupied, State::Held, State::Fault];
-    let kinds = [Kind::Tick, Kind::Reading, Kind::Timeout, Kind::Button, Kind::Fault, Kind::Settings];
+    let kinds = [
+        Kind::Tick,
+        Kind::Reading,
+        Kind::Timeout,
+        Kind::Button,
+        Kind::Fault,
+        Kind::Settings,
+    ];
     let mut checked = 0;
     for st in states {
         for kind in kinds {
             for &mm in &[NEAR, FAR] {
                 for &run in &[0u16, 1u16] {
-                    let mut p = Presence::default();
-                    p.state = st;
-                    p.run = if st == State::Free { run } else { 0 };
-                    if st == State::Held {
-                        p.hold_running = true;
-                    }
+                    // Built in one expression rather than default-then-assign.
+                    // clippy objects to the latter, and it is right to: a partly
+                    // initialised value exists between the statements, and here
+                    // that value breaks the invariant, since `Held` without a
+                    // running hold is exactly what `check_invariants` rejects.
+                    let run_for = if st == State::Free { run } else { 0 };
+                    let p = Presence {
+                        state: st,
+                        run: run_for,
+                        hold_running: st == State::Held,
+                        ..Presence::default()
+                    };
                     let ev = match kind {
                         Kind::Reading => Ev::reading(mm, 0),
                         Kind::Settings => Ev::settings(Settings::default(), 0),
@@ -234,11 +273,18 @@ fn the_exhaustive_match_agrees_with_the_table() {
 #[test]
 fn the_table_is_total() {
     let states = [State::Free, State::Occupied, State::Held, State::Fault];
-    let kinds = [Kind::Tick, Kind::Reading, Kind::Timeout, Kind::Button, Kind::Fault, Kind::Settings];
+    let kinds = [
+        Kind::Tick,
+        Kind::Reading,
+        Kind::Timeout,
+        Kind::Button,
+        Kind::Fault,
+        Kind::Settings,
+    ];
     for st in states {
         for kind in kinds {
             let found = TABLE.iter().any(|r| r.from == st && r.kind == kind);
-            assert!(found, "no row for ({st:?}, {kind:?}): the table is not total");
+            assert!(found, "the table has no row for ({:?}, {:?})", st, kind);
         }
     }
     assert_eq!(TABLE.len(), ROW_COUNT);
@@ -250,6 +296,8 @@ fn the_guard_discriminant_needs_no_parallel_bool() {
     // would not compare the pointer in a constant expression. Here the Option's
     // discriminant is that fact, so this test has nothing to reconcile and exists
     // only to record which rows are guarded.
-    let guarded: Vec<usize> = (0..ROW_COUNT).filter(|&i| TABLE[i].guard.is_some()).collect();
+    let guarded: Vec<usize> = (0..ROW_COUNT)
+        .filter(|&i| TABLE[i].guard.is_some())
+        .collect();
     assert_eq!(guarded, vec![0, 1, 2, 8, 9, 15, 16], "the guarded rows");
 }
