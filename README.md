@@ -14,10 +14,10 @@ sit on the boundary. Everything is built on hardware already on the bench.
 
 | Behaviour | Built in | Why it is the one that matters |
 |---|---|---|
-| Presence, with a hold and a release | P01 | A room that forgets to release is worse than a room with no sensor |
-| A sample that is allowed to leave the device | P06 | Everything that costs energy or privacy is decided before a radio is involved |
-| A signed image that rolls back | P08 | A unit that cannot be reached by hand needs an update that can fail safely |
-| A radio that sleeps | P10 | A battery device is a duty cycle with a radio attached |
+| Presence, with a hold and a release | [P01](chapters/01-presence.md) | A room that forgets to release is worse than a room with no sensor |
+| A sample that is allowed to leave the device | [P06](chapters/06-capture-that-decides-what-to-keep.md) | Everything that costs energy or privacy is decided before a radio is involved |
+| A signed image that rolls back | [P08](chapters/08-a-signed-image.md) | A unit that cannot be reached by hand needs an update that can fail safely |
+| A radio that sleeps | [P10](chapters/10-a-radio-that-sleeps.md) | A battery device is a duty cycle with a radio attached |
 
 A reader with time for four chapters should read those four, in that order.
 
@@ -29,26 +29,26 @@ that decision with the radio down.
 
 | NN | Title | Target | Idiom it proves |
 |----|-------|--------|-----------------|
-| 01 | Presence: free, occupied, held, fault | Nucleo alone | maintainability |
-| 02 | The claim, and the service axis | Nucleo alone | validation |
-| 03 | One sensor, two buses, zero code changes | Nucleo + ADXL345 | maintainability |
-| 04 | What the kernel primitives cost, by the cycle counter | Nucleo + MCC 118 on a Pi | performance |
-| 05 | The zones: an out-of-tree driver | Nucleo + 53L8A1 | maintainability |
-| 06 | Capture that decides what to keep | Nucleo + IKS4A1 | efficiency |
-| 07 | Settings that survive a power cut | Nucleo + PPK2 | reliability |
-| 08 | A signed image, confirm and revert | Nucleo, sysbuild | reliability |
-| 09 | Fleet update and the fleet shadow | Nucleo + Pi 4 gateway | observability |
-| 10 | A radio that sleeps | Nucleo + PPK2 + SIM7070G | sustainability |
-| 11 | Cellular from the RTOS: attach, and one payload | Nucleo + SIM7070G | observability |
-| 12 | Wi-Fi on a second architecture | ESP32 + Pi 4 broker | portability |
-| 13 | Device identity: enrol, rotate, revoke | Pi 4, Pi 3B+, Nucleo | reliability |
-| 14 | The same application on a second board | STWIN.box | portability |
-| 15 | Twister on hardware, on every push | Nucleo on a Pi 4 runner | validation |
-| 16 | The extensible SDK, devtool, and a CI that builds with it | Pi 4 | maintainability |
-| 17 | First boot, factory reset, decommission | Pi 3B+ + Explorer700 | reliability |
-| 18 | CANopen on a real wire, and on no wire at all | Nucleo + transceiver + Pi 4 | validation |
-| 19 | A tunnel as the management plane | Pi 4, NanoPi, Pi 3 + SIM7600E-H | validation |
-| 20 | A bridge between two message protocols | Pi 4, two brokers | validation |
+| [01](projects/01-presence) | [Presence: free, occupied, held, fault](chapters/01-presence.md) | Nucleo alone | maintainability |
+| [02](projects/02-the-claim) | [The claim, and the service axis](chapters/02-the-claim.md) | Nucleo alone | validation |
+| [03](projects/03-one-sensor) | [One sensor, two buses, zero code changes](chapters/03-one-sensor.md) | Nucleo + ADXL345 | maintainability |
+| [04](projects/04-what-the-kernel-primitives-cost) | [What the kernel primitives cost, by the cycle counter](chapters/04-what-the-kernel-primitives-cost.md) | Nucleo + MCC 118 on a Pi | performance |
+| [05](projects/05-the-zones) | [The zones: an out-of-tree driver](chapters/05-the-zones.md) | Nucleo + 53L8A1 | maintainability |
+| [06](projects/06-capture-that-decides-what-to-keep) | [Capture that decides what to keep](chapters/06-capture-that-decides-what-to-keep.md) | Nucleo + IKS4A1 | efficiency |
+| [07](projects/07-settings-that-survive-a-power-cut) | [Settings that survive a power cut](chapters/07-settings-that-survive-a-power-cut.md) | Nucleo + PPK2 | reliability |
+| [08](projects/08-a-signed-image) | [A signed image, confirm and revert](chapters/08-a-signed-image.md) | Nucleo, sysbuild | reliability |
+| [09](projects/09-fleet-update-and-the-fleet-shadow) | [Fleet update and the fleet shadow](chapters/09-fleet-update-and-the-fleet-shadow.md) | Nucleo + Pi 4 gateway | observability |
+| [10](projects/10-a-radio-that-sleeps) | [A radio that sleeps](chapters/10-a-radio-that-sleeps.md) | Nucleo + PPK2 + SIM7070G | sustainability |
+| [11](projects/11-cellular-from-the-rtos) | [Cellular from the RTOS: attach, and one payload](chapters/11-cellular-from-the-rtos.md) | Nucleo + SIM7070G | observability |
+| [12](projects/12-wi-fi-on-a-second-architecture) | [Wi-Fi on a second architecture](chapters/12-wi-fi-on-a-second-architecture.md) | ESP32 + Pi 4 broker | portability |
+| [13](projects/13-device-identity) | [Device identity: enrol, rotate, revoke](chapters/13-device-identity.md) | Pi 4, Pi 3B+, Nucleo | reliability |
+| [14](projects/14-the-same-application-on-a-second-board) | [The same application on a second board](chapters/14-the-same-application-on-a-second-board.md) | STWIN.box | portability |
+| [15](projects/15-twister-on-hardware) | [Twister on hardware, on every push](chapters/15-twister-on-hardware.md) | Nucleo on a Pi 4 runner | validation |
+| [16](projects/16-the-extensible-sdk) | [The extensible SDK, devtool, and a CI that builds with it](chapters/16-the-extensible-sdk.md) | Pi 4 | maintainability |
+| [17](projects/17-first-boot) | [First boot, factory reset, decommission](chapters/17-first-boot.md) | Pi 3B+ + Explorer700 | reliability |
+| [18](projects/18-canopen-on-a-real-wire) | [CANopen on a real wire, and on no wire at all](chapters/18-canopen-on-a-real-wire.md) | Nucleo + transceiver + Pi 4 | validation |
+| [19](projects/19-a-tunnel-as-the-management-plane) | [A tunnel as the management plane](chapters/19-a-tunnel-as-the-management-plane.md) | Pi 4, NanoPi, Pi 3 + SIM7600E-H | validation |
+| [20](projects/20-a-bridge-between-two-message-protocols) | [A bridge between two message protocols](chapters/20-a-bridge-between-two-message-protocols.md) | Pi 4, two brokers | validation |
 
 The last three open by saying that they exist because a requirement list named
 them rather than because the device needs them, and each then finds the one
@@ -57,10 +57,10 @@ without losing the argument.
 
 ## Four threads
 
-- **What the device decides.** P01, P02, P05, P06.
-- **What it accepts from outside.** P07, P08, P09, P13.
-- **What it costs.** P04, P10, and P06 where the two meet.
-- **Whether it survives being changed.** P03, P12, P14, P15, P16.
+- **What the device decides.** [P01](chapters/01-presence.md), [P02](chapters/02-the-claim.md), [P05](chapters/05-the-zones.md), [P06](chapters/06-capture-that-decides-what-to-keep.md).
+- **What it accepts from outside.** [P07](chapters/07-settings-that-survive-a-power-cut.md), [P08](chapters/08-a-signed-image.md), [P09](chapters/09-fleet-update-and-the-fleet-shadow.md), [P13](chapters/13-device-identity.md).
+- **What it costs.** [P04](chapters/04-what-the-kernel-primitives-cost.md), [P10](chapters/10-a-radio-that-sleeps.md), and [P06](chapters/06-capture-that-decides-what-to-keep.md) where the two meet.
+- **Whether it survives being changed.** [P03](chapters/03-one-sensor.md), [P12](chapters/12-wi-fi-on-a-second-architecture.md), [P14](chapters/14-the-same-application-on-a-second-board.md), [P15](chapters/15-twister-on-hardware.md), [P16](chapters/16-the-extensible-sdk.md).
 
 ## Honesty rules this volume keeps
 
