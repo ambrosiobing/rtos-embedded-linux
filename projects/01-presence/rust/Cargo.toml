@@ -1,0 +1,6 @@
+# Three crates, one source, three editions. Members are listed rather than
+# globbed: a crate joins this workspace on purpose, and a glob would quietly
+# enrol a scratch directory.
+[workspace]
+members = ["e2018", "e2021", "e2024"]
+resolver = "2"

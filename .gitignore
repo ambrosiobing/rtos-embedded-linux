@@ -56,6 +56,12 @@ chapter-*.html
 /lint.py
 /figcheck.sh
 
+# Cargo's build output. One directory at the workspace root, which is where cargo
+# puts it. Cargo.lock is NOT ignored for the edition crates: three crates building
+# one source should resolve to one dependency set, and a lock file is how that is
+# checked rather than hoped.
+projects/01-presence/rust/target/
+
 # Local virtual environments and editor state
 .venv/
 venv/

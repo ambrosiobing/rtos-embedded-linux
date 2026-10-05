@@ -29,7 +29,9 @@ code, which is the chapter's first requirement.
 | [cpp/presence26.hpp](cpp/presence26.hpp) | `std::inplace_vector` for the sixteen-deep queue, and the feature report |
 | [cpp/test_presence.cpp](cpp/test_presence.cpp) | the C test's sequences in C++, plus the report of which version-specific additions the compiler provided |
 | [docs/LANGUAGE_IDIOMS.md](docs/LANGUAGE_IDIOMS.md) | what each version actually changes for this table, filled from the CI log |
-| Rust | not started |
+| [rust/presence_core.rs](rust/presence_core.rs) | the same 28 rows, `no_std`, no `unsafe`, one source compiled under three editions |
+| [rust/tests_core.rs](rust/tests_core.rs) | the same cases, plus the exhaustive `match` held against the table over 96 combinations |
+| `rust/e2018`, `rust/e2021`, `rust/e2024` | three crates differing only in their edition line |
 | the kernel adapters | not started |
 
 ## What the table is, and why it is the specification

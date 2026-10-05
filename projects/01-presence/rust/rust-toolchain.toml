@@ -1,0 +1,7 @@
+# Pinned, because an edition is not a version. One compiler builds every edition,
+# so "this compiles under three editions" says nothing about which compiler did
+# it. This file is the other half of that claim, and the CI log prints the
+# version it resolves to.
+[toolchain]
+channel = "stable"
+components = ["clippy", "rustfmt"]

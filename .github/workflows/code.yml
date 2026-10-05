@@ -138,6 +138,52 @@ jobs:
               projects/01-presence/cpp/test_presence.cpp
           ./build-host/test_presence_cpp_san
 
+  # Rust, three editions, one source. Unlike the C and C++ matrices this is not
+  # three compilers' opinions: one toolchain builds every edition, and an edition
+  # changes what the language permits rather than what the library offers. So the
+  # pinned toolchain in rust-toolchain.toml is half the claim and its version is
+  # printed below, because "compiles under three editions" says nothing about
+  # which compiler did it.
+  rust:
+    runs-on: ubuntu-latest
+    name: Rust, editions 2018, 2021 and 2024
+    defaults:
+      run:
+        working-directory: projects/01-presence/rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Which toolchain the pin resolves to
+        run: |
+          rustup show active-toolchain
+          cargo --version
+          rustc --version
+
+      # Formatting and lints before the tests, because a warning here is a build
+      # failure by the workspace's own lint setting and it is cheaper to see why
+      # before a test log scrolls past it.
+      - name: Formatting
+        run: cargo fmt --all --check
+
+      - name: Clippy, warnings denied, every target
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      # The real check. The same presence_core.rs and tests_core.rs compiled and
+      # run three times, once per edition. An edition that needed its own source
+      # would fail here rather than becoming a footnote.
+      - name: The row-coverage tests, under each edition
+        run: cargo test --workspace -- --nocapture
+
+      # no_std is a claim about the node, and a host test proves nothing about it:
+      # the test configuration pulls in std for the harness. This builds the
+      # library alone for a bare-metal target, which is where the claim is either
+      # true or a link error.
+      - name: The library builds for a bare-metal target, which is what no_std means
+        run: |
+          rustup target add thumbv7em-none-eabihf
+          cargo build --release --target thumbv7em-none-eabihf \
+            -p presence-e2018 -p presence-e2021 -p presence-e2024
+
   # The same source through a second compiler. Two toolchains disagreeing about a
   # table of function pointers would be a finding worth having, and a warning one
   # of them raises and the other does not is the commonest way a portable claim

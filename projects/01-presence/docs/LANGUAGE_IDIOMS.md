@@ -171,8 +171,51 @@ than assumed.
 
 ## Rust: editions 2018, 2021, 2024
 
-Not started. The section is here so the shape of the page is complete and so a
-reader does not infer that Rust was tried and omitted.
+**An edition is not a version**, and that difference shapes everything below. One
+compiler builds every edition; an edition changes what the language permits rather
+than what the library offers, and a crate declares its own in `Cargo.toml`. So
+"compiles under three editions" says nothing about which compiler did it, and the
+pin in `rust-toolchain.toml` is the other half of the claim. CI prints the version
+the pin resolves to.
+
+Three crates, `e2018/`, `e2021/` and `e2024/`, differ only in that line. All three
+include the same `presence_core.rs` and the same `tests_core.rs`, so an edition
+needing its own source would be a build failure rather than a footnote.
+
+| What Rust changes for this table | Against which language |
+|---|---|
+| **The table cannot be partial.** `match` on `(State, Kind)` is exhaustive by the compiler's rule, so a missing pair does not compile | C proves totality with a run-time test; C++23 with a `consteval` check that needs a feature probe. Rust needs neither, in every edition |
+| **No null guard, and no parallel bool.** A guard is `Option<fn>` and the discriminant *is* the "is it guarded" fact | the C carries `bool guarded` beside the pointer **because gcc 13 would not compare the pointer in a constant expression**. Rust has nothing to keep in step |
+| **A dropped return is a build failure.** `#[must_use]` on `dispatch` plus `-D warnings` | C relies on C23's `[[nodiscard]]` spelling or on nothing; C++17 has the attribute |
+| **The row index is the return value**, not a field written as a side effect | this is what C++23 needed `std::expected` for, and that is available on only one of the two C++ compilers |
+| **What it does not change** | the dispatcher is still a loop over rows, still a dozen lines, and the invariant is still a function rather than a type |
+
+**The honest limit, stated because it is the interesting part.** A type that made a
+lost release unrepresentable would be the real prize, and this crate does not have
+one. `check_invariants` is a function in all three languages. Rust makes the
+*table* safe and leaves the *invariant* exactly where C left it.
+
+**And one decision went against Rust's strength on purpose.** The first draft
+expressed the table as the exhaustive `match`, which is the stronger form. It was
+rewritten as an array, because the match split twenty-eight rows across three
+functions where C has one, and the mechanical cross-check that compares all three
+languages row for row could not read it. Parity is what this exercise is for, so
+the array won. The exhaustiveness is recovered by `exhaustive_row_of`, which is a
+match, and a test holds it against the array for every state, every kind and both
+sides of every guard: 96 combinations. The guarantee is demonstrated and checked
+rather than adopted, and the reason is recorded in the source.
+
+**What the cross-check found:** nothing, which is the point of running it. All 28
+rows agree with the C on state, event, guard, **action** and destination. That is
+stricter than the C++ cross-check, which compares the first four and not the
+action name.
+
+**Not yet measured.** No cargo exists on the authoring laptop, so every statement
+in this section is a claim about source until the `rust` job runs. What it will
+decide: whether all three editions build, whether clippy at `-D warnings` is clean,
+and whether the library really is `no_std`, which the job checks by building for
+`thumbv7em-none-eabihf` rather than by trusting the attribute. A host test proves
+nothing about `no_std`, because the test configuration pulls in std for the harness.
 
 ## How to read the CI log
 
@@ -185,6 +228,7 @@ feature report, __cplusplus=202302
   std::inplace_vector for the queue      NOT available, array-and-count fallback
 ```
 
-The job name carries the standard flag and the compiler. The report carries what
-that compiler provided. The two together are the measurement, and this page is
-updated from them rather than the other way round.
+The job name carries the standard flag and the compiler; the step above the report
+prints the compiler's own version string and the flag it actually used, which is
+not always the one the job is named after. The three together are the measurement,
+and this page is updated from them rather than the other way round.
