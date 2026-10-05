@@ -13,10 +13,12 @@
 //   1. std::inplace_vector<Ev, 16>. The chapter's queue is sixteen deep and the
 //      kernel adapter has no allocator. Before this, a fixed-capacity queue meant
 //      a std::array plus a hand-written count and the bugs that come with it.
-//      inplace_vector is exactly that container with the bugs already written
-//      out, and it is the single most useful thing a new standard has handed an
-//      embedded queue in years. When it is absent, the fallback below is the
-//      array-and-count it replaces, so the test exercises the same interface.
+//      inplace_vector is exactly that container with the bugs already written out,
+//      and it may be the most useful thing a recent standard offers an embedded
+//      queue. **That is a prediction and not a result.** Measured on Sunday
+//      5 October 2026, it was unavailable on gcc 13.3 and on clang 18.1.3 at every
+//      flag, so in all twelve CI jobs the fallback below is what compiled and what
+//      the queue test exercised. The branch above it has never run.
 //
 //   2. static_assert with a user-generated message, so the totality check can
 //      name the missing pair rather than say "a pair is missing".
