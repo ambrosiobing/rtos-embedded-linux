@@ -1,0 +1,73 @@
+# LaTeX build artifacts and scratch renders (regenerate with: python build.py)
+build/
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# No assembled volume and no PDF is ever published. Only the Markdown chapters
+# and the projects are. These are blanket rules rather than named files, so a new
+# output name cannot slip through: the whole volume, a single chapter, or
+# anything else.
+*.pdf
+*.html
+
+# Named explicitly as well, so the intent survives anyone relaxing the rules above.
+rtos-embedded-linux.pdf
+rtos-embedded-linux.html
+chapter-*.pdf
+chapter-*.html
+
+# --- The authoring half, which is not published ---------------------------
+#
+# What this repository publishes is Markdown: one chapter under chapters/, one
+# project under projects/, and each chapter's figures with the project they
+# belong to. The LaTeX those are generated FROM stays on the authoring machine.
+# A reader needs neither a TeX installation nor a second copy of every chapter in
+# a second markup language to read the book.
+#
+# The loop is: edit sections/zNN.tex, then
+#     python mdbuild.py --out build/md
+#     python scripts/publish.py
+# and publish.py writes chapters/ and the per-project figure directories.
+# Nothing else writes chapters/.
+#
+# No LaTeX of any kind is published, figure sources included. One blanket rule
+# rather than a list of paths, because a list is something a new file can be
+# added outside of: this cannot be got round by putting a .tex somewhere new.
+#
+# The anchored rules below are still here on purpose. *.tex already covers the
+# .tex among them, but sections/ and figures/ are directories whose other
+# contents must also stay out, and naming the scripts keeps the authoring half
+# readable as a set rather than as a side effect of a glob.
+*.tex
+
+# Every rule here is anchored with a leading slash so it matches only at the
+# repository root. Without the anchor, "figures/" would also ignore all twenty
+# projects/NN-slug/docs/figures/ directories, where the published SVGs live.
+/sections/
+/figures/
+/build.py
+/mdbuild.py
+/crosscheck.py
+/lint.py
+/figcheck.sh
+
+# Local virtual environments and editor state
+.venv/
+venv/
+.vscode/
+.idea/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Journals and correspondence never reach a published repository, private shares
+# included. They live in the catalogue, which is local only. A published
+# repository carries the work, never the running record of doing it.
+private_journal/
+correspondence/
+DIARY*.md

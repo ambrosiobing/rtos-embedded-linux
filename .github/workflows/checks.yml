@@ -1,0 +1,128 @@
+name: checks
+
+# Everything here needs nothing but a Python interpreter, so it runs on every
+# push and on every pull request.
+#
+# There is deliberately no build job and no test job. This volume is twenty
+# written chapters and no code: every project README says so in its first line.
+# A workflow that compiled nothing while being named "build" would imply a suite
+# that does not exist, which is the opposite of what the volume is for. When the
+# first project is started, its job is added then.
+#
+# What is checked is the published tree itself: that every chapter is there, that
+# every figure a chapter names is beside the project it belongs to, that every
+# link resolves, and that nothing which must stay private has reached it.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # The most important step in this file. Besides the house rules, dashes,
+      # non-ASCII and violent idioms, this runs the name scan: the volume was
+      # written with one advertisement open and prints no employer, product, town
+      # or region. The scan stores each forbidden token as a hash, so the list is
+      # enforced here without ever being spelled here. A failure means a name
+      # reached the published tree.
+      - name: House rules and the name scan, over every published file
+        run: python scripts/lint.py
+
+      - name: Every relative link resolves
+        run: python scripts/check_links.py
+
+      # The structural check, and the one that proves the figures really are with
+      # their projects rather than only referenced as if they were.
+      - name: Twenty chapters, twenty projects, five figures each
+        run: |
+          set -e
+          fail=0
+          for n in $(seq -w 1 20); do
+            count=$(ls -d chapters/${n}-*.md 2>/dev/null | wc -l)
+            test "$count" = 1 || { echo "chapters/${n}-*.md matches $count files, want 1"; fail=1; }
+
+            count=$(ls -d projects/${n}-*/ 2>/dev/null | wc -l)
+            test "$count" = 1 || { echo "projects/${n}-*/ matches $count directories, want 1"; fail=1; }
+            dir=$(ls -d projects/${n}-*/ 2>/dev/null | head -1)
+
+            for f in arch wiring uml mem timing; do
+              test -f "${dir}docs/figures/z${n}_${f}.svg" \
+                || { echo "missing ${dir}docs/figures/z${n}_${f}.svg"; fail=1; }
+            done
+            test -f "${dir}README.md" || { echo "missing ${dir}README.md"; fail=1; }
+          done
+          test -f chapters/00-about-this-volume.md || { echo "missing chapter 00"; fail=1; }
+          test -f chapters/21-appendix.md           || { echo "missing the appendix"; fail=1; }
+          test -f docs/figures/front_stack.svg      || { echo "missing docs/figures/front_stack.svg"; fail=1; }
+          exit $fail
+
+      - name: No assembled volume and no PDF is published
+        run: |
+          set -e
+          if git ls-files | grep -E '\.(pdf|html|aux|log|toc|out)$'; then
+            echo "A PDF or an HTML file is committed, and neither is ever published."
+            echo "What this repository offers is one Markdown chapter and one project"
+            echo "at a time. There is deliberately no assembled volume to download."
+            echo "The PDF and the HTML are for the author's own proofreading and stay"
+            echo "on the authoring machine."
+            exit 1
+          fi
+          echo "no PDF, no HTML, no assembled volume. Markdown chapters only, as intended"
+
+      # No LaTeX at all, figure sources included. This repository carries
+      # Markdown and the images that Markdown needs, and nothing else: one markup
+      # language in the tree. The LaTeX that generates it, chapter sources,
+      # preamble, figure sources and the book build scripts, stays on the
+      # authoring machine.
+      - name: No LaTeX is published
+        run: |
+          set -e
+          stray=$(git ls-files '*.tex' || true)
+          if [ -n "$stray" ]; then
+            echo "LaTeX is committed, and none of it belongs here:"
+            echo "$stray"
+            echo
+            echo "What is published is the Markdown that scripts/publish.py writes,"
+            echo "with the figures as SVG. If a .tex is back, the blanket *.tex rule"
+            echo "in .gitignore was probably relaxed, or a file was force-added."
+            exit 1
+          fi
+          echo "no LaTeX committed, as intended"
+
+      # The other half of the same rule. Markdown, SVG and the scripts that
+      # produce them are what a clone is for; a reader should not be asked to
+      # download anything.
+      - name: Only the file types this repository publishes
+        run: |
+          set -e
+          odd=$(git ls-files | grep -vE '(\.(md|svg|py|yml|cff)$|^LICENSE$|^\.git(ignore|attributes)$)' || true)
+          if [ -n "$odd" ]; then
+            echo "Files of a type this repository does not publish:"
+            echo "$odd"
+            exit 1
+          fi
+          echo "Markdown, SVG, the scripts, the workflow, the licence and the citation, as intended"
+
+      - name: No journal and no correspondence is published
+        run: |
+          set -e
+          if git ls-files | grep -iE '(^|/)(private_journal|correspondence)/|(^|/)DIARY[^/]*\.md$'; then
+            echo "A journal or a correspondence file is committed."
+            echo "These live in the catalogue, which is local only. A published"
+            echo "repository carries the work, never the running record of doing it."
+            exit 1
+          fi
+          echo "no journal, no correspondence, as intended"

@@ -1,0 +1,40 @@
+cff-version: 1.2.0
+title: "Twenty Connected-Device Projects on an RTOS and Embedded Linux"
+message: "If you refer to this work, please cite it as below."
+type: software
+authors:
+  - family-names: Pagaran
+    given-names: Joseph Ambrose
+    orcid: ""
+abstract: >-
+  Twenty connected-device projects built around four behaviours rather than
+  around a list of technologies: presence with a hold and a release, a sample
+  that is allowed to leave the device, a signed image that can roll back, and a
+  radio that sleeps. Each behaviour is built in full by exactly one chapter and
+  cited by the rest. Fifteen chapters run a real-time operating system on a
+  Cortex-M7 or Cortex-M33 microcontroller, four run Linux on single-board
+  computers, and one spans both deliberately, because a device lifecycle is the
+  one subject that cannot be shown on either alone. Covers devicetree overlays
+  and an out-of-tree driver, the measured cost of kernel primitives, settings
+  that survive a power cut, a signed image with confirm and revert, a fleet
+  update and its shadow, a duty-cycled radio, device identity with enrolment,
+  rotation and revocation, the same application moved to a second processor
+  family, hardware-in-the-loop testing on every push, and a build system
+  exercised through its extensible software development kit. Every measurement
+  names its instrument or reads not measured; outlines are solid for hardware on
+  the bench, dashed for a model standing in and dotted for hardware that is
+  absent with the cost of its absence written down. Nothing claims a shipped
+  product on this operating system, a battery life in years, or radar.
+keywords:
+  - embedded systems
+  - real-time operating system
+  - embedded Linux
+  - devicetree
+  - firmware update
+  - low power
+  - CAN
+  - device identity
+license: MIT
+repository-code: "https://github.com/ambrosiobing/rtos-embedded-linux"
+version: "1.0.0"
+date-released: "2026-10-05"
