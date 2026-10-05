@@ -46,7 +46,19 @@ jobs:
         run: |
           set -e
           mkdir -p build-host
-          gcc -std=${{ matrix.std }} -O2 \
+          # gcc 14 spells this standard -std=c23; gcc 13 only knows it as -std=c2x,
+          # the pre-release name for the same document. The runner had gcc 13 on
+          # the first run and refused c23 outright. Probe, use whichever this gcc
+          # accepts, and say which, so the log records the compiler's vocabulary
+          # rather than failing on it.
+          STD=${{ matrix.std }}
+          if [ "$STD" = c23 ] && ! gcc -std=c23 -fsyntax-only -x c /dev/null 2>/dev/null; then
+            echo "this gcc has no -std=c23; using -std=c2x, the same standard under its pre-release name"
+            STD=c2x
+          fi
+          echo "CSTD=$STD" >> "$GITHUB_ENV"
+          echo "compiler: $(gcc --version | head -1), standard flag: -std=$STD"
+          gcc -std=$STD -O2 \
               -Wall -Wextra -Werror -Wpedantic -Wshadow -Wconversion \
               -Wstrict-prototypes -Wmissing-prototypes \
               -o build-host/test_presence_${{ matrix.std }} \
@@ -60,7 +72,7 @@ jobs:
       - name: The same test under the address and undefined-behaviour sanitisers
         run: |
           set -e
-          gcc -std=${{ matrix.std }} -O1 -g \
+          gcc -std=$CSTD -O1 -g \
               -fsanitize=address,undefined -fno-omit-frame-pointer \
               -Wall -Wextra -Werror \
               -o build-host/test_presence_san_${{ matrix.std }} \
@@ -89,7 +101,24 @@ jobs:
         run: |
           set -e
           mkdir -p build-host
-          ${{ matrix.cxx }} -std=${{ matrix.std }} -O2 \
+          # The first run found that gcc 13 has no C++26 mode at all: neither
+          # -std=c++2c nor -std=c++26 is accepted. There is nothing to translate
+          # the flag to, so when that happens the C++26 probes are measured under
+          # the highest mode this compiler has, c++23, and every one of them will
+          # report NOT available. That result is the finding, and the log says so
+          # in words so that a green badge cannot be mistaken for C++26 support.
+          STD=${{ matrix.std }}
+          if [ "$STD" = c++2c ] && ! ${{ matrix.cxx }} -std=c++2c -fsyntax-only -x c++ /dev/null 2>/dev/null; then
+            if ${{ matrix.cxx }} -std=c++26 -fsyntax-only -x c++ /dev/null 2>/dev/null; then
+              STD=c++26
+            else
+              echo "this compiler has NO C++26 mode; the C++26 probes are measured under -std=c++23 and will all report NOT available"
+              STD=c++23
+            fi
+          fi
+          echo "CXXSTD=$STD" >> "$GITHUB_ENV"
+          echo "compiler: $(${{ matrix.cxx }} --version | head -1), standard flag: -std=$STD"
+          ${{ matrix.cxx }} -std=$STD -O2 \
               -Wall -Wextra -Werror -Wpedantic -Wshadow -Wconversion \
               -fno-exceptions -fno-rtti \
               -o build-host/test_presence_cpp \
@@ -102,7 +131,7 @@ jobs:
       - name: The same under the sanitisers
         run: |
           set -e
-          ${{ matrix.cxx }} -std=${{ matrix.std }} -O1 -g \
+          ${{ matrix.cxx }} -std=$CXXSTD -O1 -g \
               -fsanitize=address,undefined -fno-omit-frame-pointer \
               -Wall -Wextra -Werror -fno-exceptions -fno-rtti \
               -o build-host/test_presence_cpp_san \

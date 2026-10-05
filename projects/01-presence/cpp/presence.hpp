@@ -95,6 +95,13 @@ struct Row {
     State from;
     Event event;
     Guard guard;        // nullptr means unguarded, and is last among its pair
+    // The same fact as `guard != nullptr`, written out by hand and duplicated on
+    // purpose. The consteval order check in presence23.hpp reads this bool rather
+    // than comparing the pointer, because gcc 13 under -fsanitize does not treat
+    // a function-pointer comparison with nullptr as a constant expression, while
+    // clang and gcc at -O2 do. The test asserts the two agree on every row, so
+    // the duplication cannot drift silently.
+    bool guarded;
     Action action;
     State to;
     std::string_view name;
@@ -178,37 +185,37 @@ inline void apply_settings(Context& c, const Ev& ev) {
 // asserted against a macro. The order is the C table's order, row for row.
 inline constexpr std::array<Row, 28> kTable{{
     // 0 to 7: Free
-    {State::Free, Event::Reading, detail::run_completes, detail::on_arrive, State::Occupied, "free reading run_completes"},
-    {State::Free, Event::Reading, detail::in_range, detail::count_run, State::Free, "free reading in_range"},
-    {State::Free, Event::Reading, detail::out_of_range, detail::reset_run, State::Free, "free reading out_of_range"},
-    {State::Free, Event::Tick, nullptr, detail::none, State::Free, "free tick"},
-    {State::Free, Event::Timeout, nullptr, detail::none, State::Free, "free timeout stale"},
-    {State::Free, Event::Button, nullptr, detail::force_occupied, State::Occupied, "free button"},
-    {State::Free, Event::Fault, nullptr, detail::latch_fault, State::Fault, "free fault"},
-    {State::Free, Event::Settings, nullptr, detail::apply_settings, State::Free, "free settings"},
+    {State::Free, Event::Reading, detail::run_completes, true, detail::on_arrive, State::Occupied, "free reading run_completes"},
+    {State::Free, Event::Reading, detail::in_range, true, detail::count_run, State::Free, "free reading in_range"},
+    {State::Free, Event::Reading, detail::out_of_range, true, detail::reset_run, State::Free, "free reading out_of_range"},
+    {State::Free, Event::Tick, nullptr, false, detail::none, State::Free, "free tick"},
+    {State::Free, Event::Timeout, nullptr, false, detail::none, State::Free, "free timeout stale"},
+    {State::Free, Event::Button, nullptr, false, detail::force_occupied, State::Occupied, "free button"},
+    {State::Free, Event::Fault, nullptr, false, detail::latch_fault, State::Fault, "free fault"},
+    {State::Free, Event::Settings, nullptr, false, detail::apply_settings, State::Free, "free settings"},
     // 8 to 14: Occupied
-    {State::Occupied, Event::Reading, detail::in_range, detail::refresh, State::Occupied, "occupied reading in_range"},
-    {State::Occupied, Event::Reading, detail::out_of_range, detail::start_hold, State::Held, "occupied reading out_of_range"},
-    {State::Occupied, Event::Tick, nullptr, detail::none, State::Occupied, "occupied tick"},
-    {State::Occupied, Event::Timeout, nullptr, detail::none, State::Occupied, "occupied timeout stale"},
-    {State::Occupied, Event::Button, nullptr, detail::force_free, State::Free, "occupied button"},
-    {State::Occupied, Event::Fault, nullptr, detail::latch_fault, State::Fault, "occupied fault"},
-    {State::Occupied, Event::Settings, nullptr, detail::apply_settings, State::Occupied, "occupied settings"},
+    {State::Occupied, Event::Reading, detail::in_range, true, detail::refresh, State::Occupied, "occupied reading in_range"},
+    {State::Occupied, Event::Reading, detail::out_of_range, true, detail::start_hold, State::Held, "occupied reading out_of_range"},
+    {State::Occupied, Event::Tick, nullptr, false, detail::none, State::Occupied, "occupied tick"},
+    {State::Occupied, Event::Timeout, nullptr, false, detail::none, State::Occupied, "occupied timeout stale"},
+    {State::Occupied, Event::Button, nullptr, false, detail::force_free, State::Free, "occupied button"},
+    {State::Occupied, Event::Fault, nullptr, false, detail::latch_fault, State::Fault, "occupied fault"},
+    {State::Occupied, Event::Settings, nullptr, false, detail::apply_settings, State::Occupied, "occupied settings"},
     // 15 to 21: Held
-    {State::Held, Event::Reading, detail::in_range, detail::cancel_hold, State::Occupied, "held reading in_range"},
-    {State::Held, Event::Reading, detail::out_of_range, detail::none, State::Held, "held reading out_of_range"},
-    {State::Held, Event::Timeout, nullptr, detail::release, State::Free, "held timeout release"},
-    {State::Held, Event::Tick, nullptr, detail::none, State::Held, "held tick"},
-    {State::Held, Event::Button, nullptr, detail::force_free, State::Free, "held button"},
-    {State::Held, Event::Fault, nullptr, detail::latch_fault, State::Fault, "held fault"},
-    {State::Held, Event::Settings, nullptr, detail::apply_settings, State::Held, "held settings"},
+    {State::Held, Event::Reading, detail::in_range, true, detail::cancel_hold, State::Occupied, "held reading in_range"},
+    {State::Held, Event::Reading, detail::out_of_range, true, detail::none, State::Held, "held reading out_of_range"},
+    {State::Held, Event::Timeout, nullptr, false, detail::release, State::Free, "held timeout release"},
+    {State::Held, Event::Tick, nullptr, false, detail::none, State::Held, "held tick"},
+    {State::Held, Event::Button, nullptr, false, detail::force_free, State::Free, "held button"},
+    {State::Held, Event::Fault, nullptr, false, detail::latch_fault, State::Fault, "held fault"},
+    {State::Held, Event::Settings, nullptr, false, detail::apply_settings, State::Held, "held settings"},
     // 22 to 27: Fault, a latch left only by the button
-    {State::Fault, Event::Button, nullptr, detail::clear_fault, State::Free, "fault button"},
-    {State::Fault, Event::Tick, nullptr, detail::none, State::Fault, "fault tick"},
-    {State::Fault, Event::Reading, nullptr, detail::none, State::Fault, "fault reading"},
-    {State::Fault, Event::Timeout, nullptr, detail::none, State::Fault, "fault timeout"},
-    {State::Fault, Event::Fault, nullptr, detail::none, State::Fault, "fault fault"},
-    {State::Fault, Event::Settings, nullptr, detail::apply_settings, State::Fault, "fault settings"},
+    {State::Fault, Event::Button, nullptr, false, detail::clear_fault, State::Free, "fault button"},
+    {State::Fault, Event::Tick, nullptr, false, detail::none, State::Fault, "fault tick"},
+    {State::Fault, Event::Reading, nullptr, false, detail::none, State::Fault, "fault reading"},
+    {State::Fault, Event::Timeout, nullptr, false, detail::none, State::Fault, "fault timeout"},
+    {State::Fault, Event::Fault, nullptr, false, detail::none, State::Fault, "fault fault"},
+    {State::Fault, Event::Settings, nullptr, false, detail::apply_settings, State::Fault, "fault settings"},
 }};
 
 constexpr std::size_t kRowCount = kTable.size();

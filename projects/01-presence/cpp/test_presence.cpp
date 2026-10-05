@@ -174,12 +174,27 @@ static void test_queue() {
     CHECK(!v26::enqueue(q, Ev{Event::Tick, 99, {}}), "the seventeenth is refused, not dropped silently");
 }
 
+// Row::guarded duplicates `guard != nullptr` by hand so that the consteval order
+// check in presence23.hpp can read a bool, after gcc 13 under the sanitisers
+// refused the pointer comparison as a constant expression. A duplicated fact
+// drifts unless something checks it, and this is that something: the pointer
+// comparison is fine at run time, so every row's bool is held against it here.
+static void test_guarded_flag_agrees_with_the_pointer() {
+    std::printf("Row::guarded agrees with the guard pointer on every row\n");
+    for (std::size_t i = 0; i < kRowCount; ++i)
+        CHECK((kTable[i].guard != nullptr) == kTable[i].guarded,
+              "row %zu: guarded=%d but the pointer says %d", i,
+              static_cast<int>(kTable[i].guarded),
+              static_cast<int>(kTable[i].guard != nullptr));
+}
+
 static std::uint32_t coverage[kRowCount];
 static void accumulate() { for (std::size_t i = 0; i < kRowCount; ++i) coverage[i] += ctx.row_taken[i]; }
 
 int main() {
     void (*cases[])() = {test_sitting, test_arrival_order, test_only_one_release,
                          test_stale_timer, test_fault_latch, test_remaining, test_refusals,
+                         test_guarded_flag_agrees_with_the_pointer,
 #if PRESENCE_HAS_EXPECTED
                          test_expected_return,
 #endif

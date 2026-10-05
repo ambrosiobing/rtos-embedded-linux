@@ -84,9 +84,17 @@ static_assert(table_is_total(), "a (state, event) pair has no row: the table is 
 // And the pair that is told apart only by guard order: an unguarded row must be
 // last among the rows sharing its state and event, or it would shadow the
 // guarded ones after it. Also a compile-time check.
+//
+// This reads Row::guarded, a bool, and not `guard != nullptr`. The first CI run
+// found that gcc 13 compiling with -fsanitize=address,undefined refuses to treat
+// a function pointer compared with nullptr as a constant expression, with
+//     error: '(presence::detail::run_completes != 0)' is not a constant expression
+// while the same line is accepted by gcc at -O2 and by clang at every setting.
+// So the compile-time proof compares a bool that is always a constant, and the
+// runtime test proves the bool agrees with the pointer on every row.
 consteval bool unguarded_rows_are_last() {
     for (std::size_t i = 0; i < kRowCount; ++i) {
-        if (kTable[i].guard != nullptr) continue;
+        if (kTable[i].guarded) continue;
         for (std::size_t j = i + 1; j < kRowCount; ++j) {
             if (kTable[j].from == kTable[i].from && kTable[j].event == kTable[i].event)
                 return false;

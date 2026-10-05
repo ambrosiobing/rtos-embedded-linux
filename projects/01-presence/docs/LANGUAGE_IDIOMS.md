@@ -62,6 +62,41 @@ function. Both are in the standard. Neither is in the toolchain. That gap is the
 most important fact on this page, and it is why every C++26 idiom here is probed
 rather than assumed.
 
+## Findings from the first CI run, Sunday 5 October 2026
+
+Fifteen jobs, twelve green, and the three red ones each taught something the green
+ones could not.
+
+The compilers: **clang is `Ubuntu clang version 18.1.3 (1ubuntu1)`**, read from the
+log. **gcc's version was not printed by that run**, and the series is inferred as 13
+from the two flags it refused and the alternatives it suggested. An inference is not
+a measurement, so the workflow now prints the compiler's own version line beside
+every feature report, and this paragraph gets replaced with the real string after
+the next run.
+
+**gcc 13 spells C23 as `-std=c2x`.** It rejected `-std=c23` outright, with "did
+you mean -std=c2x", while clang 18 accepted it. Same standard, pre-release name.
+The workflow probes and uses whichever the compiler takes, and says which.
+
+**gcc 13 has no C++26 mode at all.** Neither `-std=c++2c` nor `-std=c++26` is
+accepted; it suggested `-std=c++20`. There is nothing to translate the flag to, so
+on that compiler the C++26 probes are measured under `-std=c++23`, and every one
+reports *NOT available*. **Until the runner moves to gcc 14, every C++26 entry in
+the table above is a clang++ measurement only.** That is the single most important
+line on this page, and the workflow prints it in words so a green badge cannot be
+mistaken for C++26 support.
+
+**gcc 13 under the sanitisers will not compare a function pointer with `nullptr`
+in a constant expression.** The `consteval` guard-order proof did exactly that,
+and at `-O1 -g -fsanitize=address,undefined` gcc reported
+`'(presence::detail::run_completes != 0)' is not a constant expression`, while the
+same line compiled at `-O2` and under clang at every setting. The proof now reads
+a `bool guarded` written by hand into each row, and the runtime test asserts that
+bool agrees with the pointer on all 28 rows, so the duplication cannot drift. This
+is the one failure that was in the source rather than in the flags, and it is
+recorded in the `consteval` row of the C++ table above as the reason that row is
+written the way it is.
+
 ## Rust: editions 2018, 2021, 2024
 
 Not started. The section is here so the shape of the page is complete and so a
