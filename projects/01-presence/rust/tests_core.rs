@@ -149,9 +149,14 @@ fn a_fault_leaves_only_by_the_button() {
 #[test]
 fn every_row_is_reachable() {
     let mut taken = [0u32; ROW_COUNT];
+    // Zipped rather than indexed. clippy's `needless_range_loop` objects to the
+    // index, and its own suggestion keeps one in order to reach into the second
+    // array; zipping removes it from both. The two arrays being the same length
+    // stops being an assumption the loop bound restates and becomes the shape of
+    // the iterator, which is the better reason to write it this way.
     let mut sweep = |p: &Presence| {
-        for i in 0..ROW_COUNT {
-            taken[i] += p.row_taken[i];
+        for (total, this_run) in taken.iter_mut().zip(&p.row_taken) {
+            *total += this_run;
         }
     };
 

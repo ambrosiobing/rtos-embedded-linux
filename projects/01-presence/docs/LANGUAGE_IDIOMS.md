@@ -212,11 +212,11 @@ action name.
 
 ### What the compiler rejected, in WSL on Monday 5 October 2026
 
-The first contact with a real toolchain refused the source four times. All four are
-recorded because the first two are the only edition-level differences this table
-has produced, and they are the reason for having three crates at all. The section
-above argues that an edition changes what the language permits; these are the two
-places where it did.
+A real toolchain has refused this source five times across two attempts. All five
+are recorded, because the first two are the only edition-level differences this
+table has produced and they are the reason for building three crates rather than
+one. The section above argues that an edition changes what the language permits;
+these are the two places where it did.
 
 | # | Edition | What was refused | Why it is an edition difference |
 |---|---|---|---|
@@ -224,11 +224,23 @@ places where it did.
 | 2 | **2024 only** | the nested `if let Some(g) = row.guard { if !g(..) }` in `dispatch` | let-chains are stable in edition 2024, so clippy asks for `if let ... && ...`, a form editions 2018 and 2021 cannot parse. **One source for three editions cannot take that offer.** Rewritten as `row.guard.is_some_and(..)`, which is the C's single condition and legal in every edition |
 | 3 | all three | `#![cfg_attr(not(test), no_std)]` in `presence_core.rs` | not an edition matter and the most useful of the four. `no_std` is a *crate* attribute, so in a file included as a module it does nothing: rustc reports `unused_attributes`, and `warnings = "deny"` turns that into a failure. **The project's central claim about the node was being made in a file that cannot make it.** The three crate roots carry it, and always did |
 | 4 | all three | `Presence::default()` followed by field assignment | clippy's `field_reassign_with_default`, and it is right on this table's own terms: between the statements a value exists with `state = Held` and no running hold, which is precisely what `check_invariants` rejects. Rewritten as one struct expression |
+| 5 | all three | `for i in 0..ROW_COUNT { taken[i] += p.row_taken[i]; }` | clippy's `needless_range_loop`. Its own suggestion keeps an index in order to reach into the second array; zipping the two removes it from both, and the fact that they are the same length becomes the iterator's shape rather than something a loop bound asserts |
 
-Finding 2 is attributed by elimination rather than read from the log: the 2024 crate
-reported exactly one error more than the 2021 crate, and that `if let` is the only
-construct in either file which edition 2024 treats differently. The next run settles
-it, because if the attribution is wrong the extra error will still be there.
+**Finding 2 is now confirmed, and it was not confirmed when it was written.** It was
+attributed by elimination: the 2024 crate reported exactly one error more than the
+2021 crate, and that `if let` was the only construct in either file which edition
+2024 treats differently. The run after the rewrite reported nothing specific to 2024,
+which is what settles it. Had the attribution been wrong, the extra error would have
+survived the fix and said so.
+
+**Finding 5 is a lesson about reading logs, not about Rust.** It was present in the
+very first clippy run and went unseen, because that output was read through
+`tail -40` and only the per-crate error totals survived the truncation. The totals
+were then reconciled against the findings already in hand and appeared to balance,
+which they did only because one error had been assigned to the wrong target:
+`cfg_attr(not(test), ..)` expands to nothing under `--test`, so finding 3 could never
+have been among the test target's errors. A count that balances is not evidence when
+the terms are unverified. Read the whole log, or ask for `--message-format short`.
 
 Finding 3 is the one worth carrying to other projects. A `no_std` attribute in the
 wrong file is invisible: the crate still builds, the tests still pass, and the claim
@@ -245,14 +257,21 @@ crate, so that the twenty-eight rows stay one per line and can be read beside
 else in both files is in rustfmt's own form and the `--check` gate still applies to
 it.
 
-**Still not measured.** The compiler has refused this source; it has not yet
-accepted it. Until the `rust` job runs green, these remain open: whether all three
-editions build, whether clippy at `-D warnings` is clean, whether the 96-combination
-cross-check between the match and the array agrees, and whether the library really
-is `no_std`, which the job checks by building for `thumbv7em-none-eabihf` rather
-than by trusting the attribute. That last one is why finding 3 matters: a host test
-proves nothing about `no_std`, because the test configuration pulls in std for the
-harness.
+**What is settled and what is not.** Two things are now measured in WSL on
+Monday 5 October 2026: `cargo fmt --all --check` passes, including the skipped
+table, and no error specific to edition 2024 remains. Everything else is still open,
+and the list is short: whether clippy at `-D warnings` is finally clean, whether all
+three editions build, whether the 96-combination cross-check between the match and
+the array agrees, and whether the library really is `no_std`, which the job checks by
+building for `thumbv7em-none-eabihf` rather than by trusting the attribute. That last
+one is why finding 3 matters: a host test proves nothing about `no_std`, because the
+test configuration pulls in std for the harness.
+
+The order of these findings is itself the result worth keeping. Five refusals, and
+not one of them was in the table: every one was in the spelling around it, and the
+twenty-eight rows have not changed since the C was written. The test that could
+disagree with the C about a row is the 96-combination cross-check, and it has not
+run yet.
 
 ## How to read the CI log
 

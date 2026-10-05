@@ -86,9 +86,9 @@ In WSL on the demo laptop, the same thing by hand:
 ## What is not here yet
 
 - **A green Rust job.** The three edition crates are written and the C and C++
-  jobs pass, but the `rust` job has not yet run clean: its first contact with a
-  real toolchain refused the source four times, two of those on edition grounds.
-  All four are recorded in
+  jobs pass, but the `rust` job has not yet run clean: a real toolchain has
+  refused the source five times so far, two of those on edition grounds.
+  All five are recorded in
   [docs/LANGUAGE_IDIOMS.md](docs/LANGUAGE_IDIOMS.md#what-the-compiler-rejected-in-wsl-on-monday-5-october-2026)
   rather than quietly fixed, because two of them are the only edition-level
   differences this table has produced.
