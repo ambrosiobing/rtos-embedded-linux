@@ -1,0 +1,38 @@
+/* projects/03-one-sensor/overlays/impossible.overlay: a description that cannot be true.
+ *
+ * THIS OVERLAY IS MEANT TO FAIL, and the build failing is the test. It is chapter 03's
+ * fourth criterion: an overlay naming a bus the board does not have must be refused at build
+ * time, with a message naming it, rather than producing an image that cannot work.
+ *
+ * The STM32H7A3 on this board has i2c1 through i2c4. There is no i2c5, and nothing in the
+ * board's description defines that label, so the reference below cannot be resolved.
+ *
+ * WHY THIS IS WORTH A FILE RATHER THAN A PARAGRAPH. The claim the chapter makes is that the
+ * description is checked rather than trusted. A description that is merely wrong about a
+ * pin produces a board that does not work and a long afternoon; a description that names a
+ * controller which does not exist should not survive the build at all. That is the
+ * difference between a configuration file and a checked one, and it is only a claim until
+ * something tries it.
+ *
+ * Run it with:
+ *
+ *   cmake -B build-impossible -GNinja -DBOARD=nucleo_h7a3zi_q \
+ *         -DDTC_OVERLAY_FILE=overlays/impossible.overlay -S projects/03-one-sensor
+ *
+ * A build that SUCCEEDS here refutes the criterion.
+ */
+&i2c5 {
+	status = "okay";
+
+	accel: adxl345@53 {
+		compatible = "adi,adxl345";
+		reg = <0x53>;
+		status = "okay";
+	};
+};
+
+/ {
+	aliases {
+		motion = &accel;
+	};
+};
