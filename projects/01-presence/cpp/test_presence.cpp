@@ -250,7 +250,7 @@ int main() {
     std::printf("  Settings                               %zu B\n", sizeof(Settings));
     std::printf("  Reading                                %zu B\n", sizeof(Reading));
     std::printf("  Ev, payload as std::variant            %zu B (the C union is 20)\n", sizeof(Ev));
-    std::printf("  Context                                %zu B (the C is 152)\n", sizeof(Context));
+    std::printf("  Context                                %zu B (the C is 156)\n", sizeof(Context));
 
     std::printf("\n%s: %d failure(s)\n", failures ? "FAILED" : "PASSED", failures);
     return failures ? 1 : 0;
