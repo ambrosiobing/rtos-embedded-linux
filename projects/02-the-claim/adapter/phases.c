@@ -15,7 +15,10 @@
  *
  *   1. The scripted sequence through the queue, which is a walk through the chapter's own
  *      story: a window opens on an empty room, the holder arrives, they leave, the room is
- *      free, somebody else walks in.
+ *      free, somebody else walks in. Then the power fails and the room reports itself
+ *      rejected rather than occupied, which is the service axis outranking the booking
+ *      arms, and the only place in this project where both axes are driven through a
+ *      kernel.
  *   2. A no-show produced by a REAL TIMER rather than by an injected past_grace. Every
  *      no-show elsewhere in this project is one a test wrote; this is the only one a clock
  *      caused.
@@ -114,11 +117,13 @@ static void phase_the_scripted_sequence(void)
         CLAIM_WALKIN,   /* the window closes and they are still in the room */
         CLAIM_FREE,     /* they leave */
         CLAIM_WALKIN,   /* somebody else walks in */
+        CLAIM_REJECTED, /* the power fails, and the service axis outranks the room */
+        CLAIM_WALKIN,   /* the power returns, and the room is in use again */
     };
-    static const uint8_t want_arm[] = { 8, 4, 3, 6, 8, 6 };
+    static const uint8_t want_arm[] = { 8, 4, 3, 6, 8, 6, 2, 6 };
     unsigned i;
 
-    printf("1. the chapter's sequence, through a real queue and a real thread\n");
+    printf("1. the chapter's sequence and both axes, through a real queue and thread\n");
     seen_count = 0;
 
     post(CLAIM_EV_ACTIVATE, true);
@@ -127,10 +132,18 @@ static void phase_the_scripted_sequence(void)
     post(CLAIM_EV_WINDOW, false);
     post(CLAIM_EV_PRESENCE, false);
     post(CLAIM_EV_PRESENCE, true);
+
+    /* The service axis, which is half of this chapter and which no other phase
+     * exercises through a kernel. It outranks the booking arms, so a room in use
+     * reports itself rejected rather than occupied, and the presence input is not
+     * touched by either post: the two axes run beside each other and neither is a
+     * state of the other. */
+    post_service(SVC_OUT_OF_SERVICE, SVC_REASON_POWER);
+    post_service(SVC_OK, SVC_REASON_NONE);
     claim_adapter_sleep_ms(50);
 
-    CHECK(seen_count == 6u, "six decisions, saw %u", seen_count);
-    for (i = 0; i < 6u && i < seen_count; i++) {
+    CHECK(seen_count == 8u, "eight decisions, saw %u", seen_count);
+    for (i = 0; i < 8u && i < seen_count; i++) {
         CHECK(seen_code[i] == want_code[i],
               "step %u was %s, expected %s", i, code_of(i),
               claim_code_name((claim_code_t)want_code[i]));
