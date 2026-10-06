@@ -1,12 +1,17 @@
 # P02. The claim, and the service axis
 
-Status on Tuesday 6 October 2026: **designed, and not one line of code written.** The
-design page is [docs/DESIGN.md](docs/DESIGN.md) and it was committed before any code,
-which is chapter 02's first requirement and the reason the git history is the evidence
-for it rather than this sentence.
+Status on Tuesday 6 October 2026: **the C cascade is written and green**, in WSL on the
+demo laptop, under `-Werror -Wconversion` with the address and undefined-behaviour
+sanitisers. All seven of chapter 02's acceptance criteria pass, and the twenty-two cases
+reach all seven claim codes, all eight arms, all seven service states and all seven
+service reasons.
+
+The design page is [docs/DESIGN.md](docs/DESIGN.md) and it was committed **before any
+code**, which is chapter 02's first requirement and the reason the git history is the
+evidence for it rather than this sentence.
 
 The written design is [chapter 02](../../chapters/02-the-claim.md), which is complete.
-What is absent is everything that runs.
+What is absent is the other two languages, the cross-check and the kernels.
 
 | | |
 |---|---|
@@ -40,17 +45,33 @@ be booked must not report itself free**.
 | Part | State |
 |---|---|
 | [docs/DESIGN.md](docs/DESIGN.md) | the cascade in order, the two axes, the six invariants, the spool arithmetic, and a Mermaid diagram of the arms |
+| [c/claim.h](c/claim.h) | seven codes and the fall-through, seven service states, seven reasons, the settings and the spool |
+| [c/claim.c](c/claim.c) | the eight arms as one pure function, and a ring bounded in bytes |
+| [c/test_claim.c](c/test_claim.c) | the twenty-two cases as a table, and chapter 02's seven criteria as seven named tests |
 | [docs/figures](docs/figures) | the chapter's five figures, as rendered SVG |
-| everything else | **not written** |
+| the other languages, the cross-check, the kernels | **not written** |
+
+## What the run prints, because the page should not be the source of a number
+
+    22 cases, 7 claim codes and the fall-through, 7 service states, 7 reasons
+    4400 steps, 1399 events, 512 retained, 887 discarded
+    event 8 bytes, bound 4096 bytes, so capacity 512 events
+    offered 1000, retained 512, discarded 488
+
+The event is fixed at 8 bytes by a `_Static_assert`, so the 4096-byte bound buying 512
+events is a compile-time fact and not an arithmetic claim. The spool lines are the
+chapter's seventh criterion: retained plus discarded equals offered, and the **oldest**
+went first, which a ring discarding the newest would also satisfy on the counts alone
+while keeping a record of a room that has moved on.
 
 ## What is planned, in the order P01 established
 
 That order is not a preference. It is what made P01's claims checkable, and each step
 exists to catch something the step before it cannot.
 
-1. **The C cascade and its host test**, with the twenty-two cases of chapter 02 driving
-   all seven claim codes and all seven service codes, and the invariants checked after
-   every case rather than at the end.
+1. ~~The C cascade and its host test.~~ **Done and green.** The invariants are checked
+   after every case rather than at the end, because a broken invariant can be transient
+   and still wrong.
 2. **The same cascade in C++17, C++23 and C++2c**, where the later two should be able to
    prove the arm order and the code count at compile time rather than by a test, as
    P01's `consteval` proofs do for its table.
