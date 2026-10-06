@@ -10,11 +10,12 @@
 //! earlier language wins, and the volume's habit is to record those rather than to let a
 //! comparison read as a ranking.
 
-use super::claim::{
-    checked_settings, decide, emits, Code, Decision, Event, Guard, Inputs, Machine, Reason,
-    Service, Settings, SettingsError, Spool, ARM_COUNT, CODE_COUNT, EVENT_BYTES,
-    PUBLISHED_CODES, REASON_COUNT, REASONS, SERVICE_STATES, SPOOL_BYTES_MAX, SPOOL_SLOTS,
-};
+// A glob, and not from laziness. rustfmt sorts a multi-line import list differently
+// under the 2024 style edition, which puts the capitalised names first, from the way
+// 2018 and 2021 sort it. One shared source cannot satisfy both, so a list here would
+// make `cargo fmt --check` fail under one edition or the other whatever it contained.
+// P01's shared test reached the same conclusion first.
+use super::claim::*;
 
 // ------------------------------------------------------------- the twenty-two cases
 
@@ -153,7 +154,11 @@ fn a_live_booking_beats_a_walk_in() {
     };
 
     let d = decide(&input);
-    assert_eq!(d.code, Code::Booked, "a booked room with its holder present");
+    assert_eq!(
+        d.code,
+        Code::Booked,
+        "a booked room with its holder present"
+    );
     assert_eq!(d.arm, 3, "the booking arm is 3");
 
     input.window_open = false;
@@ -469,10 +474,22 @@ fn the_guard_option_costs_nothing_and_the_sizes_are_printed() {
         "Option<fn> must cost nothing, or the unguarded arm is paying for its clarity"
     );
 
-    println!("Option<Guard> {} bytes, Guard {} bytes", size_of::<Option<Guard>>(), size_of::<Guard>());
+    println!(
+        "Option<Guard> {} bytes, Guard {} bytes",
+        size_of::<Option<Guard>>(),
+        size_of::<Guard>()
+    );
     println!("Event {} bytes, the C and C++ pin theirs at 8", EVENT_BYTES);
-    println!("Inputs {} bytes, Decision {} bytes", size_of::<Inputs>(), size_of::<Decision>());
-    println!("Code {} bytes, Service {} bytes", size_of::<Code>(), size_of::<Service>());
+    println!(
+        "Inputs {} bytes, Decision {} bytes",
+        size_of::<Inputs>(),
+        size_of::<Decision>()
+    );
+    println!(
+        "Code {} bytes, Service {} bytes",
+        size_of::<Code>(),
+        size_of::<Service>()
+    );
 
     // The spool arithmetic depends on this, and Rust may reorder fields where the C may
     // not, so it is printed and asserted rather than assumed.

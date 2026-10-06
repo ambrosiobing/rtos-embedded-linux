@@ -340,7 +340,7 @@ pub fn emits(prev: Code, now: Code) -> bool {
 
 // --------------------------------------------------------------- the settings
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct Settings {
     pub grace_s: u32,
     pub brb_hold_s: u32,
@@ -379,8 +379,12 @@ impl SettingsError {
     pub fn name(self) -> &'static str {
         match self {
             SettingsError::GraceIsZero => "a grace period of zero releases every booking at once",
-            SettingsError::SpoolHoldsNoEvents => "a spool bound below one event discards everything in silence",
-            SettingsError::WalkinShorterThanGrace => "a walk-in shorter than the grace period frees a room in use",
+            SettingsError::SpoolHoldsNoEvents => {
+                "a spool bound below one event discards everything in silence"
+            }
+            SettingsError::WalkinShorterThanGrace => {
+                "a walk-in shorter than the grace period frees a room in use"
+            }
         }
     }
 }
