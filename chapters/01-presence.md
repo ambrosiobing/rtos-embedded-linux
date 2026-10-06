@@ -271,20 +271,25 @@ void pres_dispatch(pres_ctx_t *c, pres_event_t ev)
 
 **Step 5.** **Put the thresholds in settings, not in the source.** Three values: how many consecutive readings make an arrival, how many zones count as occupied, and how long the hold lasts. They are read once at start and on the settings event, and the shell can change one without a rebuild. P07 adds the versioned schema; here they are simply keys.
 
-**Step 6.** **Run it on the host first.** The whole point of the two builds is that the control flow can be exercised before a board is involved. Scripted event sequences go in, the final state and the counters come out.
+**Step 6.** **Run it on the host first.** The whole point of the two builds is that the control flow can be exercised before a board is involved. Scripted event sequences go in, the final state and the counters come out. This is the one step below that has actually been run: on Tuesday 6 October 2026, in WSL on the demo laptop.
 
 ```bash
-west build -p -b native_sim projects/P01-presence -- -DCONFIG_ZTEST=y
-./build/zephyr/zephyr.exe
+cmake -B build-zephyr -GNinja -DBOARD=native_sim -S projects/01-presence/zephyr
+ninja -C build-zephyr
+./build-zephyr/zephyr/zephyr.exe
 ```
 
-**Step 7.** **Then build for the board and watch the lamps.**
+**Not `west build`, and this chapter said otherwise until the command was run.** That is an extension command which west discovers through its workspace manifest, so it exists only inside the workspace; invoked from this repository it reports that `build` is an unknown command. `west zephyr-export` registers Zephyr's CMake package once, and `find_package(Zephyr)` then locates it from anywhere, which is why plain CMake needs no workspace and why a CI job is cheap. Two smaller corrections came with it: the directory is `projects/01-presence/zephyr` rather than `projects/P01-presence`, and the adapter carries its own four phases rather than ztest, so there is no `CONFIG_ZTEST` to set. Zephyr also wants a toolchain variant even for `native_sim`, which `CMakeLists.txt` supplies, so the three lines above are the whole of the build.
+
+**Step 7.** **Then build for the board and watch the lamps.** **Not run.** No board has run any of this, and the lines below are the plan rather than a record.
 
 ```bash
-west build -p -b nucleo_h7a3zi_q projects/P01-presence
+west build -p -b nucleo_h7a3zi_q projects/01-presence/zephyr
 west flash
-west espressif monitor 2>/dev/null || picocom -b 115200 /dev/ttyACM0
+picocom -b 115200 /dev/ttyACM0
 ```
+
+For the board `west build` is the right tool rather than the wrong one, because flashing wants the runner configuration that a workspace carries; that is the one place this chapter asks for a workspace. The monitor line previously named an Espressif command, on a chapter whose only target is an ST board.
 
 **Step 8.** **Prove the reachability counter by making it fail.** Comment out one scripted sequence, run the suite, and confirm that the uncovered row is named. A coverage check that has never reported a gap has not been shown to work, and this is the cheapest place in the volume to establish that habit.
 
@@ -292,7 +297,7 @@ west espressif monitor 2>/dev/null || picocom -b 115200 /dev/ttyACM0
 
 The board carries a debug probe that is also the virtual console and a drag-and-drop disk, so `west flash` and `west debug` both work with no extra hardware. Two console habits are worth fixing here because the whole volume inherits them.
 
-The log line has one shape, a timestamp followed by key-value pairs, because a log that mixes prose and values cannot be counted and the acceptance test below counts. The shell carries one command, `presence`, which prints the current state, the time in it, the release counter and the twelve row counters. That single command is what turns a question about field behaviour into an answer rather than a theory.
+The log line has one shape, a timestamp followed by key-value pairs, because a log that mixes prose and values cannot be counted and the acceptance test below counts. The shell carries one command, `presence`, which prints the current state, the time in it, the release counter and the twenty-nine row counters. That single command is what turns a question about field behaviour into an answer rather than a theory.
 
 ## Verification and acceptance criteria
 
@@ -341,9 +346,9 @@ P02 is the direct continuation and the reason this chapter stops where it does: 
 
 The idiom this chapter proves is **maintainability**: the pins live in the devicetree and the behaviour lives in a table, so neither is edited to change the other. The command that proves it is
 
-`west build -p -b native_sim projects/P01-presence -- -DCONFIG_ZTEST=y && ./build/zephyr/zephyr.exe`
+`cmake -B build-zephyr -GNinja -DBOARD=native_sim -S projects/01-presence/zephyr && ninja -C build-zephyr && ./build-zephyr/zephyr/zephyr.exe`
 
-which runs the full transition suite, prints all twenty-nine row counters and the release count, and needs no board. Publish the architecture figure, the state diagram, the counter output for all twenty-nine rows, and the one paragraph on why a missed release is the failure that matters.
+which runs the four adapter phases through a real queue, a real dispatch thread and a real kernel timer, and needs no board. The same four phases run against FreeRTOS from the same source file, and both are jobs in `code.yml`. Publish the architecture figure, the state diagram, the counter output for all twenty-nine rows, and the one paragraph on why a missed release is the failure that matters.
 
 ## Sources
 

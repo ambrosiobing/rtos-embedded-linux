@@ -7,8 +7,8 @@ later two prove the guard order and the row count at compile time rather than by
 test; Rust under all three editions, 33 tests; and **both the FreeRTOS and the Zephyr
 adapters**, where the same rows are taken through a real queue, a real dispatch thread
 and a release produced by a real kernel timer, from one shared test that contains no
-kernel header. The three red CI runs before that came from a string
-literal a scripted edit split, which `f59bd18` fixed; CI has not reported since.
+kernel header, and both now have a CI job. The three red CI runs before that came from a
+string literal a scripted edit split, which `f59bd18` fixed; CI has not reported since.
 **Nothing has run on a board, and nothing is compiled on the laptop this was written
 on**, which runs no compiler for it: the toolchains are in CI and in WSL on the demo
 laptop.
@@ -45,7 +45,7 @@ code, which is the chapter's first requirement.
 | [scripts/crosscheck_table.py](../../scripts/crosscheck_table.py) | the three tables compared row for row, in CI, so "the same table" is enforced rather than repeated |
 | [adapter/](adapter/) | the contract every adapter implements, and the four test phases, which include no kernel header so that one test runs against every kernel |
 | [freertos/](freertos/) | the first adapter. **Green, and a CI job**: the same rows through real plumbing, a release by a real timer, and a full queue counted |
-| [zephyr/](zephyr/) | the second adapter, on `native_sim`. **Builds and runs.** Writing it showed which parts of the first adapter's interface were one kernel's calling convention, and running it showed which part of the shared test was one kernel's arithmetic |
+| [zephyr/](zephyr/) | the second adapter, on `native_sim`. **Green in WSL, and a CI job that has not reported yet** that needs no SDK because `native_sim` uses the host compiler. Writing it showed which parts of the first adapter's interface were one kernel's calling convention, and running it showed which part of the shared test was one kernel's arithmetic |
 | [qnx/](qnx/) | the third adapter, **written and never compiled**, because there is no licence and no target here. It is the kernel that does not fit, and the misfit is what produced the twenty-ninth row |
 
 ## What the table is, and why it is the specification
@@ -62,7 +62,7 @@ attention. `presence_check_invariants` is that invariant written down, and the
 host test calls it after **every single dispatch** rather than at the end, because
 a lost release can be transient and still wrong.
 
-## Three findings from writing it
+## Four findings from writing it
 
 **The table was not total in its first draft.** `FREE` and `OCCUPIED` had no
 `TIMEOUT` row, and a stale hold timer genuinely arrives in both: row 15 cancels a
@@ -80,6 +80,19 @@ is harder to see: every state along the way is legal and the invariant holds at 
 step. Row 17 is now guarded by the hold having actually expired and row 18 absorbs
 the rest, which is the only change these rows have had since the C was written. The
 argument is in [docs/RTOS_VARIANTS.md](docs/RTOS_VARIANTS.md) and was written first.
+
+**A queue with a receiver waiting holds one more than its depth, on one of the two
+kernels.** The shared test posted two events past a queue of sixteen and asserted that
+two were refused. FreeRTOS refuses two. Zephyr refuses **one**, because `k_msgq_put`
+hands a message straight to a thread already blocked in `k_msgq_get` and bypasses the
+buffer, while FreeRTOS copies into the queue storage and then unblocks the receiver.
+The number was never what the phase was for: it exists to show that an event a queue
+cannot take is refused **and counted**, because a lost event is a lost release and an
+adapter that dropped quietly would pass every other phase. That is now what it asserts,
+with the count printed so the log records which kernel did what. **One implementation
+cannot tell you which of your assertions are about the design and which are about one
+kernel**, and this is the second time the second adapter answered that question; the
+first was the interrupt post's yield flag.
 
 **The row index is asserted, not only the state.** Rows 0 and 1 share a from-state
 and an event and differ only by their guard. Swapping them delays every arrival by

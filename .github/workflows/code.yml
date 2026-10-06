@@ -238,3 +238,74 @@ jobs:
 
       - name: The four phases
         run: make run
+
+  zephyr:
+    runs-on: ubuntu-latest
+    name: Zephyr, the same adapter test on native_sim
+    steps:
+      - uses: actions/checkout@v4
+
+      # native_sim compiles with the host gcc and needs no Zephyr SDK, which is the
+      # whole reason this job is affordable. The 32-bit multilib is for the board
+      # itself: plain native_sim is a 32-bit target, and native_sim/native/64 would
+      # be a different board string from the one the page documents.
+      - name: Host packages, and no SDK
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends             cmake ninja-build gperf device-tree-compiler             python3-pip python3-venv gcc-multilib g++-multilib
+
+      # A virtual environment rather than pip --user, because Ubuntu's system Python
+      # is marked externally managed and refuses the latter outright. This also
+      # mirrors the local loop, which activates ~/zephyrproject/.venv.
+      - name: A virtual environment, on PATH for every step below
+        run: |
+          python3 -m venv ~/zephyr-venv
+          ~/zephyr-venv/bin/pip install --upgrade pip west
+          echo "$HOME/zephyr-venv/bin" >> "$GITHUB_PATH"
+
+      # Keyed on the revision below, so a green run is repeatable and a red one is
+      # about this repository rather than about upstream having moved overnight.
+      - name: Restore the Zephyr tree if it has been fetched before
+        id: tree
+        uses: actions/cache@v4
+        with:
+          path: ~/zephyrproject
+          key: zephyr-v4.5.0-rc1-narrow-depth1
+
+      # Shallow, and every module rather than a hand-picked set: choosing which
+      # modules native_sim pulls in would be a guess, and the cache makes the whole
+      # tree cost one fetch.
+      - name: The tree, at a tag, shallow
+        if: steps.tree.outputs.cache-hit != 'true'
+        run: |
+          west init -m https://github.com/zephyrproject-rtos/zephyr             --mr v4.5.0-rc1 ~/zephyrproject
+          cd ~/zephyrproject
+          west update --narrow -o=--depth=1
+
+      # Order matters and cost an hour once: zephyr-export runs CMake, which imports
+      # Zephyr's own Python, so the packages have to be in place before it is called.
+      - name: Zephyr's Python packages, then the CMake package registry
+        run: |
+          cd ~/zephyrproject
+          west packages pip --install
+          west zephyr-export
+
+      - name: The version this run is against
+        run: git -C ~/zephyrproject/zephyr describe --tags --always
+
+      # No -DZEPHYR_TOOLCHAIN_VARIANT here on purpose. CMakeLists.txt sets it when
+      # nothing else has, and this job is the check that the documented three-line
+      # build is the build.
+      - name: Build, from outside any west workspace
+        run: |
+          cmake -B build-zephyr -GNinja -DBOARD=native_sim             -S projects/01-presence/zephyr
+          ninja -C build-zephyr
+
+      - name: The same four phases FreeRTOS runs
+        run: ./build-zephyr/zephyr/zephyr.exe | tee phases.log
+
+      # The executable returns the failure count, but a simulation that never reached
+      # the phases would also exit 0, so the printed line is the gate as well.
+      - name: The run must have said so
+        run: |
+          grep -q "^PASSED: 0 failure(s)$" phases.log

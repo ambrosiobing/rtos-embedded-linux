@@ -1,8 +1,17 @@
 # The presence table under Zephyr
 
-**Status: builds and runs on `native_sim` in WSL on the demo laptop, Tuesday 6 October
-2026.** Three of the four phases passed on the first run and the fourth found a
-difference between the two kernels rather than a defect; see below.
+**Status: green on `native_sim` in WSL on the demo laptop, Tuesday 6 October 2026. A CI
+job is written and has not reported yet.** Three of the four phases passed on the first run; the
+fourth found a difference between the two kernels rather than a defect, and after the
+correction both kernels pass the same file:
+
+| | depth | posted | refused |
+|---|---|---|---|
+| Zephyr, `native_sim` | 16 | 18 | **1** |
+| FreeRTOS, POSIX port | 16 | 18 | **2** |
+
+Those two numbers are the finding, and they are printed rather than asserted. The
+reason is further down.
 
 This is the second adapter. [`../freertos/`](../freertos/) was the first and is green,
 and writing a second one is what showed which parts of the first were general.
@@ -52,12 +61,12 @@ dispatch thread, are two named functions each adapter supplies.
 | Priority order | downwards: a smaller number preempts | upwards: a larger number preempts |
 | What `main` must do | nothing; it is already a thread with the scheduler running | hand the kernel memory for its idle and timer tasks, create a thread, start the scheduler |
 
-The last row is the one with a consequence. Zephyr's `main.c` here is forty lines and
-FreeRTOS's is a hundred, and nearly all of that difference is the memory the kernel
-needs for its own two tasks when it cannot allocate.
+The last row is the one with a visible consequence. Zephyr's `main.c` here is forty
+lines and FreeRTOS's is a hundred, and nearly all of that difference is the memory the
+kernel needs for its own two tasks when it cannot allocate.
 
-The second of those was found by the shared test failing, and it is the best argument
-for having written the test that way. Phase 3 asserted that posting two past the end
+**The full queue row is the one that was found rather than looked up**, and it is the
+best argument for having written one test for both kernels. Phase 3 asserted that posting two past the end
 of the queue is refused **twice**, which is true of FreeRTOS and false here: with the
 dispatch thread pending, Zephyr handed one message over directly and only one post was
 refused. The number was never the claim. What the phase exists to show is that a queue
@@ -73,8 +82,9 @@ change to any of them.
 ## Building it
 
 `native_sim` builds with the **host compiler**, not the Zephyr SDK, so this needs a
-Zephyr tree and nothing else. That is why the install is a tree rather than a three
-gigabyte toolchain.
+Zephyr tree and no toolchain install at all. The one thing Zephyr does insist on, a
+named toolchain variant, is set in `CMakeLists.txt`, so the three lines below are the
+whole of it.
 
     source ~/zephyrproject/.venv/bin/activate
     cmake -B build-zephyr -GNinja -DBOARD=native_sim -S projects/01-presence/zephyr
@@ -99,6 +109,41 @@ branch, and what arrived on Tuesday 6 October 2026 was a hundred and seventy com
 past `v4.5.0-rc1`, which is not a release and has no tag to pin. So this page records
 the commit the claim was made against, which is the most that can honestly be said
 until a release is cut.
+
+## In CI, and why it pins a tag the local run is past
+
+The job is in [`code.yml`](../../../.github/workflows/code.yml) as `zephyr`, and it is
+affordable for the same reason the local build is: `native_sim` compiles with the host
+`gcc`, so there is **no SDK download at all**. What it installs is cmake, ninja, gperf,
+dtc and the 32-bit multilib, then a Zephyr tree, which it caches.
+
+It installs west into a **virtual environment** rather than with `pip --user`, which
+mirrors the local loop for a reason that is not cosmetic: Ubuntu marks its system Python
+externally managed, so `pip --user` is refused outright there. The venv is put on
+`GITHUB_PATH` once so every later step gets both `west` and the Python it was built
+against.
+
+The 32-bit multilib is for the board and not for the kernel. Plain `native_sim` is a
+32-bit target; `native_sim/native/64` is a different board string, and the one this page
+documents is the one CI builds.
+
+**The job does not pass `-DZEPHYR_TOOLCHAIN_VARIANT`,** which is the point of putting
+the default in `CMakeLists.txt`: if CI is green, the three-line build above is the build
+and not an abridgement of it.
+
+**It pins `v4.5.0-rc1`, and the local run above is a hundred and seventy commits past
+that.** That is deliberate and it is a difference worth naming rather than hiding. A job
+that tracks `main` can go red overnight because upstream moved, which makes a red run
+mean nothing about this repository; pinning also gives the cache a stable key. The
+honest reading is that the adapter has now been built at **two points of the Zephyr
+tree** rather than one, and that neither of them is a release: `v4.5.0-rc1` is a
+candidate tag, which is the nearest thing to a fixed point Zephyr offered on Tuesday 6
+October 2026. The FreeRTOS job pins `V11.1.0`, an actual release, and that asymmetry is
+upstream's rather than this project's.
+
+The gate is the printed line, not only the exit status. The executable returns the
+failure count, but a simulation that never reached the phases at all would also exit 0,
+so CI greps for `PASSED: 0 failure(s)` as well.
 
 ## What will not be known even when it is green
 
