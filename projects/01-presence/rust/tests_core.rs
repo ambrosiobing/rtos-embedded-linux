@@ -4,15 +4,21 @@
 //! The sequences are the ones in `../c/test_presence.c`, row for row, and that
 //! file explains why each exists; they are not re-argued here.
 //!
-//! Two cases are new and are the Rust-specific part:
+//! Four cases are the Rust-specific part:
 //!
-//! * `exhaustive_match_agrees_with_the_table` holds the exhaustive `match` against
-//!   the array for every state, every event kind and both sides of every guard.
-//!   That is what makes the claim in the module documentation checkable rather
-//!   than merely stated.
+//! * `the_exhaustive_match_agrees_with_the_table` holds the exhaustive `match`
+//!   against the array for every state, every event kind and both sides of every
+//!   guard, which is 192 combinations. That is what makes the claim in the module
+//!   documentation checkable rather than merely stated.
 //! * `the_table_is_total` walks all twenty-four pairs. In C this is a run-time
 //!   test, in C++23 a `consteval`; here it is belt and braces, because the array
 //!   lookup could be made partial by deleting a row even though the match cannot.
+//! * `the_guard_discriminant_needs_no_parallel_bool` records which rows are
+//!   guarded, which the C has to keep in a second field beside each pointer.
+//! * `the_guard_option_costs_nothing_and_the_sizes_are_printed` checks that the
+//!   `Option<fn>` really is free, since a function pointer cannot be null and the
+//!   discriminant occupies that niche, and prints what this representation costs
+//!   against the C's bare union.
 
 use super::presence::*;
 
@@ -152,7 +158,11 @@ fn a_stale_timer_cannot_release_a_newer_hold() {
     // The first hold's expiry, stamped when it fired rather than when it was read,
     // which is what the adapter contract requires of every adapter.
     post(&mut p, &Ev::plain(Kind::Timeout, 30_030), 18);
-    assert_eq!(p.state, State::Held, "a stale expiry must not end a running hold");
+    assert_eq!(
+        p.state,
+        State::Held,
+        "a stale expiry must not end a running hold"
+    );
     assert_eq!(p.releases, 0, "and must not count as a release");
     assert!(p.hold_running, "the newer hold is still outstanding");
 

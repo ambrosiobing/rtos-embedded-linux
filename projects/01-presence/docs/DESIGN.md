@@ -12,9 +12,11 @@ from the same rows, and the rule the chapter states is that **the diagram and th
 table are the same object**: an edge that is not a row is a defect, not a special
 case.
 
-Nothing here is measured. The range readings come from a generated source, not a
-sensor, and the hold and grace values are defaults chosen to be arguable rather
-than results. Nobody on this bench has watched a real room for a week.
+Nothing here is measured about a room. The range readings come from a generated
+source, not a sensor, and the hold and grace values are defaults chosen to be
+arguable rather than results: nobody on this bench has watched a real room for a
+week. The memory figures near the end of this page are the exception and say so,
+because they are properties of the code rather than claims about people.
 
 ## The invariant the whole project exists to protect
 
@@ -232,6 +234,15 @@ One figure deliberately stays unmeasured. The table's size in flash cannot be ha
 from a host run, because a row is mostly pointers and the host's are twice the
 width. The test prints the host's number labelled as the host's, and the budget's
 flash row stays "not measured" until a map file from the board says otherwise.
+
+**Measured on Tuesday 6 October 2026**, in WSL on the demo laptop, under gcc at
+`-std=c11` with `-Werror -Wconversion`: every figure in the table above, printed by
+the test and pinned by the three assertions, and all 29 rows taken. The table itself
+came out at 1160 bytes on that host, which is 40 bytes a row: two four-byte enums, a
+four-byte one, two eight-byte function pointers and an eight-byte string pointer,
+with padding. A target with four-byte pointers would lay the same row out in about
+half that, which is consistent with the chapter's "under 1 kB in flash" and is still
+arithmetic rather than a map file.
 
 ## What this design does not decide
 
