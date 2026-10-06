@@ -1,13 +1,15 @@
 # P01. Presence: free, occupied, held, fault
 
-Status on Tuesday 6 October 2026, with the twenty-ninth row in: **the table passes in
-every language and every version it claims**, all of it in WSL on the demo laptop. C
-under C11; C++ under C++17, C++23 and C++2c, where the later two prove the guard order
-and the row count at compile time rather than by a test; Rust under all three
-editions, 33 tests. CI's last three runs are red from a string literal a scripted edit
-split, fixed in `f59bd18` and not yet re-run. **Nothing has run on a board, and
-nothing is compiled on the laptop this was written on**, which runs no compiler for
-it: the toolchains are in CI and in WSL on the demo laptop.
+Status on Tuesday 6 October 2026, with the twenty-ninth row in. **The table passes in
+every language and version it claims, and now under a real kernel as well**, all of it
+in WSL on the demo laptop. C under C11; C++ under C++17, C++23 and C++2c, where the
+later two prove the guard order and the row count at compile time rather than by a
+test; Rust under all three editions, 33 tests; and the FreeRTOS adapter, where the
+same rows are taken through a real queue, a real dispatch task and a release produced
+by a real software timer. CI's last three runs are red from a string literal a
+scripted edit split, fixed in `f59bd18` and not yet re-run. **Nothing has run on a
+board, and nothing is compiled on the laptop this was written on**, which runs no
+compiler for it: the toolchains are in CI and in WSL on the demo laptop.
 
 The written design is [chapter 01](../../chapters/01-presence.md). The design page
 for the code is [docs/DESIGN.md](docs/DESIGN.md), and it was written before the
@@ -39,7 +41,7 @@ code, which is the chapter's first requirement.
 | `rust/e2018`, `rust/e2021`, `rust/e2024` | three crates differing only in their edition line |
 | [docs/RTOS_VARIANTS.md](docs/RTOS_VARIANTS.md) | the contract between the table and a kernel, the mapping for Zephyr, FreeRTOS and QNX, and the argument for a twenty-ninth row |
 | [scripts/crosscheck_table.py](../../scripts/crosscheck_table.py) | the three tables compared row for row, in CI, so "the same table" is enforced rather than repeated |
-| [freertos/](freertos/) | the first kernel adapter: one queue, one dispatch task, two timers, static allocation only. **One build attempted and corrected; not yet green** |
+| [freertos/](freertos/) | the first kernel adapter: one queue, one dispatch task, two timers, static allocation only. **Green, and a CI job**: the same rows through real plumbing, a release by a real timer, and a full queue counted |
 | the Zephyr and QNX adapters | not written. Zephyr has no workspace in WSL to build against, and QNX has no licence or target here at all |
 
 ## What the table is, and why it is the specification
@@ -111,13 +113,9 @@ In WSL on the demo laptop, the same thing by hand:
 - **The bare-metal link.** Whether the library is really `no_std` is shown by none
   of the above, because the test configuration pulls in std for the harness. Only
   CI checks it, by building the library alone for `thumbv7em-none-eabihf`.
-- **A build of the FreeRTOS adapter.** [freertos/](freertos/) has had one build
-  attempt, which failed in the kernel's own port for want of POSIX declarations
-  that `-std=c11` hides, and is corrected but not yet rebuilt. Its four phases include the two things nothing else here
-  can show: a release produced by a real kernel timer rather than by an injected
-  event, and a full queue counted rather than dropped in silence.
-- **The Zephyr and QNX adapters.** The mapping and the three requirements any
-  adapter must satisfy are in [docs/RTOS_VARIANTS.md](docs/RTOS_VARIANTS.md).
+- **The Zephyr and QNX adapters.** FreeRTOS is done. The mapping and the three
+  requirements any adapter must satisfy are in
+  [docs/RTOS_VARIANTS.md](docs/RTOS_VARIANTS.md).
   Zephyr has no workspace or SDK in WSL on the demo laptop, checked on Tuesday
   6 October 2026, so it has no local loop; QNX has no licence and no target here
   at all and will be written without ever being built.

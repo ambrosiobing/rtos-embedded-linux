@@ -209,3 +209,32 @@ jobs:
               projects/01-presence/c/presence.c \
               projects/01-presence/c/test_presence.c
           ./build-host/test_presence_clang_${{ matrix.std }}
+
+  # The table under a real kernel, which is a different claim from the ones above.
+  # Those compile the table; this runs it with a real queue, a real dispatch task and
+  # a real software timer, and asserts the row sequence is the one the direct-dispatch
+  # test produces. Same rows, different plumbing.
+  #
+  # The kernel is cloned at a pinned tag rather than vendored, so this job also says
+  # which version the claim was made against. The build itself checks that no
+  # allocator is linked, which is what configSUPPORT_DYNAMIC_ALLOCATION 0 means, and
+  # the run has four phases; the two worth having are a release produced by the timer
+  # rather than by an injected event, and a queue deliberately overrun to prove a lost
+  # event is counted rather than dropped in silence.
+  freertos:
+    runs-on: ubuntu-latest
+    name: FreeRTOS, the adapter on a host
+    defaults:
+      run:
+        working-directory: projects/01-presence/freertos
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The kernel, at the tag this claim is made against
+        run: make fetch
+
+      - name: Build, and refuse a binary containing an allocator
+        run: make
+
+      - name: The four phases
+        run: make run

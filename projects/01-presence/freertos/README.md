@@ -1,11 +1,17 @@
 # The presence table under FreeRTOS
 
-**Status: one build attempted, in WSL on the demo laptop on Tuesday 6 October 2026.**
-It failed, in the compiler rather than the linker, and the correction is recorded in
-the Makefile rather than quietly applied.
+**Status: green in WSL on the demo laptop on Tuesday 6 October 2026.** It builds,
+it links, no allocator is in the binary, and all four phases pass. The table that the
+C, the C++ and the Rust suites exercise by calling `presence_dispatch` directly now
+runs with a real queue, a real dispatch task and a real software timer, and takes the
+same rows. `code.yml` runs it on every push, so it is a gate rather than something
+that happened once.
 
-The uncertainty flagged before that build was the source list: which files the POSIX
-port needs beside `port.c`. **That part was right.** `port.c` and
+Three builds were needed and each failure is recorded rather than quietly fixed,
+because what they corrected was not what had been predicted.
+
+**The first build.** The uncertainty flagged in advance was the source list: which
+files the POSIX port needs beside `port.c`. **That part was right.** `port.c` and
 `utils/wait_for_event.c` are the two, and both reached their own function bodies. What
 was wrong was the dialect. `-std=c11` is strict ISO C, under which glibc hides every
 POSIX declaration, so a port whose entire job is `pthread_sigmask`, `sigaction`,
@@ -18,9 +24,18 @@ strict `-std=c11`, deliberately: the claim this volume makes about the table is 
 it needs nothing beyond C11, and compiling it as `gnu11` here to save a line of
 Makefile would have retired that claim to spare an inconvenience.
 
-The next build is still a first build of everything past the kernel. `-Wconversion`
-with `-Werror` over an adapter that uses `pdMS_TO_TICKS` is the next place to expect a
-correction, since that macro expands to arithmetic the flag has opinions about.
+**The second build** reached the adapter and found two things there. The memory hooks
+the kernel calls when dynamic allocation is off take `configSTACK_DEPTH_TYPE` as their
+third parameter, not `uint32_t`, which on this host is a real difference in width. And
+`post_plain` had been written and never called, which `-Werror` refuses. The
+`-Wconversion` correction predicted for this build did not happen: `pdMS_TO_TICKS`
+casts to `TickType_t` throughout and the constants provably fit, so the flag had
+nothing to say.
+
+**The third build was green.** What all three have in common is worth more than the
+fixes: not one of them was in the table, the adapter or the design. Two were about
+which declarations a dialect makes visible and one was a function signature in a
+kernel's own API.
 
 ## Why FreeRTOS first of the three
 

@@ -229,7 +229,7 @@ Three adapters, three different levels of evidence, named rather than averaged.
 
 | Adapter | What can be run | Where |
 |---|---|---|
-| FreeRTOS | **the adapter itself, on a host.** The kernel has an official POSIX port that builds with gcc, so the queue, the timer and the dispatcher run for real. **Written on Tuesday 6 October 2026** and not yet built: [`../freertos/`](../freertos/) | WSL on the demo laptop first, then GitHub Actions |
+| FreeRTOS | **the adapter itself, and it runs.** Green in WSL on Tuesday 6 October 2026 and a job in `code.yml` since: the queue, the dispatch task and the software timer are real, the row sequence matches the direct-dispatch test, no allocator is linked, and a deliberately overrun queue is counted rather than dropped in silence. [`../freertos/`](../freertos/) | WSL on the demo laptop, and GitHub Actions on every push |
 | Zephyr | **nothing yet, and the reason is checked rather than assumed.** `native_sim` would run it, and chapter 01 already uses that target, but WSL on the demo laptop has no Zephyr workspace, no `west` and no SDK: looked for on Tuesday 6 October 2026 and absent. Until one exists there, CI would be this adapter's first test, which is the opposite of how this bench works | nowhere, until a workspace exists |
 | QNX | **nothing.** No licence, no target. Source and a review only | nowhere on this bench |
 
