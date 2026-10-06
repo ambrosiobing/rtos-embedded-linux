@@ -22,7 +22,10 @@
 #include <zephyr/device.h>
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/kernel.h>
+#include <zephyr/sys/util.h>   /* BIT and ARRAY_SIZE, named rather than inherited */
 
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #define MOTION_NODE DT_ALIAS(motion)
@@ -40,6 +43,16 @@ static const struct device *const bus = DEVICE_DT_GET(BUS_NODE);
 #define ADXL345_REG_DEVID 0x00U
 #define ADXL345_DEVID     0xe5U
 
+/* The registers that decide what a reading MEANS, as opposed to whether there is one.
+ * DATA_FORMAT is the one the scale question turns on: bits 1 and 0 are the range, and bit 3
+ * is full resolution, in which one count is 3.9 mg at EVERY range rather than following the
+ * range ladder. The driver writes the range bits and never writes bit 3. */
+#define ADXL345_REG_OFSX        0x1eU
+#define ADXL345_REG_BW_RATE     0x2cU
+#define ADXL345_REG_POWER_CTL   0x2dU
+#define ADXL345_REG_DATA_FORMAT 0x31U
+#define ADXL345_REG_DATAX0      0x32U
+
 /* The two addresses the ADXL345 can have, and the pin that chooses between them. This is
  * the whole purpose of jumper A on the breadboard. */
 #define ADDR_SDO_LOW  0x53U
@@ -48,7 +61,7 @@ static const struct device *const bus = DEVICE_DT_GET(BUS_NODE);
 #define SCAN_FIRST 0x08U
 #define SCAN_LAST  0x77U
 
-static void report_devid(uint8_t addr, const char *claim)
+static bool report_devid(uint8_t addr, const char *claim)
 {
 	uint8_t value = 0U;
 	int rc = i2c_reg_read_byte(bus, addr, ADXL345_REG_DEVID, &value);
@@ -56,11 +69,102 @@ static void report_devid(uint8_t addr, const char *claim)
 	if (rc != 0) {
 		printf("  0x%02x  %-34s silent, i2c_reg_read_byte returned %d\n",
 		       addr, claim, rc);
-		return;
+		return false;
 	}
 
 	printf("  0x%02x  %-34s DEVID 0x%02x, %s\n", addr, claim, value,
 	       value == ADXL345_DEVID ? "an ADXL345" : "not 0xe5, so not an ADXL345");
+
+	return value == ADXL345_DEVID;
+}
+
+/* Integer only, because prj.conf leaves floating point formatting out and a magnitude is the
+ * one place a square root cannot be avoided. Newton's method on integers, which terminates. */
+static uint32_t isqrt(uint32_t n)
+{
+	uint32_t x = n;
+	uint32_t y = (n + 1U) / 2U;
+
+	if (n == 0U) {
+		return 0U;
+	}
+	while (y < x) {
+		x = y;
+		y = (x + n / x) / 2U;
+	}
+	return x;
+}
+
+/* READ BACK WHAT RAN BEFORE THIS LEFT IN THE PART. This diagnostic configures nothing, which
+ * is deliberate: the module keeps its supply across a processor reset, so the registers still
+ * hold whatever the last application wrote. Run the project's application first and this
+ * second, and the part reports what the driver programmed rather than what anyone assumed. */
+static void dump_part(uint8_t addr)
+{
+	static const struct {
+		uint8_t reg;
+		const char *name;
+	} regs[] = {
+		{ ADXL345_REG_DEVID,       "DEVID" },
+		{ ADXL345_REG_OFSX,        "OFSX" },
+		{ ADXL345_REG_OFSX + 1U,   "OFSY" },
+		{ ADXL345_REG_OFSX + 2U,   "OFSZ" },
+		{ ADXL345_REG_BW_RATE,     "BW_RATE" },
+		{ ADXL345_REG_POWER_CTL,   "POWER_CTL" },
+		{ ADXL345_REG_DATA_FORMAT, "DATA_FORMAT" },
+	};
+	uint8_t raw[6];
+	uint8_t fmt = 0U;
+	unsigned int range, one_g, mag;
+	int32_t ax, ay, az;
+	size_t i;
+	int rc;
+
+	printf("\nthe part's registers, as whatever ran before this left them\n");
+	for (i = 0U; i < ARRAY_SIZE(regs); i++) {
+		uint8_t value = 0U;
+
+		rc = i2c_reg_read_byte(bus, addr, regs[i].reg, &value);
+		if (rc != 0) {
+			printf("  0x%02x  %-12s read failed, %d\n",
+			       regs[i].reg, regs[i].name, rc);
+			return;
+		}
+		printf("  0x%02x  %-12s 0x%02x\n", regs[i].reg, regs[i].name, value);
+		if (regs[i].reg == ADXL345_REG_DATA_FORMAT) {
+			fmt = value;
+		}
+	}
+
+	range = fmt & 0x03U;
+	printf("\nDATA_FORMAT 0x%02x, bit by bit\n", fmt);
+	printf("  range     %u, which is plus and minus %u g\n", range, 2U << range);
+	printf("  FULL_RES  %s\n", (fmt & BIT(3)) ? "SET" : "clear");
+	printf("  JUSTIFY   %s\n", (fmt & BIT(2)) ? "SET" : "clear");
+	printf("  SELF_TEST %s\n", (fmt & BIT(7)) ? "SET" : "clear");
+	printf("  SPI_3WIRE %s\n", (fmt & BIT(6)) ? "SET" : "clear");
+
+	rc = i2c_burst_read(bus, addr, ADXL345_REG_DATAX0, raw, sizeof(raw));
+	if (rc != 0) {
+		printf("\n  the six data registers would not read, %d\n", rc);
+		return;
+	}
+
+	ax = (int16_t)((uint16_t)raw[1] << 8 | raw[0]);
+	ay = (int16_t)((uint16_t)raw[3] << 8 | raw[2]);
+	az = (int16_t)((uint16_t)raw[5] << 8 | raw[4]);
+
+	/* One g in counts. In full resolution it is 256 at every range, because the count size
+	 * is fixed and the data widens instead; in ten bit mode it halves each time the range
+	 * doubles. THIS IS THE WHOLE QUESTION, and it is now read rather than assumed. */
+	one_g = (fmt & BIT(3)) ? 256U : (256U >> range);
+	mag = isqrt((uint32_t)(ax * ax + ay * ay + az * az));
+
+	printf("\nraw counts   x %6d   y %6d   z %6d\n", ax, ay, az);
+	printf("vector       %u counts\n", mag);
+	printf("one g is     %u counts in this mode\n", one_g);
+	printf("so the part reads %u milli g, where a part sitting still must read 1000\n",
+	       (unsigned int)(((uint32_t)mag * 1000U) / one_g));
 }
 
 int main(void)
@@ -99,7 +203,9 @@ int main(void)
 	printf("%d address(es) answered\n\n", found);
 
 	printf("the two addresses this part can have, and what each would mean\n");
-	report_devid(ADDR_SDO_LOW, "SDO low, so jumper A is working");
+	if (report_devid(ADDR_SDO_LOW, "SDO low, so jumper A is working")) {
+		dump_part(ADDR_SDO_LOW);
+	}
 	report_devid(ADDR_SDO_HIGH, "SDO high, so jumper A is not");
 
 	printf("\n");
