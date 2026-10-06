@@ -1,4 +1,4 @@
-/* projects/01-presence/c/presence.c: the twenty-eight rows, and a dispatcher.
+/* projects/01-presence/c/presence.c: the twenty-nine rows, and a dispatcher.
  *
  * The dispatcher is a dozen lines, which is the finding chapter 01 reports about
  * its own prior art: the small permissive state machine libraries each replace
@@ -63,6 +63,29 @@ static bool run_completes(const presence_t *p, const presence_event_t *ev)
     uint32_t next = (uint32_t)p->run + 1u;
     return next >= (uint32_t)(p->settings.arrive_runs ? p->settings.arrive_runs
                                                       : 1u);
+}
+
+/* Has the hold this timeout belongs to actually expired? Row 17 releases only
+ * when it has, and row 18 absorbs the timeout when it has not.
+ *
+ * This guard exists because no kernel here can un-queue a timer expiry that has
+ * already fired, and because one of the three cannot promise that events are
+ * dispatched in the order they were posted: a QNX channel delivers pulses in
+ * priority order. Without the guard, an expiry belonging to a hold that was
+ * cancelled can be dispatched after a NEW hold has started, and row 17 would
+ * release up to hold_ms early. A release that happens early loses a presence as
+ * surely as one that never happens, and it is harder to see, because every state
+ * along the way is legal and the invariant holds at every step. The argument in
+ * full is in docs/RTOS_VARIANTS.md.
+ *
+ * The subtraction and the signed compare are deliberate and are not the same as
+ * `ev->at_ms >= p->hold_due_ms`. act_start_hold composes the due time by adding,
+ * which wraps, and a node that has been up for 49.7 days has a wrapped
+ * millisecond counter. The difference of two wrapped values read as signed is the
+ * standard way to ask which came first and stays correct across the wrap. */
+static bool hold_expired(const presence_t *p, const presence_event_t *ev)
+{
+    return (int32_t)(ev->at_ms - p->hold_due_ms) >= 0;
 }
 
 /* ----------------------------------------------------------------- actions */
@@ -205,12 +228,18 @@ static const presence_row_t TABLE[] = {
     ROW(PRESENCE_OCCUPIED, PRESENCE_EV_SETTINGS, NULL, act_apply_settings,
         PRESENCE_OCCUPIED),
 
-    /* 15 to 21: HELD */
+    /* 15 to 22: HELD */
     ROW(PRESENCE_HELD, PRESENCE_EV_READING, in_range, act_cancel_hold,
         PRESENCE_OCCUPIED),
     ROW(PRESENCE_HELD, PRESENCE_EV_READING, out_of_range, act_none,
         PRESENCE_HELD),
-    ROW(PRESENCE_HELD, PRESENCE_EV_TIMEOUT, NULL, act_release, PRESENCE_FREE),
+    /* 17 and 18 are one pair, and the order is load-bearing: the guarded row is
+     * first, so an expiry that belongs to this hold releases, and an expiry left
+     * over from a hold that was cancelled falls through to 18 and does nothing.
+     * Reversed, row 18 would shadow row 17 and nothing would ever release. */
+    ROW(PRESENCE_HELD, PRESENCE_EV_TIMEOUT, hold_expired, act_release,
+        PRESENCE_FREE),
+    ROW(PRESENCE_HELD, PRESENCE_EV_TIMEOUT, NULL, act_none, PRESENCE_HELD),
     ROW(PRESENCE_HELD, PRESENCE_EV_TICK, NULL, act_none, PRESENCE_HELD),
     ROW(PRESENCE_HELD, PRESENCE_EV_BUTTON, NULL, act_force_free,
         PRESENCE_FREE),
@@ -219,7 +248,7 @@ static const presence_row_t TABLE[] = {
     ROW(PRESENCE_HELD, PRESENCE_EV_SETTINGS, NULL, act_apply_settings,
         PRESENCE_HELD),
 
-    /* 22 to 27: FAULT. Every event is a row, so the table is total and a fault
+    /* 23 to 28: FAULT. Every event is a row, so the table is total and a fault
      * is never left by anything but the button. A fault that cleared itself on
      * the next good reading would hide the fault that caused it. */
     ROW(PRESENCE_FAULT, PRESENCE_EV_BUTTON, NULL, act_clear_fault,
@@ -252,8 +281,8 @@ _Static_assert(sizeof(presence_settings_t) == 12u,
 _Static_assert(sizeof(presence_event_t) == 20u,
                "an event is no longer 20 bytes; every kernel queue is sized from "
                "this and the budget in the chapter quotes it");
-_Static_assert(sizeof(presence_t) == 152u,
-               "the context is no longer 152 bytes; revisit the memory budget");
+_Static_assert(sizeof(presence_t) == 156u,
+               "the context is no longer 156 bytes; revisit the memory budget");
 
 size_t presence_row_count(void)
 {

@@ -6,7 +6,8 @@ from one, and records a defect that the first two kernels hide and the third
 exposes.
 
 Nothing here changes `c/presence.c`, `cpp/presence.hpp` or `rust/presence_core.rs`,
-with one exception that this page argues for and a later commit carries out.
+with one exception that this page argues for and that the commit after it carried
+out: the twenty-ninth row, which is now in all three languages.
 
 ## What an adapter is, and what it may not do
 
@@ -55,8 +56,8 @@ purpose.
 
 ## The defect requirement 1 was hiding
 
-Row 17 is the only release in the table, and it is unguarded: any `TIMEOUT` arriving
-in `HELD` releases. Under a single first-in-first-out queue that is safe, and the
+Row 17 is the only release in the table. It was written unguarded, so any `TIMEOUT`
+arriving in `HELD` released. Under a single first-in-first-out queue that is safe, and the
 argument is worth writing out because it is the whole reason the row was allowed to
 stay unguarded. A stale expiry is always dequeued before anything posted after it,
 so by the time it is dispatched the state has not yet moved, the hold it belongs to
@@ -105,8 +106,8 @@ common. It is rejected because the adapter would then be deciding which events
 matter, which is the one thing an adapter may not do. A reader auditing the table
 would no longer be auditing the behaviour.
 
-**Taken: a guard on the release row.** `HELD` and `TIMEOUT` becomes two rows, as
-four other state and event pairs already are: one guarded by the hold having
+**Taken: a guard on the release row.** `HELD` and `TIMEOUT` became two rows, as
+three other pairs already were and as `FREE` with `READING` already was with three: one guarded by the hold having
 actually expired, which releases, and one unguarded below it, which does nothing.
 The decision stays in the table, the fix is visible in the diagram the table
 generates, and no adapter has to be trusted with it.
@@ -116,12 +117,17 @@ and not `>=` on the raw values, because `start_hold` composes the due time with 
 wrapping add and a node that has been up for 49.7 days is a node whose millisecond
 counter has wrapped.
 
-This is a change to the table, so it is a change to all three languages, to the
-tests in all three, to the 96-combination cross-check, to the row count, and to the
-memory figures in `DESIGN.md`, since a twenty-ninth row is four more bytes of
-counters. It lands as its own commit. The table has been twenty-eight rows since it
-was written; this page is the argument for the twenty-ninth, and the history is
-meant to show that the argument came first.
+This was a change to the table, so it was a change to all three languages, to the
+tests in all three, to the row count, to the memory figures in `DESIGN.md`, since a
+twenty-ninth row is four more bytes of counters, and to the exhaustive-match sweep,
+which grew from 96 combinations to 192 because the guard added a third payload
+dimension: the hold's due time against the event's. It landed in the commit after
+this page, and the history is meant to show that the argument came first.
+
+Each of the three suites now carries the sequence drawn above as a case, which fails
+against a table whose row 17 has no guard. `scripts/crosscheck_table.py` compares the
+three tables row for row in CI, so a row that drifts in one language is caught
+without anyone rereading three files.
 
 ## The mapping, kernel by kernel
 

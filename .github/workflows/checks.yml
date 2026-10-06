@@ -44,6 +44,17 @@ jobs:
       - name: Every relative link resolves
         run: python scripts/check_links.py
 
+      # Project 01 implements one table in three languages and every page in it says
+      # the three agree row for row. This is that claim as a gate rather than a
+      # sentence: it compares state, event, guard, action and destination for every
+      # row IN ORDER, because order is load-bearing in this table, and it also checks
+      # totality and that no unguarded row shadows a guarded one after it. Shown to
+      # fail on four mutations before it was committed: a guard removed, two rows
+      # swapped, a row deleted, and the C++ `guarded` bool disagreeing with its own
+      # pointer.
+      - name: The same table in C, C++ and Rust, row for row
+        run: python scripts/crosscheck_table.py
+
       # The structural check, and the one that proves the figures really are with
       # their projects rather than only referenced as if they were.
       - name: Twenty chapters, twenty projects, five figures each

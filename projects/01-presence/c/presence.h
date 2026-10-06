@@ -1,6 +1,6 @@
 /* projects/01-presence/c/presence.h: four states, six events, one table.
  *
- * THE TABLE IS THE SPECIFICATION. docs/DESIGN.md holds the same twenty-eight rows
+ * THE TABLE IS THE SPECIFICATION. docs/DESIGN.md holds the same twenty-nine rows
  * in prose, and the rule from chapter 01 is that the two are one object: an edge
  * that is not a row is a defect and not a special case. The most common way an
  * application of this kind becomes untestable is that one condition gets handled
@@ -20,8 +20,11 @@
  * NO HARDWARE IN THIS FILE, and none in presence.c either. Everything here is
  * arithmetic over an event and a context, which is what lets the same source
  * compile for a host with no board attached, for three kernels, and under three
- * versions of this language. The kernel adapters in ../rtos/ supply a thread, a
- * queue, a timer and three lamps, and none of them is allowed to make a decision.
+ * versions of this language. A kernel adapter will supply a thread, a queue, a
+ * timer and three lamps, and none of them is allowed to make a decision; the
+ * contract between this table and such an adapter, including the three things it
+ * must guarantee for the table to be correct, is in docs/RTOS_VARIANTS.md. No
+ * adapter is written yet.
  *
  * WHAT THE INVARIANT IS. A release cannot be lost. Row 17 is the only transition
  * that releases a hold, and `presence_check_invariants` is the assertion that no
@@ -88,7 +91,7 @@ typedef struct {
 
 /* The number of rows in the table. Asserted against the table's real length in
  * presence.c, so this constant cannot drift from it. */
-#define PRESENCE_ROW_COUNT 28u
+#define PRESENCE_ROW_COUNT 29u
 
 /* How deep the event queue is. The core never touches a queue: this lives here
  * because every kernel adapter sizes its own queue from it, and because the

@@ -86,11 +86,11 @@ static void test_only_one_release() {
     std::printf("row 17 is the only release\n");
     start();
     reading(NEAR, 10, 1); reading(NEAR, 20, 0); reading(FAR, 30, 9);
-    simple(Event::Tick, 40, 18);
+    simple(Event::Tick, 40, 19);
     reading(FAR, 50, 16);
-    settings(2, 30000, 2500, 60, 21);
+    settings(2, 30000, 2500, 60, 22);
     CHECK(ctx.state == State::Held && ctx.releases == 0, "nothing but timeout releases");
-    simple(Event::Timeout, 70, 17);
+    simple(Event::Timeout, 30030, 17);   // the hold began at 30
     CHECK(ctx.releases == 1, "the timeout releases");
 }
 
@@ -101,22 +101,45 @@ static void test_stale_timer() {
     simple(Event::Timeout, 50, 11);
     CHECK(ctx.state == State::Occupied && ctx.releases == 0, "stale timeout ignored");
     reading(FAR, 60, 9);
-    simple(Event::Button, 70, 19);
+    simple(Event::Button, 70, 20);
     simple(Event::Timeout, 80, 4);
     CHECK(ctx.state == State::Free, "stale timeout in free ignored");
+}
+
+// The third case of the same phenomenon and the reason row 17 carries a guard. The
+// two above arrive in a state that is not holding, so an unguarded row absorbs them.
+// This one arrives while a NEWER hold runs, where an unguarded row 17 would release
+// it up to hold_ms early. Remove the guard from the table and the first CHECK below
+// fails: the room goes free with somebody in it. docs/RTOS_VARIANTS.md draws the
+// sequence and names the kernel that can deliver it, which is QNX, by priority.
+static void test_a_stale_timer_cannot_release_a_newer_hold() {
+    std::printf("a stale hold timer arriving while a newer hold runs
+");
+    start();
+    reading(NEAR, 10, 1); reading(NEAR, 20, 0);
+    reading(FAR, 30, 9);                  // first hold, due at 30030
+    CHECK(ctx.hold_due_ms == 30030, "the first hold is due at 30030");
+    reading(NEAR, 40, 15);                // cancelled, expiry already queued
+    reading(FAR, 50, 9);                  // second hold, due at 30050
+    CHECK(ctx.state == State::Held && ctx.hold_due_ms == 30050, "second hold due at 30050");
+    simple(Event::Timeout, 30030, 18);    // the first hold's expiry, stamped when it fired
+    CHECK(ctx.state == State::Held, "a stale expiry must not end a running hold");
+    CHECK(ctx.releases == 0 && ctx.hold_running, "and must not release");
+    simple(Event::Timeout, 30050, 17);    // the real one still works
+    CHECK(ctx.state == State::Free && ctx.releases == 1, "the newer hold does release");
 }
 
 static void test_fault_latch() {
     std::printf("a fault leaves only by the button\n");
     start();
     simple(Event::Fault, 10, 6);
-    simple(Event::Tick, 20, 23);
-    reading(NEAR, 30, 24);
+    simple(Event::Tick, 20, 24);
+    reading(NEAR, 30, 25);
     CHECK(ctx.state == State::Fault, "a good reading must not clear a fault");
-    simple(Event::Timeout, 40, 25);
-    simple(Event::Fault, 50, 26);
-    settings(2, 30000, 2500, 60, 27);
-    simple(Event::Button, 70, 22);
+    simple(Event::Timeout, 40, 26);
+    simple(Event::Fault, 50, 27);
+    settings(2, 30000, 2500, 60, 28);
+    simple(Event::Button, 70, 23);
     CHECK(ctx.state == State::Free, "the button clears it");
 }
 
@@ -129,11 +152,11 @@ static void test_remaining() {
     simple(Event::Tick, 40, 10);
     settings(2, 30000, 2500, 50, 14);
     simple(Event::Fault, 60, 13);
-    simple(Event::Button, 70, 22);
+    simple(Event::Button, 70, 23);
     reading(NEAR, 80, 1); reading(NEAR, 90, 0);
     simple(Event::Button, 100, 12);
     reading(NEAR, 110, 1); reading(NEAR, 120, 0); reading(FAR, 130, 9);
-    simple(Event::Fault, 140, 20);
+    simple(Event::Fault, 140, 21);
     CHECK(ctx.state == State::Fault, "fault from held");
 }
 
@@ -193,7 +216,8 @@ static void accumulate() { for (std::size_t i = 0; i < kRowCount; ++i) coverage[
 
 int main() {
     void (*cases[])() = {test_sitting, test_arrival_order, test_only_one_release,
-                         test_stale_timer, test_fault_latch, test_remaining, test_refusals,
+                         test_stale_timer, test_a_stale_timer_cannot_release_a_newer_hold,
+                         test_fault_latch, test_remaining, test_refusals,
                          test_guarded_flag_agrees_with_the_pointer,
 #if PRESENCE_HAS_EXPECTED
                          test_expected_return,

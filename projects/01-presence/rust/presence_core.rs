@@ -1,4 +1,4 @@
-//! The same twenty-eight rows, in Rust. One source, three editions.
+//! The same twenty-nine rows, in Rust. One source, three editions.
 //!
 //! This file is included by `e2018/`, `e2021/` and `e2024/`, each a crate whose
 //! only difference is its `edition` in `Cargo.toml`. So "compiles under three
@@ -25,8 +25,8 @@
 //!
 //! It was rewritten as an array anyway, and the reason is worth recording. The
 //! match split the table across three functions, one for the row, one for the
-//! destination and one for the action, which is three places for twenty-eight
-//! rows to drift between where the C has one. The mechanical cross-check that
+//! destination and one for the action, which is three places for the rows to
+//! drift between where the C has one. The mechanical cross-check that
 //! compares all three languages row for row could not read it either. Parity
 //! across the three implementations is the point of this exercise, so the array
 //! wins and the exhaustiveness is recovered by `exhaustive_row_of` below, which
@@ -146,7 +146,7 @@ pub enum Error {
 }
 
 /// How many rows the table has.
-pub const ROW_COUNT: usize = 28;
+pub const ROW_COUNT: usize = 29;
 
 /// A guard decides whether its row applies.
 ///
@@ -185,6 +185,22 @@ fn run_completes(p: &Presence, ev: &Ev) -> bool {
     // The C's `arrive_runs == 0 ? 1 : arrive_runs`, which `max` says in one word.
     let needed = p.settings.arrive_runs.max(1);
     in_range(p, ev) && u32::from(p.run) + 1 >= u32::from(needed)
+}
+/// Has the hold this timeout belongs to actually expired?
+///
+/// Row 17 releases only when it has; row 18 absorbs the timeout when it has not.
+/// The reason is a property of a kernel rather than of this language: no kernel can
+/// un-queue a timer expiry that has already fired, and a QNX channel delivers pulses
+/// in priority order, so an expiry from a cancelled hold can be dispatched after a
+/// NEW hold has started. Unguarded, row 17 would release up to `hold_ms` early,
+/// which loses a presence as surely as never releasing does. The argument in full is
+/// in `docs/RTOS_VARIANTS.md`.
+///
+/// `wrapping_sub` read as signed, not `ev.at_ms >= p.hold_due_ms`: `start_hold`
+/// composes the due time with a wrapping add, and a node up for 49.7 days has a
+/// wrapped millisecond counter.
+fn hold_expired(p: &Presence, ev: &Ev) -> bool {
+    (ev.at_ms.wrapping_sub(p.hold_due_ms) as i32) >= 0
 }
 
 // ---------------------------------------------------------------- actions
@@ -246,7 +262,7 @@ fn apply_settings(p: &mut Presence, ev: &Ev) {
     }
 }
 
-/// The twenty-eight rows, in the C table's order, row for row.
+/// The twenty-nine rows, in the C table's order, row for row.
 ///
 /// Formatting is suppressed here on purpose, and this is the one place in the
 /// crate where that is true. rustfmt's `struct_lit_width` is 18 characters, so by
@@ -274,15 +290,19 @@ pub static TABLE: [Row; ROW_COUNT] = [
     Row { from: State::Occupied, kind: Kind::Button, guard: None, action: force_free, to: State::Free, name: "occupied button" },
     Row { from: State::Occupied, kind: Kind::Fault, guard: None, action: latch_fault, to: State::Fault, name: "occupied fault" },
     Row { from: State::Occupied, kind: Kind::Settings, guard: None, action: apply_settings, to: State::Occupied, name: "occupied settings" },
-    // 15 to 21: Held
+    // 15 to 22: Held
     Row { from: State::Held, kind: Kind::Reading, guard: Some(in_range), action: cancel_hold, to: State::Occupied, name: "held reading in_range" },
     Row { from: State::Held, kind: Kind::Reading, guard: Some(out_of_range), action: none, to: State::Held, name: "held reading out_of_range" },
-    Row { from: State::Held, kind: Kind::Timeout, guard: None, action: release, to: State::Free, name: "held timeout release" },
+    // 17 and 18 are one pair and the order is load-bearing: guarded first, so an
+    // expiry belonging to this hold releases and one left over from a cancelled
+    // hold falls through to 18 and does nothing. Reversed, 18 shadows 17.
+    Row { from: State::Held, kind: Kind::Timeout, guard: Some(hold_expired), action: release, to: State::Free, name: "held timeout release" },
+    Row { from: State::Held, kind: Kind::Timeout, guard: None, action: none, to: State::Held, name: "held timeout stale" },
     Row { from: State::Held, kind: Kind::Tick, guard: None, action: none, to: State::Held, name: "held tick" },
     Row { from: State::Held, kind: Kind::Button, guard: None, action: force_free, to: State::Free, name: "held button" },
     Row { from: State::Held, kind: Kind::Fault, guard: None, action: latch_fault, to: State::Fault, name: "held fault" },
     Row { from: State::Held, kind: Kind::Settings, guard: None, action: apply_settings, to: State::Held, name: "held settings" },
-    // 22 to 27: Fault, a latch left only by the button
+    // 23 to 28: Fault, a latch left only by the button
     Row { from: State::Fault, kind: Kind::Button, guard: None, action: clear_fault, to: State::Free, name: "fault button" },
     Row { from: State::Fault, kind: Kind::Tick, guard: None, action: none, to: State::Fault, name: "fault tick" },
     Row { from: State::Fault, kind: Kind::Reading, guard: None, action: none, to: State::Fault, name: "fault reading" },
@@ -423,17 +443,23 @@ impl Presence {
                     16
                 }
             }
-            (State::Held, Kind::Timeout) => 17,
-            (State::Held, Kind::Tick) => 18,
-            (State::Held, Kind::Button) => 19,
-            (State::Held, Kind::Fault) => 20,
-            (State::Held, Kind::Settings) => 21,
-            (State::Fault, Kind::Button) => 22,
-            (State::Fault, Kind::Tick) => 23,
-            (State::Fault, Kind::Reading) => 24,
-            (State::Fault, Kind::Timeout) => 25,
-            (State::Fault, Kind::Fault) => 26,
-            (State::Fault, Kind::Settings) => 27,
+            (State::Held, Kind::Timeout) => {
+                if hold_expired(self, ev) {
+                    17
+                } else {
+                    18
+                }
+            }
+            (State::Held, Kind::Tick) => 19,
+            (State::Held, Kind::Button) => 20,
+            (State::Held, Kind::Fault) => 21,
+            (State::Held, Kind::Settings) => 22,
+            (State::Fault, Kind::Button) => 23,
+            (State::Fault, Kind::Tick) => 24,
+            (State::Fault, Kind::Reading) => 25,
+            (State::Fault, Kind::Timeout) => 26,
+            (State::Fault, Kind::Fault) => 27,
+            (State::Fault, Kind::Settings) => 28,
         }
     }
 

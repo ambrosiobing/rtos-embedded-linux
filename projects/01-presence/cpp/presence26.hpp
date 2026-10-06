@@ -111,13 +111,13 @@ struct RowCountMessage {
         std::size_t d = 0;
         do { digits[d++] = static_cast<char>('0' + n % 10); n /= 10; } while (n);
         while (d) text[len++] = digits[--d];
-        const char* tail = " rows, expected 28";
+        const char* tail = " rows, expected 29";
         for (const char* p = tail; *p; ++p) text[len++] = *p;
     }
     constexpr std::size_t size() const { return len; }
     constexpr const char* data() const { return text; }
 };
-static_assert(kRowCount == 28, RowCountMessage{});
+static_assert(kRowCount == 29, RowCountMessage{});
 #endif
 
 // --------------------------------------------- a deleted copy with a reason

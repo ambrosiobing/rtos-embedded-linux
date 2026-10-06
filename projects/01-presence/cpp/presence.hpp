@@ -1,4 +1,4 @@
-// projects/01-presence/cpp/presence.hpp: the same twenty-eight rows, in C++17.
+// projects/01-presence/cpp/presence.hpp: the same twenty-nine rows, in C++17.
 //
 // THE BASELINE. This header compiles unchanged under -std=c++17, c++23 and c++2c,
 // and that is deliberate: it uses nothing a later version added, so it is the
@@ -82,7 +82,7 @@ struct Context {
     std::uint32_t hold_due_ms = 0;
     std::uint32_t last_reading_ms = 0;
 
-    std::array<std::uint32_t, 28> row_taken{};
+    std::array<std::uint32_t, 29> row_taken{};
     std::int16_t last_row = -1;
     std::uint32_t releases = 0;
     std::uint32_t faults_latched = 0;
@@ -129,6 +129,20 @@ inline bool run_completes(const Context& c, const Ev& ev) {
     const std::uint32_t next = static_cast<std::uint32_t>(c.run) + 1u;
     const std::uint32_t need = c.settings.arrive_runs ? c.settings.arrive_runs : 1u;
     return next >= need;
+}
+
+// Has the hold this timeout belongs to actually expired? Row 17 releases only when
+// it has; row 18 absorbs the timeout when it has not. The reason this guard exists
+// is a property of a kernel rather than of this language: no kernel can un-queue a
+// timer expiry that has already fired, and a QNX channel delivers pulses in priority
+// order, so an expiry from a cancelled hold can be dispatched after a NEW hold has
+// started. Unguarded, row 17 would then release up to hold_ms early, which loses a
+// presence as surely as never releasing. docs/RTOS_VARIANTS.md has the argument.
+//
+// The signed difference is deliberate and is not `ev.at_ms >= c.hold_due_ms`:
+// start_hold composes the due time by adding, which wraps at 49.7 days.
+inline bool hold_expired(const Context& c, const Ev& ev) {
+    return static_cast<std::int32_t>(ev.at_ms - c.hold_due_ms) >= 0;
 }
 
 // ---------------------------------------------------------------- actions
@@ -183,7 +197,7 @@ inline void apply_settings(Context& c, const Ev& ev) {
 // ------------------------------------------------------------------ table
 // constexpr, so the row count is the array's size and nothing has to be
 // asserted against a macro. The order is the C table's order, row for row.
-inline constexpr std::array<Row, 28> kTable{{
+inline constexpr std::array<Row, 29> kTable{{
     // 0 to 7: Free
     {State::Free, Event::Reading, detail::run_completes, true, detail::on_arrive, State::Occupied, "free reading run_completes"},
     {State::Free, Event::Reading, detail::in_range, true, detail::count_run, State::Free, "free reading in_range"},
@@ -201,15 +215,20 @@ inline constexpr std::array<Row, 28> kTable{{
     {State::Occupied, Event::Button, nullptr, false, detail::force_free, State::Free, "occupied button"},
     {State::Occupied, Event::Fault, nullptr, false, detail::latch_fault, State::Fault, "occupied fault"},
     {State::Occupied, Event::Settings, nullptr, false, detail::apply_settings, State::Occupied, "occupied settings"},
-    // 15 to 21: Held
+    // 15 to 22: Held
     {State::Held, Event::Reading, detail::in_range, true, detail::cancel_hold, State::Occupied, "held reading in_range"},
     {State::Held, Event::Reading, detail::out_of_range, true, detail::none, State::Held, "held reading out_of_range"},
-    {State::Held, Event::Timeout, nullptr, false, detail::release, State::Free, "held timeout release"},
+    // 17 and 18 are one pair and the order is load-bearing: guarded first, so an
+    // expiry belonging to this hold releases and a leftover from a cancelled hold
+    // falls through to 18 and does nothing. Reversed, 18 shadows 17 and nothing
+    // ever releases, which is what unguarded_rows_are_last() refuses to compile.
+    {State::Held, Event::Timeout, detail::hold_expired, true, detail::release, State::Free, "held timeout release"},
+    {State::Held, Event::Timeout, nullptr, false, detail::none, State::Held, "held timeout stale"},
     {State::Held, Event::Tick, nullptr, false, detail::none, State::Held, "held tick"},
     {State::Held, Event::Button, nullptr, false, detail::force_free, State::Free, "held button"},
     {State::Held, Event::Fault, nullptr, false, detail::latch_fault, State::Fault, "held fault"},
     {State::Held, Event::Settings, nullptr, false, detail::apply_settings, State::Held, "held settings"},
-    // 22 to 27: Fault, a latch left only by the button
+    // 23 to 28: Fault, a latch left only by the button
     {State::Fault, Event::Button, nullptr, false, detail::clear_fault, State::Free, "fault button"},
     {State::Fault, Event::Tick, nullptr, false, detail::none, State::Fault, "fault tick"},
     {State::Fault, Event::Reading, nullptr, false, detail::none, State::Fault, "fault reading"},

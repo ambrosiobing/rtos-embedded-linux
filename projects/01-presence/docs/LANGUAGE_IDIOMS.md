@@ -1,6 +1,6 @@
 # What each language version actually buys this table
 
-The question this page answers is narrow on purpose: for a 28-row transition table
+The question this page answers is narrow on purpose: for a 29-row transition table
 with a dozen-line dispatcher, compiled with no allocator and no exceptions, what
 does moving to a newer version of the language change? Not what the release notes
 list. What changes in **this** code.
@@ -156,7 +156,7 @@ exactly that and gcc reported
 `'(presence::detail::run_completes != 0)' is not a constant expression` at
 `-O1 -g -fsanitize=address,undefined`, while the same line compiled at `-O2` and
 under clang at every setting. The proof now reads a hand-written `bool guarded`,
-and the runtime test holds that bool against the pointer on all 28 rows so the
+and the runtime test holds that bool against the pointer on all 29 rows so the
 duplication cannot drift. **This is the only one of the three that was in the
 source**, and it was found by a check that exists to prove a claim in `DESIGN.md`.
 
@@ -197,12 +197,12 @@ one. `check_invariants` is a function in all three languages. Rust makes the
 
 **And one decision went against Rust's strength on purpose.** The first draft
 expressed the table as the exhaustive `match`, which is the stronger form. It was
-rewritten as an array, because the match split twenty-eight rows across three
+rewritten as an array, because the match split the rows across three
 functions where C has one, and the mechanical cross-check that compares all three
 languages row for row could not read it. Parity is what this exercise is for, so
 the array won. The exhaustiveness is recovered by `exhaustive_row_of`, which is a
 match, and a test holds it against the array for every state, every kind and both
-sides of every guard: 96 combinations. The guarantee is demonstrated and checked
+sides of every guard: 192 combinations. The guarantee is demonstrated and checked
 rather than adopted, and the reason is recorded in the source.
 
 **What the cross-check found:** nothing, which is the point of running it. All 28
@@ -252,7 +252,7 @@ never been exercised before Monday 5 October 2026.
 every `Row { .. }` in the table onto eight lines, because rustfmt's
 `struct_lit_width` is eighteen characters; the table would become two hundred and
 twenty-four lines. The table carries `#[rustfmt::skip]` instead, the only one in the
-crate, so that the twenty-eight rows stay one per line and can be read beside
+crate, so that the twenty-nine rows stay one per line and can be read beside
 `presence.c`, whose `ROW(...)` macro exists to produce that same shape. Everything
 else in both files is in rustfmt's own form and the `--check` gate still applies to
 it.
@@ -264,16 +264,29 @@ it.
 | `cargo fmt --all --check` | passes, the skipped table included, so the formatting decision above is the toolchain's verdict and not a preference |
 | `cargo clippy --workspace --all-targets -- -D warnings` | silent on all three crates |
 | All three editions build and run | **27 tests pass, nine under each of 2018, 2021 and 2024**, from one `presence_core.rs` and one `tests_core.rs`. This is the claim the three crates exist to make, and it is now a build result |
-| `the_exhaustive_match_agrees_with_the_table` | **passes in all three editions.** The exhaustive `match` and the array agree on all 96 combinations: every state, every event kind, both sides of every guard |
+| `the_exhaustive_match_agrees_with_the_table` | **passed in all three editions, at 96 combinations.** It now sweeps 192, because the twenty-ninth row added a third payload dimension, the hold's due time against the event's. The wider sweep has not run yet |
 | `the_table_is_total` | passes. All twenty-four pairs have a row, in every edition |
 | The library is really `no_std` | **still open.** Only CI builds for `thumbv7em-none-eabihf`, and the authoring laptop has no cross target. This is the one remaining step, and finding 3 is why it is not a formality: a host test proves nothing about `no_std`, because the test configuration pulls in std for the harness |
 
-The shape of the five refusals is the result worth keeping. **Not one of them was in
-the table.** Every one was in the spelling around it: an attribute in a file that
-could not carry it, a message macro that an edition reads differently, a lint about
-how a value is built and another about how an array is walked. The twenty-eight rows
-have not changed since the C was written, and the check that could have disagreed
-with the C about a row has now run and does not.
+The shape of the five refusals is the result worth keeping, and it needs one
+correction made the day after it was written. **Not one of the five was in the
+table.** Every one was in the spelling around it: an attribute in a file that could
+not carry it, a message macro that an edition reads differently, a lint about how a
+value is built and another about how an array is walked.
+
+A sixth finding then was in the table, and no compiler produced it. Writing the
+kernel contract in `RTOS_VARIANTS.md` showed that row 17, the only release, was
+unguarded, and that this is safe only while events are dispatched in the order they
+were posted. Two of the three kernels promise that and one does not. The table now
+has a twenty-ninth row and row 17 has a guard, which is the first change to those
+rows since the C was written.
+
+That is the honest ranking of the two kinds of evidence this project collects. Five
+compilers across three languages, six standards and three editions found nothing
+wrong with the specification: they found five things wrong with how it was typed.
+What found the specification defect was reading what three kernels promise about the
+order of a queue. A build gate is worth having and is not a substitute for knowing
+what the thing underneath you guarantees.
 
 ## How to read the CI log
 

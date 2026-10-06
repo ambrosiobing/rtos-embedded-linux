@@ -1,6 +1,9 @@
 # P01 design: the table is the specification
 
-Written Sunday 5 October 2026, before any code in this directory.
+Written Sunday 5 October 2026, before any code in this directory. Amended Tuesday
+6 October 2026 with the memory section and with row 18, the only change the table
+itself has needed; `RTOS_VARIANTS.md` carries the argument for that row and was
+written before it.
 
 Chapter 01's deliverable is "a transition table whose every row is proven
 reachable by a test that runs on the host with no board attached, and a release
@@ -70,39 +73,60 @@ the resulting state.
 | 14 | `OCCUPIED` | `SETTINGS` | | `apply_settings` | `OCCUPIED` |
 | 15 | `HELD` | `READING` | in range | `cancel_hold` | `OCCUPIED` |
 | 16 | `HELD` | `READING` | out of range | `none` | `HELD` |
-| 17 | `HELD` | `TIMEOUT` | | **`release`** | `FREE` |
-| 18 | `HELD` | `TICK` | | `none` | `HELD` |
-| 19 | `HELD` | `BUTTON` | | `force_free` | `FREE` |
-| 20 | `HELD` | `FAULT` | | `latch_fault` | `FAULT` |
-| 21 | `HELD` | `SETTINGS` | | `apply_settings` | `HELD` |
-| 22 | `FAULT` | `BUTTON` | | `clear_fault` | `FREE` |
-| 23 | `FAULT` | `TICK` | | `none` | `FAULT` |
-| 24 | `FAULT` | `READING` | | `none` | `FAULT` |
-| 25 | `FAULT` | `TIMEOUT` | | `none` | `FAULT` |
-| 26 | `FAULT` | `FAULT` | | `none` | `FAULT` |
-| 27 | `FAULT` | `SETTINGS` | | `apply_settings` | `FAULT` |
+| 17 | `HELD` | `TIMEOUT` | this hold has expired | **`release`** | `FREE` |
+| 18 | `HELD` | `TIMEOUT` | | `none`, an expiry from an older hold | `HELD` |
+| 19 | `HELD` | `TICK` | | `none` | `HELD` |
+| 20 | `HELD` | `BUTTON` | | `force_free` | `FREE` |
+| 21 | `HELD` | `FAULT` | | `latch_fault` | `FAULT` |
+| 22 | `HELD` | `SETTINGS` | | `apply_settings` | `HELD` |
+| 23 | `FAULT` | `BUTTON` | | `clear_fault` | `FREE` |
+| 24 | `FAULT` | `TICK` | | `none` | `FAULT` |
+| 25 | `FAULT` | `READING` | | `none` | `FAULT` |
+| 26 | `FAULT` | `TIMEOUT` | | `none` | `FAULT` |
+| 27 | `FAULT` | `FAULT` | | `none` | `FAULT` |
+| 28 | `FAULT` | `SETTINGS` | | `apply_settings` | `FAULT` |
 
 **The table is total:** all four states times all six events are covered, which
-is 24 pairs, and four of those pairs carry a second guarded row, giving 28. A
-dispatcher that found no row would be a defect in the table rather than an input
-to tolerate, so `presence_dispatch` returns an error for it instead of dropping
-the event. Dropping one is how a release goes missing.
+is 24 pairs. Four pairs carry more than one row, told apart by their guards:
+`FREE` with `READING` has three, and `OCCUPIED` with `READING`, `HELD` with
+`READING` and `HELD` with `TIMEOUT` have two each, which is five extra rows and
+gives 29. A dispatcher that found no row would be a defect in the table rather
+than an input to tolerate, so `presence_dispatch` returns an error for it instead
+of dropping the event. Dropping one is how a release goes missing.
 
-Four of them carry the decisions worth defending:
+Five of them carry the decisions worth defending:
 
 **Row 17 is the release, and it is the only one.** Nothing else returns to `FREE`
 from a hold. A second path to release would be a second thing to get wrong.
 
-**Rows 4 and 11 exist because a timer can outlive its hold.** The kernel timer may
-already be queued when row 15 cancels a hold or row 19 forces the state away, so a
-`TIMEOUT` genuinely arrives in `FREE` or `OCCUPIED`. These two rows do nothing on
-purpose: the hold they belonged to is already resolved. They were missing from the
-first draft of this table, and their absence would have made a legitimate race
-return an error.
+**Rows 4, 11 and 18 exist because a timer can outlive its hold.** The kernel timer
+may already be queued when row 15 cancels a hold or row 20 forces the state away,
+so a `TIMEOUT` genuinely arrives in `FREE`, in `OCCUPIED` or in a later `HELD`.
+These three rows do nothing on purpose: the hold they belonged to is already
+resolved. Rows 4 and 11 were missing from the first draft of this table and their
+absence would have made a legitimate race return an error.
 
-**`FAULT` leaves only by row 22, the button.** A fault that clears itself on the
+**Row 18 is the one that was wrong rather than missing**, and it is the only
+correction this table has needed since it was written. Rows 4 and 11 arrive in a
+state that is not holding, so an unguarded row absorbs them harmlessly. An expiry
+left over from a cancelled hold can also arrive while a *newer* hold is running,
+and row 17 without its guard would have released that one, up to `hold_ms` early.
+A release that happens early loses a presence as surely as one that never happens,
+and it is harder to see: every state along the way is legal and the invariant holds
+at every step. So row 17 is guarded by the hold having actually expired, and row 18
+absorbs the rest. The guard compares the difference of two times read as signed
+rather than the times themselves, because `start_hold` composes the due time by
+adding and a node up for 49.7 days has a wrapped millisecond counter.
+
+This was found by asking what each kernel promises rather than by a test failing.
+Under a first-in-first-out queue the sequence cannot be assembled, which is why two
+of the three kernels hide it; a QNX channel delivers pulses in priority order and
+can. `RTOS_VARIANTS.md` carries the sequence and the three requirements an adapter
+has to satisfy for this table to be correct at all.
+
+**`FAULT` leaves only by row 23, the button.** A fault that clears itself on the
 next good reading hides the fault that caused it, and the whole point of the
-state is to say the reading is not trustworthy. Rows 23 to 27 exist so that every
+state is to say the reading is not trustworthy. Rows 24 to 28 exist so that every
 event in `FAULT` is a row rather than a dropped event, which is what makes the
 table total.
 
@@ -127,12 +151,13 @@ stateDiagram-v2
     OCCUPIED --> FREE : BUTTON / forced [12]
     OCCUPIED --> FAULT : FAULT [13]
     HELD --> OCCUPIED : READING in range / cancel hold [15]
-    HELD --> HELD : READING out of range, TICK, SETTINGS [16,18,21]
-    HELD --> FREE : TIMEOUT / release [17]
-    HELD --> FREE : BUTTON / forced [19]
-    HELD --> FAULT : FAULT [20]
-    FAULT --> FREE : BUTTON / clear [22]
-    FAULT --> FAULT : every other event [23-27]
+    HELD --> HELD : READING out of range, TICK, SETTINGS [16,19,22]
+    HELD --> FREE : TIMEOUT, this hold expired / release [17]
+    HELD --> HELD : TIMEOUT from an older hold / none [18]
+    HELD --> FREE : BUTTON / forced [20]
+    HELD --> FAULT : FAULT [21]
+    FAULT --> FREE : BUTTON / clear [23]
+    FAULT --> FAULT : every other event [24-28]
 ```
 
 ## One sitting, with the hold and without it
@@ -174,7 +199,7 @@ schema; here they are read once at start.
 
 Four figures in chapter 01's memory budget were written against a twelve-row table
 with no timestamp on an event and no settings event, and the table in this
-repository has twenty-eight rows, an `at_ms` on every event and six settings rows.
+repository has twenty-nine rows, an `at_ms` on every event and six settings rows.
 Three of the four describe themselves as exact. They are corrected here rather than
 in the chapter, because `chapters/` is generated from the volume's LaTeX on the
 authoring machine and nothing else writes it; the chapter's own source needs the
@@ -184,18 +209,18 @@ same edit and has not had it yet.
 |---|---|---|
 | One event | 4 B | **20 B**: a four-byte kind, a four-byte `at_ms`, and a twelve-byte union whose larger arm is the settings |
 | The event queue, 16 deep | 64 B, "by construction" | **320 B** |
-| The per-row counters | 12 rows of 4 B, 48 B, "by construction" | **28 rows, 112 B** |
-| The context | 64 B, "by construction" | **40 B without the counters, 152 B with them** |
-| Rows covered by the test | "all twelve" | all twenty-eight |
+| The per-row counters | 12 rows of 4 B, 48 B, "by construction" | **29 rows, 116 B** |
+| The context | 64 B, "by construction" | **40 B without the counters, 156 B with them** |
+| Rows covered by the test | "all twelve" | all twenty-nine |
 
-Everything mutable this project owns is therefore 472 bytes rather than the 176 the
+Everything mutable this project owns is therefore 476 bytes rather than the 176 the
 chapter implies. On a part with 1.4 MB of SRAM nothing is at risk, and the reason to
 correct it is not the margin: three of those rows claim to be exact, and a number
 that claims to be exact and is wrong by a factor of five is worse than a number
 marked "not measured".
 
 **These are facts of the build now, not arithmetic on this page.** `presence.c`
-pins the settings, the event and the context with `_Static_assert`, so adding a
+pins the settings, the event and the context with `_Static_assert`, so adding a field or a row
 field to any of them fails the build and the budget gets revisited on purpose. The
 host test prints all of them, derived from `PRESENCE_ROW_COUNT` and
 `PRESENCE_QUEUE_DEPTH` so they cannot drift, and the C++ and Rust suites print

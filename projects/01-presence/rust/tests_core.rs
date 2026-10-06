@@ -99,13 +99,15 @@ fn row_17_is_the_only_release() {
     post(&mut p, &Ev::reading(FAR, 30), 9);
     assert!(p.hold_running);
 
-    post(&mut p, &Ev::plain(Kind::Tick, 40), 18);
+    post(&mut p, &Ev::plain(Kind::Tick, 40), 19);
     post(&mut p, &Ev::reading(FAR, 50), 16);
-    post(&mut p, &Ev::settings(Settings::default(), 60), 21);
+    post(&mut p, &Ev::settings(Settings::default(), 60), 22);
     assert_eq!(p.state, State::Held);
     assert_eq!(p.releases, 0, "nothing but the timeout releases");
 
-    post(&mut p, &Ev::plain(Kind::Timeout, 70), 17);
+    // The hold began at 30, so its expiry is stamped 30_030. Anything earlier is
+    // an expiry from some other hold and takes row 18 instead.
+    post(&mut p, &Ev::plain(Kind::Timeout, 30_030), 17);
     assert_eq!(p.releases, 1);
 }
 
@@ -122,9 +124,42 @@ fn a_timer_can_outlive_its_hold() {
     assert_eq!(p.releases, 0, "a stale timeout is not a release");
 
     post(&mut p, &Ev::reading(FAR, 60), 9);
-    post(&mut p, &Ev::plain(Kind::Button, 70), 19);
+    post(&mut p, &Ev::plain(Kind::Button, 70), 20);
     post(&mut p, &Ev::plain(Kind::Timeout, 80), 4);
     assert_eq!(p.state, State::Free);
+}
+
+/// The third case of the same phenomenon, and the reason row 17 carries a guard.
+///
+/// The two in `a_timer_can_outlive_its_hold` arrive in a state that is not holding,
+/// so an unguarded row absorbs them. This one arrives while a NEWER hold is running,
+/// where an unguarded row 17 would release it up to `hold_ms` early. Take the guard
+/// off row 17 and the first assertion below fails: the room goes free with somebody
+/// in it. `docs/RTOS_VARIANTS.md` draws the sequence and names the kernel that can
+/// deliver it, which is QNX, whose channels are ordered by priority rather than by
+/// arrival.
+#[test]
+fn a_stale_timer_cannot_release_a_newer_hold() {
+    let mut p = start();
+    post(&mut p, &Ev::reading(NEAR, 10), 1);
+    post(&mut p, &Ev::reading(NEAR, 20), 0);
+    post(&mut p, &Ev::reading(FAR, 30), 9);
+    assert_eq!(p.hold_due_ms, 30_030, "the first hold is due at 30030");
+    post(&mut p, &Ev::reading(NEAR, 40), 15);
+    post(&mut p, &Ev::reading(FAR, 50), 9);
+    assert_eq!(p.hold_due_ms, 30_050, "the second hold is due at 30050");
+
+    // The first hold's expiry, stamped when it fired rather than when it was read,
+    // which is what the adapter contract requires of every adapter.
+    post(&mut p, &Ev::plain(Kind::Timeout, 30_030), 18);
+    assert_eq!(p.state, State::Held, "a stale expiry must not end a running hold");
+    assert_eq!(p.releases, 0, "and must not count as a release");
+    assert!(p.hold_running, "the newer hold is still outstanding");
+
+    // The real one still releases, so the guard has not closed the only exit.
+    post(&mut p, &Ev::plain(Kind::Timeout, 30_050), 17);
+    assert_eq!(p.state, State::Free);
+    assert_eq!(p.releases, 1);
 }
 
 #[test]
@@ -132,17 +167,17 @@ fn a_fault_leaves_only_by_the_button() {
     let mut p = start();
     post(&mut p, &Ev::plain(Kind::Fault, 10), 6);
     assert_eq!(p.faults_latched, 1);
-    post(&mut p, &Ev::plain(Kind::Tick, 20), 23);
-    post(&mut p, &Ev::reading(NEAR, 30), 24);
+    post(&mut p, &Ev::plain(Kind::Tick, 20), 24);
+    post(&mut p, &Ev::reading(NEAR, 30), 25);
     assert_eq!(
         p.state,
         State::Fault,
         "a good reading must not clear a fault"
     );
-    post(&mut p, &Ev::plain(Kind::Timeout, 40), 25);
-    post(&mut p, &Ev::plain(Kind::Fault, 50), 26);
-    post(&mut p, &Ev::settings(Settings::default(), 60), 27);
-    post(&mut p, &Ev::plain(Kind::Button, 70), 22);
+    post(&mut p, &Ev::plain(Kind::Timeout, 40), 26);
+    post(&mut p, &Ev::plain(Kind::Fault, 50), 27);
+    post(&mut p, &Ev::settings(Settings::default(), 60), 28);
+    post(&mut p, &Ev::plain(Kind::Button, 70), 23);
     assert_eq!(p.state, State::Free);
 }
 
@@ -168,10 +203,10 @@ fn every_row_is_reachable() {
     post(&mut p, &Ev::reading(FAR, 40), 9);
     post(&mut p, &Ev::reading(NEAR, 50), 15);
     post(&mut p, &Ev::reading(FAR, 60), 9);
-    post(&mut p, &Ev::plain(Kind::Tick, 70), 18);
+    post(&mut p, &Ev::plain(Kind::Tick, 70), 19);
     post(&mut p, &Ev::reading(FAR, 80), 16);
-    post(&mut p, &Ev::settings(Settings::default(), 90), 21);
-    post(&mut p, &Ev::plain(Kind::Timeout, 100), 17);
+    post(&mut p, &Ev::settings(Settings::default(), 90), 22);
+    post(&mut p, &Ev::plain(Kind::Timeout, 30_060), 17);
     sweep(&p);
 
     let mut p = start();
@@ -183,27 +218,27 @@ fn every_row_is_reachable() {
     post(&mut p, &Ev::plain(Kind::Timeout, 45), 11);
     post(&mut p, &Ev::settings(Settings::default(), 50), 14);
     post(&mut p, &Ev::plain(Kind::Fault, 60), 13);
-    post(&mut p, &Ev::plain(Kind::Button, 70), 22);
+    post(&mut p, &Ev::plain(Kind::Button, 70), 23);
     post(&mut p, &Ev::reading(NEAR, 80), 1);
     post(&mut p, &Ev::reading(NEAR, 90), 0);
     post(&mut p, &Ev::plain(Kind::Button, 100), 12);
     post(&mut p, &Ev::plain(Kind::Fault, 110), 6);
-    post(&mut p, &Ev::plain(Kind::Tick, 120), 23);
-    post(&mut p, &Ev::reading(NEAR, 130), 24);
-    post(&mut p, &Ev::plain(Kind::Timeout, 140), 25);
-    post(&mut p, &Ev::plain(Kind::Fault, 150), 26);
-    post(&mut p, &Ev::settings(Settings::default(), 160), 27);
-    post(&mut p, &Ev::plain(Kind::Button, 170), 22);
+    post(&mut p, &Ev::plain(Kind::Tick, 120), 24);
+    post(&mut p, &Ev::reading(NEAR, 130), 25);
+    post(&mut p, &Ev::plain(Kind::Timeout, 140), 26);
+    post(&mut p, &Ev::plain(Kind::Fault, 150), 27);
+    post(&mut p, &Ev::settings(Settings::default(), 160), 28);
+    post(&mut p, &Ev::plain(Kind::Button, 170), 23);
     post(&mut p, &Ev::reading(NEAR, 180), 1);
     post(&mut p, &Ev::reading(NEAR, 190), 0);
     post(&mut p, &Ev::reading(FAR, 200), 9);
-    post(&mut p, &Ev::plain(Kind::Fault, 210), 20);
-    post(&mut p, &Ev::plain(Kind::Button, 220), 22);
+    post(&mut p, &Ev::plain(Kind::Fault, 210), 21);
+    post(&mut p, &Ev::plain(Kind::Button, 220), 23);
     post(&mut p, &Ev::settings(Settings::default(), 230), 7);
     post(&mut p, &Ev::reading(NEAR, 240), 1);
     post(&mut p, &Ev::reading(NEAR, 250), 0);
     post(&mut p, &Ev::reading(FAR, 260), 9);
-    post(&mut p, &Ev::plain(Kind::Button, 270), 19);
+    post(&mut p, &Ev::plain(Kind::Button, 270), 20);
     sweep(&p);
 
     let untaken: Vec<usize> = (0..ROW_COUNT).filter(|&i| taken[i] == 0).collect();
@@ -235,44 +270,58 @@ fn the_exhaustive_match_agrees_with_the_table() {
         Kind::Fault,
         Kind::Settings,
     ];
+    // The three payload dimensions any guard in this table reads, both sides of
+    // each: the range, which `in_range` and `out_of_range` split; the run so far,
+    // which `run_completes` splits; and the hold's due time against the event's,
+    // which `hold_expired` splits. Eight payloads, so 4 x 6 x 8 = 192 combinations.
+    // The due dimension arrived with row 18 and is the reason this count grew.
+    let payloads = [
+        (NEAR, 0u16, 0u32),
+        (NEAR, 0, 1000),
+        (NEAR, 1, 0),
+        (NEAR, 1, 1000),
+        (FAR, 0, 0),
+        (FAR, 0, 1000),
+        (FAR, 1, 0),
+        (FAR, 1, 1000),
+    ];
     let mut checked = 0;
     for st in states {
         for kind in kinds {
-            for &mm in &[NEAR, FAR] {
-                for &run in &[0u16, 1u16] {
-                    // Built in one expression rather than default-then-assign.
-                    // clippy objects to the latter, and it is right to: a partly
-                    // initialised value exists between the statements, and here
-                    // that value breaks the invariant, since `Held` without a
-                    // running hold is exactly what `check_invariants` rejects.
-                    let run_for = if st == State::Free { run } else { 0 };
-                    let p = Presence {
-                        state: st,
-                        run: run_for,
-                        hold_running: st == State::Held,
-                        ..Presence::default()
-                    };
-                    let ev = match kind {
-                        Kind::Reading => Ev::reading(mm, 0),
-                        Kind::Settings => Ev::settings(Settings::default(), 0),
-                        k => Ev::plain(k, 0),
-                    };
-                    let from_match = p.exhaustive_row_of(&ev);
-                    let from_table = {
-                        let mut probe = p;
-                        probe.dispatch(&ev).expect("the table is total")
-                    };
-                    assert_eq!(
-                        from_match, from_table,
-                        "state {st:?} kind {kind:?} mm {mm} run {run}: match says {from_match}, \
-                         table says {from_table}"
-                    );
-                    checked += 1;
-                }
+            for (mm, run, due) in payloads {
+                // Built in one expression rather than default-then-assign. clippy
+                // objects to the latter, and it is right to: a partly initialised
+                // value exists between the statements, and here that value breaks
+                // the invariant, since `Held` without a running hold is exactly
+                // what `check_invariants` rejects.
+                let run_for = if st == State::Free { run } else { 0 };
+                let p = Presence {
+                    state: st,
+                    run: run_for,
+                    hold_running: st == State::Held,
+                    hold_due_ms: due,
+                    ..Presence::default()
+                };
+                let ev = match kind {
+                    Kind::Reading => Ev::reading(mm, 0),
+                    Kind::Settings => Ev::settings(Settings::default(), 0),
+                    k => Ev::plain(k, 0),
+                };
+                let from_match = p.exhaustive_row_of(&ev);
+                let from_table = {
+                    let mut probe = p;
+                    probe.dispatch(&ev).expect("the table is total")
+                };
+                assert_eq!(
+                    from_match, from_table,
+                    "state {st:?} kind {kind:?} mm {mm} run {run} due {due}: \
+                     match says {from_match}, table says {from_table}"
+                );
+                checked += 1;
             }
         }
     }
-    assert_eq!(checked, 4 * 6 * 2 * 2);
+    assert_eq!(checked, 4 * 6 * 8);
 }
 
 #[test]
@@ -304,7 +353,7 @@ fn the_guard_discriminant_needs_no_parallel_bool() {
     let guarded: Vec<usize> = (0..ROW_COUNT)
         .filter(|&i| TABLE[i].guard.is_some())
         .collect();
-    assert_eq!(guarded, vec![0, 1, 2, 8, 9, 15, 16], "the guarded rows");
+    assert_eq!(guarded, vec![0, 1, 2, 8, 9, 15, 16, 17], "the guarded rows");
 }
 
 #[test]

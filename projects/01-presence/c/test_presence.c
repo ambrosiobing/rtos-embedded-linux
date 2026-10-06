@@ -8,7 +8,7 @@
  *
  * THREE KINDS OF CASE, and the second and third are the ones that catch things.
  *
- * Coverage: after the sequences below, every one of the twenty-eight rows has
+ * Coverage: after the sequences below, every one of the twenty-nine rows has
  * been taken at least once. A row never taken is either unreachable, which makes
  * it a defect in the table, or reachable by a path nobody thought to write, which
  * makes it a gap in this file. Either way the final assertion names the row.
@@ -171,16 +171,16 @@ static void test_only_one_row_releases(void)
 
     /* Every event that can arrive while held, and none of them may release
      * except the timeout. */
-    simple(PRESENCE_EV_TICK, 40, 18);
+    simple(PRESENCE_EV_TICK, 40, 19);
     CHECK(p.state == PRESENCE_HELD && p.releases == 0u, "a tick releases nothing");
     reading(FAR, 50, 16);
     CHECK(p.state == PRESENCE_HELD && p.releases == 0u,
           "an out-of-range reading while held releases nothing");
-    settings(2, 30000, 2500, 60, 21);
+    settings(2, 30000, 2500, 60, 22);
     CHECK(p.state == PRESENCE_HELD && p.releases == 0u,
           "a settings change releases nothing");
 
-    simple(PRESENCE_EV_TIMEOUT, 70, 17);
+    simple(PRESENCE_EV_TIMEOUT, 30030, 17);   /* the hold began at 30 */
     CHECK(p.releases == 1u, "the timeout is the release");
 }
 
@@ -205,10 +205,53 @@ static void test_a_timer_can_outlive_its_hold(void)
 
     /* Free: the button forced the state away from a hold. */
     reading(FAR, 60, 9);
-    simple(PRESENCE_EV_BUTTON, 70, 19);
+    simple(PRESENCE_EV_BUTTON, 70, 20);
     CHECK(p.state == PRESENCE_FREE && !p.hold_running, "forced free");
     simple(PRESENCE_EV_TIMEOUT, 80, 4);
     CHECK(p.state == PRESENCE_FREE, "a stale timeout in free changes nothing");
+}
+
+/* The third and worst case of the same phenomenon, and the reason row 17 is
+ * guarded. The two above arrive in a state that is not holding, so an unguarded
+ * row absorbs them harmlessly. This one arrives while a NEW hold is running, where
+ * an unguarded row 17 would release it, up to hold_ms early.
+ *
+ * This is the sequence docs/RTOS_VARIANTS.md draws: a hold is cancelled while its
+ * expiry is already queued, a second hold starts, and the first expiry is then
+ * delivered. Under a first-in-first-out queue it cannot be assembled, because the
+ * stale expiry would be dequeued before the readings that cancelled and restarted
+ * the hold. A QNX channel delivers pulses in priority order and can assemble it.
+ *
+ * Run this file against a table whose row 17 has no guard and the first assertion
+ * below fails: the room goes free with somebody in it. That is the point of the
+ * case, and it is why the guard is in the table rather than in an adapter. */
+static void test_a_stale_timer_cannot_release_a_newer_hold(void)
+{
+    printf("a stale hold timer arriving while a newer hold runs\n");
+    start();
+
+    reading(NEAR, 10, 1);
+    reading(NEAR, 20, 0);
+    reading(FAR, 30, 9);                 /* first hold, due at 30030 */
+    CHECK(p.hold_due_ms == 30030u, "the first hold is due at 30030, is %u",
+          (unsigned)p.hold_due_ms);
+    reading(NEAR, 40, 15);               /* cancelled, expiry already queued */
+    reading(FAR, 50, 9);                 /* second hold, due at 30050 */
+    CHECK(p.state == PRESENCE_HELD && p.hold_due_ms == 30050u,
+          "the second hold is due at 30050, is %u", (unsigned)p.hold_due_ms);
+
+    /* The first hold's expiry, stamped with its own due time, which is what an
+     * adapter must do: at_ms is when the event happened, not when it was read. */
+    simple(PRESENCE_EV_TIMEOUT, 30030, 18);
+    CHECK(p.state == PRESENCE_HELD,
+          "a stale expiry must not end a hold that is still running");
+    CHECK(p.releases == 0u, "and must not count as a release");
+    CHECK(p.hold_running, "the newer hold is still outstanding");
+
+    /* The real one still releases, so the guard has not broken the only exit. */
+    simple(PRESENCE_EV_TIMEOUT, 30050, 17);
+    CHECK(p.state == PRESENCE_FREE, "the newer hold expiring does release");
+    CHECK(p.releases == 1u, "exactly one release, is %u", (unsigned)p.releases);
 }
 
 /* -------------------------------------------------------- the fault latch */
@@ -223,16 +266,16 @@ static void test_fault_is_a_latch(void)
 
     /* Every other event, and none of them may clear it. A fault that cleared
      * itself on the next good reading would hide the fault that caused it. */
-    simple(PRESENCE_EV_TICK, 20, 23);
-    reading(NEAR, 30, 24);
+    simple(PRESENCE_EV_TICK, 20, 24);
+    reading(NEAR, 30, 25);
     CHECK(p.state == PRESENCE_FAULT,
           "a good reading must NOT clear a fault");
-    simple(PRESENCE_EV_TIMEOUT, 40, 25);
-    simple(PRESENCE_EV_FAULT, 50, 26);
-    settings(2, 30000, 2500, 60, 27);
+    simple(PRESENCE_EV_TIMEOUT, 40, 26);
+    simple(PRESENCE_EV_FAULT, 50, 27);
+    settings(2, 30000, 2500, 60, 28);
     CHECK(p.state == PRESENCE_FAULT, "still faulted after every other event");
 
-    simple(PRESENCE_EV_BUTTON, 70, 22);
+    simple(PRESENCE_EV_BUTTON, 70, 23);
     CHECK(p.state == PRESENCE_FREE, "the button clears it");
 }
 
@@ -250,7 +293,7 @@ static void test_the_remaining_rows(void)
     simple(PRESENCE_EV_TICK, 40, 10);
     settings(2, 30000, 2500, 50, 14);
     simple(PRESENCE_EV_FAULT, 60, 13);        /* fault from occupied */
-    simple(PRESENCE_EV_BUTTON, 70, 22);
+    simple(PRESENCE_EV_BUTTON, 70, 23);
 
     reading(NEAR, 80, 1);
     reading(NEAR, 90, 0);
@@ -260,7 +303,7 @@ static void test_the_remaining_rows(void)
     reading(NEAR, 110, 1);
     reading(NEAR, 120, 0);
     reading(FAR, 130, 9);
-    simple(PRESENCE_EV_FAULT, 140, 20);       /* fault from held */
+    simple(PRESENCE_EV_FAULT, 140, 21);       /* fault from held */
     CHECK(p.state == PRESENCE_FAULT, "a fault latches from held");
 }
 
@@ -314,6 +357,7 @@ int main(void)
         {"arrival",      test_arrival_happens_on_the_completing_reading},
         {"release",      test_only_one_row_releases},
         {"stale timer",  test_a_timer_can_outlive_its_hold},
+        {"stale in held", test_a_stale_timer_cannot_release_a_newer_hold},
         {"fault latch",  test_fault_is_a_latch},
         {"remaining",    test_the_remaining_rows},
         {"refusals",     test_the_dispatcher_refuses_nonsense},
