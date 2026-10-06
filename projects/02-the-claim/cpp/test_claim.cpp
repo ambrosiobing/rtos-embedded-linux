@@ -150,18 +150,17 @@ constexpr claim::Inputs inputs_of(const Case& k) noexcept {
 
 // ------------------------------------------- what this version proves at compile time
 
-// The duplicated `guarded` flag must agree with the guard it sits beside. The flag exists
-// only so that a hand edit changing one and not the other is caught, which is P01's reason
-// for Row::guarded.
-constexpr bool every_arm_has_a_guard_pointer() noexcept {
-    for (std::size_t i = 0; i < claim::kCascade.size(); ++i) {
-        if (claim::kCascade[i].guard == nullptr) {
-            return false;
-        }
-    }
-    return true;
-}
-static_assert(every_arm_has_a_guard_pointer(), "an arm with no guard pointer");
+// WHAT IS DELIBERATELY NOT A static_assert HERE, and the reason is already written down in
+// this repository. An earlier version of this file proved at compile time that every arm
+// carries a non-null guard pointer. g++ refuses it under -fsanitize=address,undefined with
+// "is not a constant expression", while accepting the same code at -O2, and clang++ accepts
+// it everywhere. scripts/crosscheck_table.py records the same behaviour for P01 and is the
+// reason Row::guarded is a bool written out beside the pointer rather than derived from it.
+//
+// The check was also vacuous: every arm here holds a real function, the fall-through
+// included, so a null pointer was impossible by construction. What is worth checking is
+// that the duplicated `guarded` flag agrees with the guard beside it, and that comparison
+// is a pointer comparison, so it runs below rather than at compile time.
 
 // Every code must appear in the cascade, or a code exists that nothing can produce.
 constexpr bool every_code_is_produced_by_some_arm() noexcept {
@@ -231,6 +230,23 @@ void every_code_and_arm_is_reached() {
 }
 
 // ------------------------------------------------- 2. a live booking beats a walk-in
+
+// The duplicate the compiler cannot check: `guarded` must agree with the guard beside it.
+// The fall-through is the arm whose guard is `always`, and it must be the only one marked
+// unguarded. A hand edit changing one and not the other is what this catches.
+void the_guarded_flag_agrees_with_the_guard() {
+    std::printf("2a. the duplicated `guarded` flag agrees with the guard beside it\n");
+
+    for (std::size_t i = 0; i < claim::kCascade.size(); ++i) {
+        const bool is_fall_through = claim::kCascade[i].guard == &claim::detail::always;
+
+        CHECK(claim::kCascade[i].guarded != is_fall_through,
+              "arm %u is marked %s and its guard %s the fall-through",
+              static_cast<unsigned>(i + 1),
+              claim::kCascade[i].guarded ? "guarded" : "unguarded",
+              is_fall_through ? "is" : "is not");
+    }
+}
 
 void a_live_booking_beats_a_walk_in() {
     std::printf("2. a live booking beats a walk-in\n");
@@ -537,6 +553,7 @@ int main() {
     std::printf("the claim cascade in C++, with no kernel and no board\n\n");
 
     every_code_and_arm_is_reached();
+    the_guarded_flag_agrees_with_the_guard();
     a_live_booking_beats_a_walk_in();
     a_no_show_releases_exactly_once_and_says_so();
     grace_does_not_emit();
