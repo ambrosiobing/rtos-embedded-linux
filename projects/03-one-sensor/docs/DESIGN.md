@@ -87,10 +87,22 @@ are listed by what they mean and this table sorts them by what they cost.
 one board. A second board has different peripherals rather than a different wire, which is a
 harder claim and belongs to P14.
 
-**That an emulated bus would prove it.** If Zephyr's tree carries an emulator for this part,
-criteria 1 and 4 could be reached even sooner, but an emulated two-wire bus is not evidence
-about a real one, and criteria 2, 3, 5 and 6 would be untouched by it. Whether such an
-emulator exists is a question for the tree and not for this page.
+**That an emulated bus could stand in.** It was worth asking, because an emulator would have
+reached criteria 1 and 4 with no hardware at all. **It was asked of the tree on Tuesday 6
+October 2026 and the answer is no**: `zephyr/drivers/sensor/adi/adxl345/` carries
+`adxl345.c`, its decoder, its RTIO and streaming paths and `adxl345_trigger.c`, and nothing
+matching an emulator for this part exists anywhere in the tree. So that route is closed.
+
+Stated precisely, because the loose version of it is wrong: the SDK was always needed for all
+six, since nothing is flashed that was not first cross built. What an emulator would have
+done is let criteria 1 and 4 be reached **before** the SDK, on `native_sim`, with the host
+compiler. It cannot, so the SDK is the first thing on the path and nothing in this project
+starts before it.
+
+The driver having a trigger file of its own is the other half of that answer, and it is the
+good half: criterion 5 asks that the trigger build sample at the sensor's rate rather than
+the loop's, and there is a driver path for it to use rather than an interrupt this project
+would have to wire by hand.
 
 **Anything about the second device.** It is dotted in the chapter and absent here until it
 has been read on the same bus as the accelerometer.
