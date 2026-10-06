@@ -78,6 +78,7 @@ survive the build at all.
 | [overlays/i2c.overlay](overlays/i2c.overlay) | the part on the two-wire bus at 0x53 |
 | [overlays/spi.overlay](overlays/spi.overlay) | the same part on the four-wire bus, where the address becomes a chip select |
 | [overlays/impossible.overlay](overlays/impossible.overlay) | a description that cannot be true, which the build must refuse |
+| [docs/WIRING.md](docs/WIRING.md) | the six leads for the two-wire build, from the vendor's schematic, and why the digital pins have no margin |
 | the four remaining criteria | **need the board** |
 
 ## The first real figures this volume has for the target
