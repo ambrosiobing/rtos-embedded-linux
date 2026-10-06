@@ -166,23 +166,33 @@ Two choices in the table deserve their reasons written down. The arrival needs a
 
 ## Repository layout
 
+What follows is the tree as built, listed from the repository rather than from the plan. It is wider than the plan was, in one axis the plan did not have: the table is written four times and run under three kernels, and the point of the layout is that the four copies are compared against each other and the three kernels share one test.
+
 ```text
-projects/P01-presence/
-  CMakeLists.txt                  # two builds: the board, and the host tests
-  prj.conf                        # the fragment printed above
-  boards/nucleo_h7a3zi_q.overlay  # the four aliases, and nothing else
-  src/presence.c                  # the table and the dispatcher, no hardware
-  src/presence.h                  # states, events, the context type
-  src/actions.c                   # the only code that knows lamps and the log
-  src/range_stub.c                # the generated source, replaced in P05
-  src/main.c                      # start the thread, load settings, run
-  tests/test_reachability.c       # every row is taken at least once
-  tests/test_release.c            # the property that matters: a release is never lost
-  tests/events.txt                # scripted sequences, one per line
-  tools/table_to_dot.py           # the figure is generated from the table
-  docs/states.md                  # the states and events, written before the code
-  README.md                       # opens with the architecture figure
+projects/01-presence/
+  README.md                     # what exists, and what each part is evidence of
+  docs/DESIGN.md                # the 29 rows and the invariant, written before the code
+  docs/LANGUAGE_IDIOMS.md       # what each language version changes for this table
+  docs/RTOS_VARIANTS.md         # the contract a kernel must satisfy, and three mappings
+  docs/figures/                 # the five figures of this chapter, as SVG
+  c/presence.h                  # four states, six events, the context, the invariant
+  c/presence.c                  # the 29 rows and a dispatcher of a dozen lines
+  c/test_presence.c             # every row reachable, the order traps, the invariant
+  cpp/presence.hpp              # the same rows in C++17, the baseline
+  cpp/presence23.hpp            # std::expected, and consteval proofs of totality
+  cpp/presence26.hpp            # std::inplace_vector for the queue
+  cpp/test_presence.cpp         # the C sequences, plus what the compiler provided
+  rust/presence_core.rs         # the same rows, no_std, no unsafe, one source
+  rust/tests_core.rs            # the same cases, and an exhaustive match over 192
+  rust/e2018 e2021 e2024/       # three crates differing only in their edition line
+  adapter/presence_adapter.h    # the contract every kernel adapter implements
+  adapter/phases.c              # four test phases, and NO kernel header
+  freertos/                     # the first adapter, and a CI job
+  zephyr/                       # the second adapter, on native_sim, and a CI job
+  qnx/                          # the third, written and never compiled
 ```
+
+Two things in that list carry the chapter's argument rather than its code. `adapter/phases.c` includes no kernel header, which is what lets one test run against every kernel instead of each kernel having a test of its own that nobody can compare. And `qnx/` is there precisely because it cannot be built here: it is the kernel that does not fit, and reading what it guarantees is what produced the twenty-ninth row.
 
 ## Steps
 
