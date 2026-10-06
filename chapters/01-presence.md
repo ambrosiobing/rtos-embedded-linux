@@ -118,15 +118,15 @@ The three indicators are worth their pins. Four states fit in three lamps with r
 | Quantity | Budget | Measured | Margin |
 | --- | --- | --- | --- |
 | Transition table | under 1 kB in flash | not measured | not measured |
-| Machine context | 64 B of static memory | 64 B by construction | none needed |
-| Event queue | 16 events of 4 B | 64 B by construction | none needed |
-| Reachability counters | 12 rows of 4 B | 48 B by construction | none needed |
+| Machine context, counters apart | 64 B of static memory | 40 B, printed by the test | none needed |
+| Event queue | 16 events of 20 B | 320 B, printed by the test | none needed |
+| Reachability counters | 29 rows of 4 B | 116 B, printed by the test | none needed |
 | Dynamic allocation | zero bytes | zero by construction | not applicable |
 | Thread stack, high-water mark | under 1024 B | not measured | not measured |
 | Worst dispatch, excluding actions | under 200 cycles | not measured | not measured |
-| Transition rows covered by test | all twelve | not measured | not measured |
+| Transition rows covered by test | all twenty-nine | all twenty-nine | none needed |
 
-*Table 1.3. The budget for P01. Four rows are exact because they are static allocations rather than measurements. The cycle row is measured with the processor's cycle counter in the method P04 establishes, and the stack row with the thread analyser. Both read `not measured` until they have been run on the board, which is the honest state of this chapter on Friday 2 October 2026.*
+*Table 1.3. The budget for P01. Five rows are exact because they are static allocations rather than measurements, and the host test prints every one of them so that a reader checks a log rather than this table. Four of them were wrong until Tuesday 6 October 2026: they were written against a twelve-row table whose events carried no timestamp and no settings, which made an event 4 bytes rather than 20. The cycle row is measured with the processor's cycle counter in the method P04 establishes, and the stack row with the thread analyser. Both read `not measured` until they have been run on the board, which is the honest state of this chapter on Friday 2 October 2026.*
 
 ## Software design (UML)
 
@@ -298,7 +298,7 @@ The log line has one shape, a timestamp followed by key-value pairs, because a l
 
 The method is written before the run, and so is the result that would refute it.
 
-- **Every row is taken.** The scripted sequences drive all twelve rows and the suite prints the counters. *Refuted if* any counter is zero after the full run, which means either a row is unreachable or the scripts are incomplete, and the chapter says which.
+- **Every row is taken.** The scripted sequences drive all twenty-nine rows and the suite prints the counters. *Refuted if* any counter is zero after the full run, which means either a row is unreachable or the scripts are incomplete, and the chapter says which.
 - **A release is never lost.** Over a generated sequence of ten thousand arrivals and departures with the hold shorter than the gap, the release counter equals the number of departures exactly. *Refuted if* the two differ by even one, which is the failure this chapter exists to prevent.
 - **A fault does not become a release.** A sequence that enters the fault state during a hold must not increment the release counter. *Refuted if* it does, which would mean a sensor failure quietly frees the room.
 - **One lucky read does not clear a fault.** Recovery requires three consecutive good reads. *Refuted if* a single good read among failures returns the machine to free.
@@ -343,7 +343,7 @@ The idiom this chapter proves is **maintainability**: the pins live in the devic
 
 `west build -p -b native_sim projects/P01-presence -- -DCONFIG_ZTEST=y && ./build/zephyr/zephyr.exe`
 
-which runs the full transition suite, prints all twelve row counters and the release count, and needs no board. Publish the architecture figure, the state diagram, the twelve-row counter output, and the one paragraph on why a missed release is the failure that matters.
+which runs the full transition suite, prints all twenty-nine row counters and the release count, and needs no board. Publish the architecture figure, the state diagram, the counter output for all twenty-nine rows, and the one paragraph on why a missed release is the failure that matters.
 
 ## Sources
 

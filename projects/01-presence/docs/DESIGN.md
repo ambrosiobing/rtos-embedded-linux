@@ -202,10 +202,15 @@ schema; here they are read once at start.
 Four figures in chapter 01's memory budget were written against a twelve-row table
 with no timestamp on an event and no settings event, and the table in this
 repository has twenty-nine rows, an `at_ms` on every event and six settings rows.
-Three of the four describe themselves as exact. They are corrected here rather than
-in the chapter, because `chapters/` is generated from the volume's LaTeX on the
-authoring machine and nothing else writes it; the chapter's own source needs the
-same edit and has not had it yet.
+Three of the four described themselves as exact.
+
+**The chapter is corrected too, as of Tuesday 6 October 2026.** `chapters/` is
+generated from the volume's LaTeX on the authoring machine and nothing else writes
+it, so the fix was made in that source and the chapter regenerated from it; sixteen
+lines changed and no others, which was checked before the file was replaced. What
+follows is the same correction stated where the code lives, and it is the longer
+version, because a design page can say why a number was wrong and a budget table
+cannot.
 
 | Quantity | Chapter 01 says | What the code is |
 |---|---|---|
