@@ -1,0 +1,36 @@
+# projects/01-presence/zephyr/CMakeLists.txt
+#
+# A Zephyr application, built for native_sim, which uses the HOST compiler rather than
+# the Zephyr SDK. That is why this adapter needs a Zephyr tree and west but not the
+# three gigabyte cross toolchain: nothing here is cross compiled.
+#
+#   west build -b native_sim -p always projects/01-presence/zephyr
+#   ./build/zephyr/zephyr.exe
+#
+# The four test phases are ../adapter/phases.c, shared with the FreeRTOS adapter and
+# containing no kernel header, so the same test runs against both.
+
+cmake_minimum_required(VERSION 3.20.0)
+
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(presence_zephyr C)
+
+target_sources(app PRIVATE
+  presence_adapter.c
+  main.c
+  ../adapter/phases.c
+  ../c/presence.c
+)
+
+target_include_directories(app PRIVATE
+  .
+  ../adapter
+  ../c
+)
+
+# The table is compiled as strict C11 here too, as it is in the six CI jobs and in the
+# FreeRTOS Makefile. It includes no Zephyr header and needs no extension, so nothing
+# is given up by holding it to the standard this volume claims for it, and allowing it
+# to drift into whatever dialect a build system happens to pass would retire that
+# claim one build system at a time.
+set_source_files_properties(../c/presence.c PROPERTIES COMPILE_OPTIONS "-std=c11")

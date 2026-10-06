@@ -41,8 +41,10 @@ code, which is the chapter's first requirement.
 | `rust/e2018`, `rust/e2021`, `rust/e2024` | three crates differing only in their edition line |
 | [docs/RTOS_VARIANTS.md](docs/RTOS_VARIANTS.md) | the contract between the table and a kernel, the mapping for Zephyr, FreeRTOS and QNX, and the argument for a twenty-ninth row |
 | [scripts/crosscheck_table.py](../../scripts/crosscheck_table.py) | the three tables compared row for row, in CI, so "the same table" is enforced rather than repeated |
-| [freertos/](freertos/) | the first kernel adapter: one queue, one dispatch task, two timers, static allocation only. **Green, and a CI job**: the same rows through real plumbing, a release by a real timer, and a full queue counted |
-| the Zephyr and QNX adapters | not written. Zephyr has no workspace in WSL to build against, and QNX has no licence or target here at all |
+| [adapter/](adapter/) | the contract every adapter implements, and the four test phases, which include no kernel header so that one test runs against every kernel |
+| [freertos/](freertos/) | the first adapter. **Green, and a CI job**: the same rows through real plumbing, a release by a real timer, and a full queue counted |
+| [zephyr/](zephyr/) | the second adapter, for `native_sim`. **Written, not yet built**, and writing it is what showed which parts of the first adapter's interface were one kernel's calling convention |
+| the QNX adapter | not written. No licence and no target here at all |
 
 ## What the table is, and why it is the specification
 
@@ -113,10 +115,10 @@ In WSL on the demo laptop, the same thing by hand:
 - **The bare-metal link.** Whether the library is really `no_std` is shown by none
   of the above, because the test configuration pulls in std for the harness. Only
   CI checks it, by building the library alone for `thumbv7em-none-eabihf`.
-- **The Zephyr and QNX adapters.** FreeRTOS is done. The mapping and the three
-  requirements any adapter must satisfy are in
-  [docs/RTOS_VARIANTS.md](docs/RTOS_VARIANTS.md).
-  Zephyr has no workspace or SDK in WSL on the demo laptop, checked on Tuesday
-  6 October 2026, so it has no local loop; QNX has no licence and no target here
-  at all and will be written without ever being built.
+- **A build of the Zephyr adapter.** [zephyr/](zephyr/) is written and no compiler
+  has seen it. It targets `native_sim`, which builds with the host compiler rather
+  than the Zephyr SDK, so it needs a tree and `west` and not a cross toolchain.
+- **The QNX adapter.** No licence and no target here at all, so it will be written
+  without ever being built. The mapping and the three requirements any adapter must
+  satisfy are in [docs/RTOS_VARIANTS.md](docs/RTOS_VARIANTS.md).
 - **Anything on hardware.** No board has run this.

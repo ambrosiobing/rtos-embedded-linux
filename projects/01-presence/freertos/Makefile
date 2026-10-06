@@ -44,10 +44,10 @@ CORE_SRC := $(FREERTOS_KERNEL)/tasks.c \
 PORT_SRC := $(PORT_DIR)/port.c \
             $(PORT_DIR)/utils/wait_for_event.c
 
-ADAPTER_SRC := presence_adapter.c host_main.c
+ADAPTER_SRC := presence_adapter.c host_main.c ../adapter/phases.c
 TABLE_SRC   := ../c/presence.c
 
-INCLUDES := -I. -I../c -I$(FREERTOS_KERNEL)/include -I$(PORT_DIR) -I$(PORT_DIR)/utils
+INCLUDES := -I. -I../c -I../adapter -I$(FREERTOS_KERNEL)/include -I$(PORT_DIR) -I$(PORT_DIR)/utils
 
 WALL := -Wall -Wextra -Werror -Wpedantic -Wconversion
 

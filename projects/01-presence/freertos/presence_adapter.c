@@ -8,7 +8,7 @@
  * not link, which is a stronger guarantee than reading a map file and is why the
  * config is written that way round.
  */
-#include "presence_adapter.h"
+#include "presence_adapter.h"   /* ../adapter/, shared by every adapter */
 
 #include "FreeRTOS.h"
 #include "queue.h"
@@ -32,6 +32,13 @@ static TimerHandle_t hold_timer;
 
 static StaticTimer_t tick_control;
 static TimerHandle_t tick_timer;
+
+/* The dispatch thread outranks every producer, so a post is taken before the
+ * producer's next statement and the scripted phases are deterministic rather than a
+ * race that usually passes. presence_adapter_test_outrank_dispatcher is defined in
+ * terms of this, which is why it is a name and not a literal. */
+#define DISPATCH_PRIORITY    (tskIDLE_PRIORITY + 2)
+#define PRODUCER_PRIORITY    (tskIDLE_PRIORITY + 1)
 
 #define DISPATCH_STACK_WORDS 512u
 static StaticTask_t dispatch_control;
@@ -85,11 +92,16 @@ bool presence_adapter_post(const presence_event_t *ev)
     return true;
 }
 
-bool presence_adapter_post_from_isr(const presence_event_t *ev,
-                                    long *higher_priority_task_woken)
+/* The yield is done here rather than handed back to the caller. An earlier version of
+ * the contract returned FreeRTOS's higher-priority-task-woken flag through an out
+ * parameter, which made one kernel's calling convention part of a header that three
+ * kernels have to satisfy. Zephyr needs nothing of the sort. How a kernel is told to
+ * reschedule is that kernel's business, so it is settled in that kernel's adapter. */
+bool presence_adapter_post_from_isr(const presence_event_t *ev)
 {
     presence_event_t stamped;
     BaseType_t woken = pdFALSE;
+    bool sent;
 
     if (ev == NULL || queue == NULL) {
         return false;
@@ -97,17 +109,22 @@ bool presence_adapter_post_from_isr(const presence_event_t *ev,
     stamped = *ev;
     stamped.at_ms = now_ms_from_isr();
 
-    if (xQueueSendToBackFromISR(queue, &stamped, &woken) != pdPASS) {
+    sent = xQueueSendToBackFromISR(queue, &stamped, &woken) == pdPASS;
+    if (!sent) {
         dropped++;
-        if (higher_priority_task_woken != NULL) {
-            *higher_priority_task_woken = (long)woken;
-        }
-        return false;
     }
-    if (higher_priority_task_woken != NULL) {
-        *higher_priority_task_woken = (long)woken;
-    }
-    return true;
+    portYIELD_FROM_ISR(woken);
+    return sent;
+}
+
+void presence_adapter_sleep_ms(uint32_t ms)
+{
+    vTaskDelay(pdMS_TO_TICKS(ms));
+}
+
+void presence_adapter_test_outrank_dispatcher(bool outrank)
+{
+    vTaskPrioritySet(NULL, outrank ? DISPATCH_PRIORITY + 1 : PRODUCER_PRIORITY);
 }
 
 uint32_t presence_adapter_events_dropped(void)
@@ -226,7 +243,7 @@ bool presence_adapter_init(void)
     }
 
     if (xTaskCreateStatic(dispatch_task, "presence", DISPATCH_STACK_WORDS, NULL,
-                          tskIDLE_PRIORITY + 2, dispatch_stack,
+                          DISPATCH_PRIORITY, dispatch_stack,
                           &dispatch_control) == NULL) {
         return false;
     }

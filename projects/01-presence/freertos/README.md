@@ -37,6 +37,13 @@ fixes: not one of them was in the table, the adapter or the design. Two were abo
 which declarations a dialect makes visible and one was a function signature in a
 kernel's own API.
 
+**Then the Zephyr adapter changed this one.** The contract and the four phases moved
+to [`../adapter/`](../adapter/), and the interrupt post lost its
+`long *higher_priority_task_woken` parameter, because that was FreeRTOS's way of
+asking a caller to yield and not something a second kernel needed. This adapter yields
+on its own behalf now. An interface with one implementation is a guess about what is
+general; the second one is what tests the guess.
+
 ## Why FreeRTOS first of the three
 
 Of the three kernels in [docs/RTOS_VARIANTS.md](../docs/RTOS_VARIANTS.md), this is
@@ -53,10 +60,11 @@ can be a test result rather than a reading of the source.
 
 | | |
 |---|---|
-| [presence_adapter.h](presence_adapter.h) | the surface, and the three requirements the table places on any adapter |
+| [../adapter/presence_adapter.h](../adapter/presence_adapter.h) | the contract, shared with every other adapter. It lived here until the Zephyr adapter showed which part of it was FreeRTOS's calling convention rather than anyone's requirement |
+| [../adapter/phases.c](../adapter/phases.c) | the four test phases, shared, and containing no kernel header, so one test runs against every kernel |
 | [presence_adapter.c](presence_adapter.c) | one queue, one dispatch task, two software timers, and nothing that decides |
 | [FreeRTOSConfig.h](FreeRTOSConfig.h) | static allocation only, with dynamic allocation switched off so that an accidental `xQueueCreate` fails to link |
-| [host_main.c](host_main.c) | four phases, two of which can fail in ways nothing else here would catch |
+| [host_main.c](host_main.c) | what only FreeRTOS needs: memory for the kernel's own idle and timer tasks, a place for a failed assertion, and a thread to run the phases on |
 | [Makefile](Makefile) | fetches the kernel at a pinned tag, builds, and refuses a binary containing an allocator |
 
 ## What the adapter may not do, and how that is visible
