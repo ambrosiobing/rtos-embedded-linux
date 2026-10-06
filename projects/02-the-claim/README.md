@@ -25,10 +25,11 @@ which is a different question: presence is an observation, and a claim is a deci
 P02 **adds no state to the presence machine**.
 
 So the specification has a different shape. P01's is a transition table, because presence
-is a state machine. This one's is a **cascade**: eight guarded arms evaluated top to
-bottom, first match winning, as one pure function. The arms produce seven claim codes,
-and a second axis of seven service states runs beside them without either being a state
-of the other.
+is a state machine. This one's is a **cascade**: seven guarded arms and an
+unguarded eighth, evaluated top to bottom, first match winning, as one pure function.
+The seven produce chapter 02's seven claim codes and the eighth is the fall-through, the
+absence of a claim. A second axis of seven service states runs beside all of it, neither
+axis being a state of the other.
 
 The two properties the design exists to protect are that **a live booking beats a
 walk-in while a booking nobody turned up for does not**, and that **a room which cannot

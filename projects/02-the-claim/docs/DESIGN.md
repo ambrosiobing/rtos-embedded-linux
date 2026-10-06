@@ -28,25 +28,43 @@ service axis answer different questions and have different owners. Collapsing th
 one status produces a room that reports itself free while its sensor has been silent for
 three days, and the only sign is that nobody ever books it.
 
-Those two are written as invariants below, and the host test checks them after every
-case rather than at the end.
+Those two are written as invariants below, and the host test is required to check them
+after every case rather than at the end.
 
-## The claim axis, seven codes
+## The claim axis: seven codes, and one fall-through that is not a code
 
-| Code | What it means | Emitted on entry |
+| Code | What it means | Emits |
 |---|---|---|
 | `INVISIBLE` | not commissioned; the unit does not offer itself at all | yes |
 | `REJECTED` | the service axis is blocking; a claim cannot be taken | yes |
-| `FREE` | no booking, nobody here, and the unit is fit to be booked | yes |
 | `BOOKED` | a window is open and the holder is present | yes |
-| `GRACE` | a window is open and nobody is here yet, inside the grace period | **no** |
+| `GRACE` | a window is open and nobody has arrived yet, inside the grace period | **never** |
+| `NO_SHOW` | the grace period ran out with nobody present; the booking is released | yes |
 | `WALKIN` | no window, somebody is here, and they have taken the room | yes |
 | `BRB` | more time has been **asked for**, and the answer has not arrived | yes |
 
-`GRACE` is the one code that emits nothing, and that is a requirement rather than an
-optimisation: grace is the common case for most of a booking, and a policy that emits
-while nothing has changed turns one room into a steady message rate a gateway has to
-absorb.
+Those are chapter 02's seven, and the chapter's own count is what settles two questions
+that its prose leaves open. **`NO_SHOW` is a code, not a reason**, and **`FREE` is not a
+code at all**: it is the fall-through, the absence of a claim, which is why the cascade's
+last arm is unguarded and why an ordinary release is told from a no-show by the code
+alone rather than by a reason field.
+
+### Why `GRACE` never emits, which is not an exception made for convenience
+
+Emission is otherwise uniform: an event leaves the unit when the code changes. `GRACE` is
+excluded, and the reason is a division of labour rather than a saving.
+
+**The calendar already knows about the booking, because it sent it.** What the unit knows
+and the calendar cannot is whether anybody came. During grace the unit has observed
+nothing on that question: the window is open, the room is empty, and the only thing that
+has happened is that time has passed. So there is nothing to report, and the next event
+is the one that answers the question, either `BOOKED` when somebody arrives or `NO_SHOW`
+when the period runs out.
+
+That is also why chapter 02 states the requirement as it does. Its refutation is "the
+event count rises, which would flood a gateway with one message per reading", and grace is
+the common case for most of a booking: a room booked for an hour and entered after five
+minutes spends five minutes in grace being read continuously.
 
 **`BRB` is a request, not a grant.** The unit does not own the calendar, so it cannot
 extend a booking; it can only ask and then show what it was told. A panel that goes
@@ -85,26 +103,27 @@ changing anything about what presence reports, and that separation is the design
 ```mermaid
 flowchart TD
     A[inputs: presence, window, panel, timers, service] --> B{activated?}
-    B -- no --> I[INVISIBLE]
+    B -- no --> I[1 INVISIBLE]
     B -- yes --> C{service blocks?}
-    C -- yes --> R[REJECTED]
+    C -- yes --> R[2 REJECTED]
     C -- no --> D{window open and present?}
-    D -- yes --> K[BOOKED]
+    D -- yes --> K[3 BOOKED]
     D -- no --> E{window open, empty, inside grace?}
-    E -- yes --> G[GRACE, emits nothing]
+    E -- yes --> G[4 GRACE, never emits]
     E -- no --> F{window open, empty, past grace?}
-    F -- yes --> N[FREE, reason NO_SHOW]
+    F -- yes --> N[5 NO_SHOW]
     F -- no --> H{no window and present?}
-    H -- yes --> W[WALKIN]
+    H -- yes --> W[6 WALKIN]
     H -- no --> J{long press pending?}
-    J -- yes --> P[BRB, awaiting an answer]
-    J -- no --> Z[FREE, no reason]
+    J -- yes --> P[7 BRB, awaiting an answer]
+    J -- no --> Z[8 FREE, the fall-through]
 ```
 
-Eight arms, seven distinct claim codes, and `FREE` is reached by two of them. That is the
-same shape as P01's rows 4 and 11, which do nothing on purpose: two different situations
-legitimately produce one outcome, and the arms stay separate because the **reason**
-differs even when the code does not.
+Eight arms, seven codes and the fall-through. **The arm number is part of the output**,
+not only the code, which is P01's lesson restated: rows 0 and 1 of that table shared a
+state and an event and differed only by a guard, so swapping them left every final state
+identical and a test of outcomes alone would have passed. Here the test asserts which arm
+fired.
 
 **Why the order cannot be permuted.** Each of these would be a defect, and each is a
 test:
@@ -115,7 +134,14 @@ test:
 | the service check below the booking arms | a room with no power would report itself booked |
 | walk-in above the booking arms | a passer-by would take a room somebody had booked, which is the rule this chapter is named for |
 | the grace arm below the no-show arm | every booking would release immediately, because past-grace is false before grace is |
+| `BRB` above walk-in | a press by somebody still in the room would hide that the room is in use |
 | the final arm anywhere but last | an arm with no guard shadows everything below it |
+
+That fifth row is the one worth pausing on, because `BRB` sitting below walk-in looks like
+a mistake and is not. It is **reachable only when nobody is present**, which is exactly
+what it is for: it holds the room for somebody who pressed the button on their way out.
+A press while they are still in the room needs no claim of its own, because walk-in or
+booked already describes the room correctly.
 
 The last row is the rule P01 ended up enforcing in CI, and it holds here for the same
 reason: **the only unguarded arm is the last one**. A cross-check script is **required to
@@ -126,26 +152,21 @@ exists for this project yet.
 
 ## The no-show, which is the one output that must be unmistakable
 
-Past the grace period with nobody present, the claim becomes `FREE` and **one** event
-leaves the unit carrying reason `NO_SHOW`.
+Past the grace period with nobody present, the cascade yields `NO_SHOW`, the booking is
+released, and **one** event leaves the unit.
 
 Two things make that exact rather than approximate.
 
-**Emission is on change only.** The cascade is pure, so it is given the previous claim
-and emits if and only if the code or the reason differs. That single rule is what makes
-`GRACE` silent and what makes the no-show fire once: once the claim is `FREE` with
-`NO_SHOW`, further readings of an empty booked room produce the same pair and nothing
-leaves.
+**Emission is on change of code.** The cascade is pure, so it is given the previous code
+and emits if and only if the new one differs, with `GRACE` never emitted at all. That is
+what makes the no-show fire once: the inputs on the next reading are unchanged, so the
+code is still `NO_SHOW`, so nothing leaves.
 
-**The reason is carried, not inferred.** An ordinary departure also ends at `FREE`. The
-two are told apart by the reason field and by nothing else, because a record that cannot
-distinguish "nobody came" from "everybody left" cannot answer the only question anybody
-asks of it afterwards, which is whether the grace period is set correctly.
-
-Chapter 02 can be read as making `NO_SHOW` a claim code rather than a reason. This design
-takes it as a reason, because the chapter also says the claim becomes free, and a code
-cannot be both. The test enumerates whichever the code implements and prints the counts,
-so the number of codes is checked rather than asserted.
+**An ordinary release is a different code, not the same code with a different label.** A
+room that empties normally falls through to `FREE`. A booking nobody attended yields
+`NO_SHOW`. A record that cannot distinguish "nobody came" from "everybody left" cannot
+answer the only question anybody asks of it afterwards, which is whether the grace period
+is set correctly for this building.
 
 ## The spool, bounded in bytes and counted on discard
 
@@ -181,16 +202,15 @@ Every default fails safe. The unit is invisible before commissioning, the spool 
 rather than grows, and a sensor that stops answering produces an outage rather than a
 free room.
 
-## The invariants, checked after every case
+## The invariants, to be checked after every case
 
-1. **An unactivated unit never reports `FREE`, `WALKIN`, `BOOKED` or `BRB`.** With the
-   flag clear, no input sequence may produce any of them.
+1. **An unactivated unit yields `INVISIBLE` and nothing else.** With the flag clear, no
+   input sequence may produce any other code.
 2. **A blocking service state always yields `REJECTED`**, whatever the booking inputs
    say, and never alters what presence reports.
-3. **`GRACE` emits nothing.** The event count after a case that stays inside grace must
-   equal the count before it.
-4. **A no-show emits exactly one event**, and its reason is `NO_SHOW` and not the
-   ordinary release.
+3. **`GRACE` never appears in the event record**, however often it is the decision.
+4. **A no-show emits exactly one event**, and its code is `NO_SHOW` and not the ordinary
+   fall-through.
 5. **No claim transition depends on the link.** With the link down for the whole of a
    case, the claim still changes and the lamps still follow; only the record waits.
 6. **The spool never exceeds its bound, and discards plus retained equals offered.**
