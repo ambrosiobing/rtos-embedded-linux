@@ -1,10 +1,26 @@
 # The presence table under FreeRTOS
 
-**Status: written, not built.** No compiler has seen this directory. The adapter is
-written against the kernel API and the build glue against the POSIX port's documented
-requirements, and the first build in WSL on the demo laptop is what settles whether
-both are right. That build is the first test rather than CI, because a red run says
-less and costs more.
+**Status: one build attempted, in WSL on the demo laptop on Tuesday 6 October 2026.**
+It failed, in the compiler rather than the linker, and the correction is recorded in
+the Makefile rather than quietly applied.
+
+The uncertainty flagged before that build was the source list: which files the POSIX
+port needs beside `port.c`. **That part was right.** `port.c` and
+`utils/wait_for_event.c` are the two, and both reached their own function bodies. What
+was wrong was the dialect. `-std=c11` is strict ISO C, under which glibc hides every
+POSIX declaration, so a port whose entire job is `pthread_sigmask`, `sigaction`,
+`clock_gettime`, `usleep`, `CLOCK_MONOTONIC` and `PTHREAD_STACK_MIN` found none of
+them declared.
+
+The fix is `-std=gnu11` with `_GNU_SOURCE` for the kernel and for the adapter, and the
+Makefile now carries three sets of flags instead of two. `../c/presence.c` keeps
+strict `-std=c11`, deliberately: the claim this volume makes about the table is that
+it needs nothing beyond C11, and compiling it as `gnu11` here to save a line of
+Makefile would have retired that claim to spare an inconvenience.
+
+The next build is still a first build of everything past the kernel. `-Wconversion`
+with `-Werror` over an adapter that uses `pdMS_TO_TICKS` is the next place to expect a
+correction, since that macro expands to arithmetic the flag has opinions about.
 
 ## Why FreeRTOS first of the three
 
