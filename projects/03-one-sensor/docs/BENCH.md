@@ -15,6 +15,19 @@ had no power, and **jumper B had nothing to put on CS**, so even a powered part 
 stayed in four-wire mode and ignored the two-wire bus. One missing lead, two reasons for
 silence.
 
+## How it was fixed: the supply does not go through the breadboard rail
+
+The module's VCC is now wired **straight to the NUCLEO-H7A3ZI-Q's `+3V3` pin**, rather than
+to the breadboard's power rail and from there to the module. That ended it.
+
+**A power rail is the one conductor the continuity tests in this log cannot check.** Tying a
+signal row to the GND row and watching the bus die proves the signal lead and the ground lead,
+because both are in the path. The supply rail is in none of those paths, so it was the only
+part of the circuit that was never tested, and it was the part that was open.
+
+Worth carrying to every bench session here: take a supply from the host's pin to the part,
+and let the breadboard carry signals and the links that set a part's mode.
+
 ## The fact that reframes all of it: nothing on this module is soldered
 
 **The SEN0032's eight-pin header is not fitted. The module has bare plated holes**, and every
