@@ -24,6 +24,16 @@
 
 cmake_minimum_required(VERSION 3.20.0)
 
+# native_sim compiles with the host gcc, but Zephyr does not assume that: with no
+# toolchain variant set it goes looking for the Zephyr SDK and stops when it is not
+# there. Saying "host" is the whole of what this build needs, and it is set here
+# rather than left on the command line so the documented build line is the build line.
+# An explicit setting from the environment or the cache still wins, because a real
+# board would need one.
+if(NOT DEFINED ZEPHYR_TOOLCHAIN_VARIANT AND NOT DEFINED ENV{ZEPHYR_TOOLCHAIN_VARIANT})
+  set(ZEPHYR_TOOLCHAIN_VARIANT host)
+endif()
+
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(presence_zephyr C)
 

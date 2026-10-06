@@ -230,7 +230,7 @@ Three adapters, three different levels of evidence, named rather than averaged.
 | Adapter | What can be run | Where |
 |---|---|---|
 | FreeRTOS | **the adapter itself, and it runs.** Green in WSL on Tuesday 6 October 2026 and a job in `code.yml` since: the queue, the dispatch task and the software timer are real, the row sequence matches the direct-dispatch test, no allocator is linked, and a deliberately overrun queue is counted rather than dropped in silence. [`../freertos/`](../freertos/) | WSL on the demo laptop, and GitHub Actions on every push |
-| Zephyr | **the adapter is written and not yet built**, at [`../zephyr/`](../zephyr/). `native_sim` runs it and builds with the HOST compiler, so this needs a Zephyr tree and `west` but not the cross toolchain, which is a much smaller install than it first appeared. WSL on the demo laptop had neither on Tuesday 6 October 2026, and that install is the step before the first build | WSL on the demo laptop first, then GitHub Actions |
+| Zephyr | **the adapter builds and runs**, at [`../zephyr/`](../zephyr/), on `native_sim` in WSL on Tuesday 6 October 2026. It needs a Zephyr tree and `ZEPHYR_TOOLCHAIN_VARIANT=host`, and no SDK at all, because `native_sim` compiles with the host gcc. Its first run found the one place the shared test had a FreeRTOS assumption in it | WSL on the demo laptop, CI not yet |
 | QNX | **nothing, and that is permanent here.** No licence, no target. The adapter is written at [`../qnx/`](../qnx/) and every call in it comes from documentation rather than a compiler, which its own page says first. Writing it is nonetheless what produced the twenty-ninth row | nowhere on this bench, ever |
 
 The firmware volume's own rule applies to the two that can run: a test that has

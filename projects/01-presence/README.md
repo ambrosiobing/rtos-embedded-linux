@@ -4,9 +4,10 @@ Status on Tuesday 6 October 2026, with the twenty-ninth row in. **The table pass
 every language and version it claims, and now under a real kernel as well**, all of it
 in WSL on the demo laptop. C under C11; C++ under C++17, C++23 and C++2c, where the
 later two prove the guard order and the row count at compile time rather than by a
-test; Rust under all three editions, 33 tests; and the FreeRTOS adapter, where the
-same rows are taken through a real queue, a real dispatch task and a release produced
-by a real software timer. The three red CI runs before that came from a string
+test; Rust under all three editions, 33 tests; and **both the FreeRTOS and the Zephyr
+adapters**, where the same rows are taken through a real queue, a real dispatch thread
+and a release produced by a real kernel timer, from one shared test that contains no
+kernel header. The three red CI runs before that came from a string
 literal a scripted edit split, which `f59bd18` fixed; CI has not reported since.
 **Nothing has run on a board, and nothing is compiled on the laptop this was written
 on**, which runs no compiler for it: the toolchains are in CI and in WSL on the demo
@@ -44,7 +45,7 @@ code, which is the chapter's first requirement.
 | [scripts/crosscheck_table.py](../../scripts/crosscheck_table.py) | the three tables compared row for row, in CI, so "the same table" is enforced rather than repeated |
 | [adapter/](adapter/) | the contract every adapter implements, and the four test phases, which include no kernel header so that one test runs against every kernel |
 | [freertos/](freertos/) | the first adapter. **Green, and a CI job**: the same rows through real plumbing, a release by a real timer, and a full queue counted |
-| [zephyr/](zephyr/) | the second adapter, for `native_sim`. **Written, not yet built**, and writing it is what showed which parts of the first adapter's interface were one kernel's calling convention |
+| [zephyr/](zephyr/) | the second adapter, on `native_sim`. **Builds and runs.** Writing it showed which parts of the first adapter's interface were one kernel's calling convention, and running it showed which part of the shared test was one kernel's arithmetic |
 | [qnx/](qnx/) | the third adapter, **written and never compiled**, because there is no licence and no target here. It is the kernel that does not fit, and the misfit is what produced the twenty-ninth row |
 
 ## What the table is, and why it is the specification
@@ -116,9 +117,6 @@ In WSL on the demo laptop, the same thing by hand:
 - **The bare-metal link.** Whether the library is really `no_std` is shown by none
   of the above, because the test configuration pulls in std for the harness. Only
   CI checks it, by building the library alone for `thumbv7em-none-eabihf`.
-- **A build of the Zephyr adapter.** [zephyr/](zephyr/) is written and no compiler
-  has seen it. It targets `native_sim`, which builds with the host compiler rather
-  than the Zephyr SDK, so it needs a tree and `west` and not a cross toolchain.
 - **Anything at all from QNX.** [qnx/](qnx/) is written and no compiler will ever
   see it here, which its own page says in its first line. The mapping and the three
   requirements any adapter must satisfy are in

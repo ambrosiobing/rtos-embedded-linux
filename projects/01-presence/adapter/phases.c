@@ -172,9 +172,27 @@ static void phase_a_full_queue_is_counted(void)
     presence_adapter_test_outrank_dispatcher(false);
     presence_adapter_sleep_ms(50);
 
-    CHECK(refused == 2u, "two posts past the end should be refused, %u were", refused);
+    /* HOW MANY were refused is the kernel's business, and an earlier version of this
+     * file asserted exactly two, which is what FreeRTOS does and is not what Zephyr
+     * does. k_msgq_put hands a message straight to a thread already waiting in
+     * k_msgq_get, bypassing the buffer, so with the dispatch thread pending the queue
+     * absorbs one more than its depth and only one post past the end is refused.
+     * FreeRTOS copies into the queue storage first and then unblocks the receiver, so
+     * both are refused. Neither is wrong, and the number is printed rather than
+     * asserted so the log records which kernel did what.
+     *
+     * WHAT IS ASSERTED is the thing this phase exists for and the thing that is the
+     * same everywhere: a queue that cannot take an event refuses it, and the refusal
+     * is counted rather than lost in silence. An adapter that dropped quietly would
+     * pass every other phase in this file. */
+    printf("   depth %u, posted %u, refused %u\n",
+           (unsigned)PRESENCE_QUEUE_DEPTH,
+           (unsigned)(PRESENCE_QUEUE_DEPTH + 2u), refused);
+    CHECK(refused >= 1u,
+          "posting %u past a queue of %u should refuse at least one, refused %u",
+          2u, (unsigned)PRESENCE_QUEUE_DEPTH, refused);
     CHECK(presence_adapter_events_dropped() == refused,
-          "the adapter's count is %u and the refusals were %u",
+          "every refusal must be counted: the adapter says %u and %u were refused",
           (unsigned)presence_adapter_events_dropped(), refused);
 }
 

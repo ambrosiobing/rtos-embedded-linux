@@ -1,13 +1,25 @@
 # The presence table under Zephyr
 
-**Status: written, not built.** No compiler has seen this directory, and the reason is
-recorded rather than glossed: there was no Zephyr workspace, no `west` and no SDK in
-WSL on the demo laptop when this was written, checked on Tuesday 6 October 2026. The
-install is the step before the first build, and that build is the first test rather
-than CI.
+**Status: builds and runs on `native_sim` in WSL on the demo laptop, Tuesday 6 October
+2026.** Three of the four phases passed on the first run and the fourth found a
+difference between the two kernels rather than a defect; see below.
 
 This is the second adapter. [`../freertos/`](../freertos/) was the first and is green,
 and writing a second one is what showed which parts of the first were general.
+
+### What the first build corrected
+
+**Zephyr wants a toolchain variant even for `native_sim`.** With none set it looks for
+the Zephyr SDK and stops when it is absent, which is not the same as needing the SDK's
+compiler: `native_sim` compiles with the host gcc. `ZEPHYR_TOOLCHAIN_VARIANT=host` is
+the whole of the fix and `CMakeLists.txt` now sets it when nothing else has, so the
+documented build line is the build line. **No SDK is installed on this machine.**
+
+**`CONFIG_STDOUT_CONSOLE` was refused by Kconfig** and has been removed from
+`prj.conf`. It depends on not having a native library with an external libc, which is
+exactly what `native_sim` is: the simulation uses the host's own libc and its stdout.
+Setting it warned and changed nothing, and an option that is silently overridden is
+worse than an absent one, because a reader believes it.
 
 ## What the second implementation changed about the first
 
@@ -34,6 +46,7 @@ dispatch thread, are two named functions each adapter supplies.
 |---|---|---|
 | The clock | `k_uptime_get_32` returns milliseconds | a tick count multiplied by `portTICK_PERIOD_MS`, in 64 bits to avoid an overflow nobody would see for weeks |
 | Posting from an interrupt | the same call as from a thread, no yield flag | `xQueueSendToBackFromISR` plus `portYIELD_FROM_ISR` |
+| A full queue with a receiver waiting | **absorbs one more than its depth.** `k_msgq_put` hands the message straight to a thread already blocked in `k_msgq_get`, bypassing the buffer | copies into the queue storage first, then unblocks the receiver, so the depth is the depth |
 | Where a timer expiry runs | in interrupt context, so it may only post with `K_NO_WAIT` | in the timer service task, which is less constrained but widens the cancel window |
 | Static allocation | `K_MSGQ_DEFINE` and `K_THREAD_STACK_DEFINE` are static by construction | `configSUPPORT_DYNAMIC_ALLOCATION` at 0, so an allocating create fails to link |
 | Priority order | downwards: a smaller number preempts | upwards: a larger number preempts |
@@ -42,6 +55,16 @@ dispatch thread, are two named functions each adapter supplies.
 The last row is the one with a consequence. Zephyr's `main.c` here is forty lines and
 FreeRTOS's is a hundred, and nearly all of that difference is the memory the kernel
 needs for its own two tasks when it cannot allocate.
+
+The second of those was found by the shared test failing, and it is the best argument
+for having written the test that way. Phase 3 asserted that posting two past the end
+of the queue is refused **twice**, which is true of FreeRTOS and false here: with the
+dispatch thread pending, Zephyr handed one message over directly and only one post was
+refused. The number was never the claim. What the phase exists to show is that a queue
+which cannot take an event refuses it **and counts the loss**, and that is now what it
+asserts, with the actual number printed so the log records which kernel did what. One
+implementation cannot tell you which of your assertions are about the design and which
+are about one kernel.
 
 **What does not differ at all** is the part that matters: the twenty-nine rows, the
 three requirements in the contract, and the four phases. Neither kernel asked for a
