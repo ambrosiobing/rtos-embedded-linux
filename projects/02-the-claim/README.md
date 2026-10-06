@@ -1,10 +1,12 @@
 # P02. The claim, and the service axis
 
-Status on Tuesday 6 October 2026: **the cascade is written in C and in C++, and green in
-twelve compiler and standard combinations** in WSL on the demo laptop. C11, C17 and C23
-under gcc and clang; C++17, C++23 and C++2c under g++ and clang++; all at `-Werror` with
-`-Wpedantic -Wshadow -Wconversion`, the C++ additionally at `-fno-exceptions -fno-rtti`,
-and both under the address and undefined-behaviour sanitisers. All seven of chapter 02's
+Status on Tuesday 6 October 2026: **the cascade is written in all three languages and is
+green in fifteen combinations** in WSL on the demo laptop. C11, C17 and C23 under gcc and
+clang; C++17, C++23 and C++2c under g++ and clang++, each built twice, once at `-O2` and
+once sanitised; and Rust editions 2018, 2021 and 2024 from one `no_std` source, through
+`cargo fmt --check`, `cargo clippy -- -D warnings` and eleven tests apiece. The C and C++
+run at `-Werror` with `-Wpedantic -Wshadow -Wconversion`, the C++ additionally at
+`-fno-exceptions -fno-rtti`. All seven of chapter 02's
 acceptance criteria pass in both languages, and the twenty-two cases reach all seven claim
 codes, all eight arms, all seven service states and all seven service reasons.
 
@@ -13,7 +15,7 @@ code**, which is chapter 02's first requirement and the reason the git history i
 evidence for it rather than this sentence.
 
 The written design is [chapter 02](../../chapters/02-the-claim.md), which is complete.
-What is absent is Rust, the cross-check and the kernels.
+What is absent is the cross-check, the adapter contract and the kernels.
 
 | | |
 |---|---|
@@ -55,8 +57,23 @@ be booked must not report itself free**.
 | [cpp/claim26.hpp](cpp/claim26.hpp) | `std::inplace_vector` as a bounded batch, and the same spool written the wrong way on purpose so the cost can be compared |
 | [cpp/test_claim.cpp](cpp/test_claim.cpp) | the same twenty-two cases and the same seven criteria, plus two more tests and the feature report |
 | [docs/LANGUAGE_IDIOMS.md](docs/LANGUAGE_IDIOMS.md) | what each version changed for a cascade, filled from the compiler's own report |
+| [rust/claim_core.rs](rust/claim_core.rs) | the same eight arms as a `static` array of `Option<fn>`, `no_std`, no `unsafe` |
+| [rust/tests_core.rs](rust/tests_core.rs) | the same twenty-two cases, eleven tests, and the whole input space as a test rather than a proof |
+| `rust/e2018`, `e2021`, `e2024` | three crates differing only in their edition line |
 | [docs/figures](docs/figures) | the chapter's five figures, as rendered SVG |
-| Rust, the cross-check, the adapter and the kernels | **not written** |
+| the cross-check, the adapter and the kernels | **not written** |
+
+## The three languages agree on every number
+
+Not a coincidence worth passing over: three independent implementations of the spool
+arithmetic print the same figures.
+
+    event 8 bytes, bound 4096 bytes, so capacity 512 events
+    offered 1000, retained 512, discarded 488
+    4400 steps, 1399 events, 512 retained, 887 discarded
+
+The last line is the one that could most easily have differed, because the event count
+depends on the emission rule and the case order rather than on anything simple.
 
 ## What the C++ proves at compile time that the C asserts at run time
 
@@ -129,8 +146,11 @@ exists to catch something the step before it cannot.
    whole-input-space proof did not need C++23, `std::inplace_vector` is in neither library
    yet and would be the wrong container anyway, and a feature macro reports the
    implementation rather than the standard.
-3. **The same cascade in Rust**, `no_std`, under editions 2018, 2021 and 2024 from one
-   source.
+3. ~~The same cascade in Rust.~~ **Done and green** under all three editions, with
+   `cargo fmt --check`, clippy at `-D warnings` and eleven tests each. What Rust changed
+   is in [docs/LANGUAGE_IDIOMS.md](docs/LANGUAGE_IDIOMS.md): one branch of the C deleted
+   rather than translated, `Option<fn>` costing nothing, and one place where the earlier
+   language wins outright.
 4. **A cross-check script** comparing the three cascades arm for arm, so that "the same
    policy" is enforced in CI rather than repeated by hand. P01 has one for its table;
    this project does not yet.

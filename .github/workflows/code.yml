@@ -239,6 +239,43 @@ jobs:
           cargo build --release --target thumbv7em-none-eabihf \
             -p presence-e2018 -p presence-e2021 -p presence-e2024
 
+  # P02's cascade, the same three editions and the same gates. A separate job rather than
+  # more steps in the one above, because each project carries its own workspace and a
+  # working directory is set per job.
+  rust_claim:
+    runs-on: ubuntu-latest
+    name: Rust, the claim cascade, editions 2018, 2021 and 2024
+    defaults:
+      run:
+        working-directory: projects/02-the-claim/rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Which toolchain the pin resolves to
+        run: |
+          rustup show active-toolchain
+          cargo --version
+          rustc --version
+
+      - name: Formatting
+        run: cargo fmt --all --check
+
+      - name: Clippy, warnings denied, every target
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      # --nocapture because the tests print what the representation costs: the size of
+      # Option<fn> against a bare fn, the event size the spool arithmetic depends on, and
+      # the count of inputs the invariants were checked over. A test that prints a number
+      # the design depends on is the habit this volume keeps.
+      - name: The cases and the criteria, under each edition
+        run: cargo test --workspace -- --nocapture
+
+      - name: The library builds for a bare-metal target, which is what no_std means
+        run: |
+          rustup target add thumbv7em-none-eabihf
+          cargo build --release --target thumbv7em-none-eabihf \
+            -p claim-e2018 -p claim-e2021 -p claim-e2024
+
   # The same source through a second compiler. Two toolchains disagreeing about a
   # table of function pointers would be a finding worth having, and a warning one
   # of them raises and the other does not is the commonest way a portable claim

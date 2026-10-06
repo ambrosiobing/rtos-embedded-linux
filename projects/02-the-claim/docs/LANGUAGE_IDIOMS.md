@@ -6,8 +6,8 @@ of it provided, and this page is that log. Where the two disagree the log is rig
 
 The shape being compared matters. [P01](../../01-presence/docs/LANGUAGE_IDIOMS.md) compares
 versions against a **transition table**. This project compares them against a **cascade**:
-eight guarded arms in a fixed order, as one pure function. Different shapes reward
-different additions, and two of the three findings below are about that.
+seven guarded arms and an unguarded eighth in a fixed order, as one pure function.
+Different shapes reward different additions, and most of what follows is about that.
 
 ## What the compilers reported
 
@@ -83,6 +83,52 @@ only answer to the second question.
 This is the mirror of a P01 finding, where an edition changed what the language permitted
 rather than what the library offered. Here an implementation changed what the library
 offered without the standard moving at all.
+
+## What Rust changed, and the one place it loses
+
+Rust's three editions were added after the C and the C++, and the comparison runs in both
+directions, which is the only way it is worth running.
+
+**One branch of the C is deleted rather than translated.** `claim_service_blocks` ends with
+a default arm treating an unknown service state as blocking, because a C enum can hold any
+value of its underlying type and the safe answer to "is this room fit to be booked" when the
+answer is unknown is no. A Rust `Service` cannot be anything but one of the seven, so the
+`match` is exhaustive and the defensive arm has nothing to defend against. The deletion is
+the finding: that branch is not dead code in the C, it is a real guard against a real
+possibility that a different type system removes.
+
+**`Option<fn>` costs nothing.** A function pointer cannot be null, so the `None` case uses
+the niche, and the unguarded arm is genuinely `None`. The C++ needs an `always` predicate
+that returns true plus a separate `guarded` bool to say the same thing, and then cannot
+check the two against each other at compile time. The test asserts
+`size_of::<Option<Guard>>() == size_of::<Guard>()` rather than claiming it.
+
+**And the place Rust loses, recorded because a comparison that only finds in one direction
+is not a comparison.** The C++ proves the six invariants over all 224 inputs at compile
+time. Rust cannot: a `const fn` may not call through a function pointer, so the cascade
+cannot be walked in a const context. The same exhaustive check runs, with the same coverage
+and the same clauses, as a test. It catches the same defects and it catches them later.
+
+**`clippy` improved on both of the earlier languages.** `manual_clamp` rejected the
+two-`if` form that the C and the C++ both use for the spool bound, in favour of
+`want.clamp(1, SPOOL_SLOTS)`. It is right: one expression says the bound is a range, where
+two ifs say it twice and leave a reader to work out that they compose. That is the only
+finding in this project so far that runs from the newest language back towards the oldest.
+
+## A formatter can disagree with itself across editions
+
+`rustfmt` sorts a multi-line `use` list differently under the **2024 style edition**,
+putting capitalised names before lowercase ones, where 2018 and 2021 put the functions
+first. Both orderings appeared in one `cargo fmt --check` run over one shared file.
+
+So a shared source compiled under all three editions **cannot contain such a list at all**:
+whatever order it is written in, one edition will reject it. The fix is a glob import, which
+has no ordering to disagree about, and P01's shared test had already arrived there.
+
+This is the third member of a family this project keeps finding. An edition changes what
+the language permits; an implementation changes what the library offers without the standard
+moving; and a style edition changes what the formatter requires. All three are versioned
+separately, and a claim of the form "this compiles under version N" says less than it looks.
 
 ## What C++23 genuinely bought: a refusal instead of a correction
 
