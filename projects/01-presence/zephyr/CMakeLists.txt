@@ -1,11 +1,23 @@
 # projects/01-presence/zephyr/CMakeLists.txt
 #
 # A Zephyr application, built for native_sim, which uses the HOST compiler rather than
-# the Zephyr SDK. That is why this adapter needs a Zephyr tree and west but not the
+# the Zephyr SDK. That is why this adapter needs a Zephyr tree but not the
 # three gigabyte cross toolchain: nothing here is cross compiled.
 #
-#   west build -b native_sim -p always projects/01-presence/zephyr
-#   ./build/zephyr/zephyr.exe
+# Built with plain CMake rather than `west build`, and that is deliberate rather than
+# a preference. `west build` is an extension command that west finds through its
+# workspace manifest, so it is only available from inside ~/zephyrproject; this
+# repository is a separate tree. `west zephyr-export` registers Zephyr's CMake package
+# in ~/.cmake/packages/Zephyr, and find_package below picks it up from anywhere, so
+# the build needs no workspace and no west at all:
+#
+#   cmake -B build-zephyr -GNinja -DBOARD=native_sim -S projects/01-presence/zephyr
+#   ninja -C build-zephyr
+#   ./build-zephyr/zephyr/zephyr.exe
+#
+# The version this was built against is recorded in README.md rather than pinned
+# here, because `west init` with no revision takes the manifest's main branch and
+# there is no tag to pin, which is itself a difference from the FreeRTOS adapter.
 #
 # The four test phases are ../adapter/phases.c, shared with the FreeRTOS adapter and
 # containing no kernel header, so the same test runs against both.

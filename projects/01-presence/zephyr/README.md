@@ -50,12 +50,32 @@ change to any of them.
 ## Building it
 
 `native_sim` builds with the **host compiler**, not the Zephyr SDK, so this needs a
-Zephyr tree and `west` and nothing else. That is why the install is a tree rather than
-a three gigabyte toolchain.
+Zephyr tree and nothing else. That is why the install is a tree rather than a three
+gigabyte toolchain.
 
     source ~/zephyrproject/.venv/bin/activate
-    west build -b native_sim -p always projects/01-presence/zephyr
-    ./build/zephyr/zephyr.exe
+    cmake -B build-zephyr -GNinja -DBOARD=native_sim -S projects/01-presence/zephyr
+    ninja -C build-zephyr
+    ./build-zephyr/zephyr/zephyr.exe
+
+**Not `west build`, and the reason is worth knowing.** That is an extension command
+which west discovers through its workspace manifest, so it exists only inside
+`~/zephyrproject`; run from this repository it reports `unknown command "build"`.
+`west zephyr-export` registers Zephyr's CMake package in `~/.cmake/packages/Zephyr`,
+and `find_package(Zephyr)` finds it from anywhere, so the build needs neither a
+workspace nor west once the tree is installed. That also makes a CI job simpler later.
+
+### The version this is built against
+
+    v4.5.0-rc1-170-g8f62a4ab82b
+
+Recorded rather than pinned, and the difference from the FreeRTOS adapter is real.
+That one clones `V11.1.0`, a release tag, so its Makefile names the version and the
+fetch step prints what it got. `west init` with no revision takes the manifest's main
+branch, and what arrived on Tuesday 6 October 2026 was a hundred and seventy commits
+past `v4.5.0-rc1`, which is not a release and has no tag to pin. So this page records
+the commit the claim was made against, which is the most that can honestly be said
+until a release is cut.
 
 ## What will not be known even when it is green
 
