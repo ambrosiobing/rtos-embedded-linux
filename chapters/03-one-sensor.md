@@ -276,11 +276,18 @@ When a device does not come up, the order of checking is fixed and short. Read t
 
 ## Verification and acceptance criteria
 
-- **The application object is byte for byte identical across the two-wire and four-wire builds.** *Refuted if* they differ at all, which would mean something in the application depends on the bus after all, and the difference names what.
+- **The application's instructions are identical across the two-wire and four-wire builds, and the object differs only in the devicetree ordinal of the one device it names.** *Refuted if* the disassembly differs at all, which would mean something in the application compiles differently depending on the bus, and the disassembly says where.
+
+  This criterion asked for byte for byte identical objects until Tuesday 6 October 2026, when both builds were made and the objects differed at byte 994. The difference was the name of one undefined symbol, `__device_dts_ord_147` against `__device_dts_ord_160`, which carries the device's ordinal in the generated devicetree; the instructions were identical. Nothing in the application chooses that ordinal or can see one, because the reference is resolved at link time from whichever description was used, which is the mechanism working rather than failing. The criterion as restated is weaker in letter and stronger in substance: byte equality could be satisfied by an application that reads nothing, and would have broken on any unrelated node added to an overlay, since that moves the ordinal.
+
 - **Both builds produce the same readings at rest.** With the board flat on the bench, both report roughly one unit of acceleration on one axis and roughly zero on the other two. *Refuted if* the axes disagree between builds, which would point at a driver configuration difference the overlay introduced.
+
 - **A wrong address is reported, not tolerated.** With the address deliberately wrong, the application logs a device that is not ready and returns. *Refuted if* it prints zeroes, which is the failure this criterion exists to exclude.
+
 - **The build refuses an impossible description.** An overlay naming a bus the board does not have fails at build time with a message naming it. *Refuted if* the build succeeds.
+
 - **The trigger build samples without polling.** With the sleep removed, samples arrive at the rate the sensor is configured for and the thread is not spinning. *Refuted if* the sample rate follows the loop rather than the sensor.
+
 - **Two devices on one bus do not interfere.** From Monday 5 October 2026, with both devices described, each reads correctly and neither disturbs the other. *Not yet run*, and the figure says so.
 
 ## Variants
@@ -323,7 +330,7 @@ The idiom this chapter proves is **maintainability**: the devicetree owns the pi
 
 `sh tools/compare_objects.sh`
 
-which builds the application for both buses and reports whether the two application object files are byte for byte identical. Publish the two overlays, the thirty-line application, the comparison output, and the build log of the deliberate wiring mistake showing a device reported as not ready.
+which builds the application for both buses and reports whether the two applications compiled to the same instructions. Publish the two overlays, the application, the comparison output naming the two devicetree ordinals, and the build log of the deliberate wiring mistake showing a device reported as not ready.
 
 ## Sources
 

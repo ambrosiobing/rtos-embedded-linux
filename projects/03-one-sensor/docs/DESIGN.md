@@ -28,9 +28,38 @@ application nobody can read without knowing the wiring.
 | the application | that there is a device aliased `motion` and that it reports acceleration | the bus, the pins, the address, the part |
 
 The application's entire knowledge of the hardware is one devicetree alias. That is the
-mechanism, and the test of whether it holds is not a code review: it is that **the compiled
-application object is byte for byte identical between the two builds**. An object that
-differs has a dependency on the bus somewhere, and the difference names where.
+mechanism, and the test of whether it holds is not a code review but a comparison of what
+the compiler produced.
+
+**Chapter 02's wording of that test is byte for byte identical objects, and it is wrong.**
+Both builds were made on Tuesday 6 October 2026 and the objects differ at byte 994. The
+chapter asked that any difference name what causes it, which was the right instinct, and
+this is what it named:
+
+    symbols        U __device_dts_ord_147   against   U __device_dts_ord_160
+    instructions   identical
+
+**The compiled instructions are the same.** The whole of the difference is the NAME of one
+undefined symbol, and that name carries the device's ordinal in the generated devicetree,
+which the two descriptions number differently. Nothing in the application chose it and
+nothing in the application can see it: the reference is resolved at link time from whichever
+description was used.
+
+So the criterion is restated, and the restatement is stronger in substance while weaker in
+letter:
+
+> **The application's instructions are identical between the two builds, and the object
+> differs only in the devicetree ordinal of the one device it names.**
+
+Weaker in letter because it tolerates a difference. Stronger in substance for two reasons.
+Byte equality could be satisfied by an application that reads nothing, where this cannot:
+the object must still name a device. And byte equality would have been broken by anything
+that changed the ordinal, including adding an unrelated node to the overlay, so the original
+test would have failed for reasons that have nothing to do with the claim.
+
+An object whose **instructions** differ is the real refutation, and that is what to watch
+for. It would mean something in the application compiles differently depending on the bus,
+and the disassembly would say where.
 
 ## The two descriptions
 
