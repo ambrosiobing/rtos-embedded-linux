@@ -247,18 +247,26 @@ static void phase_the_record_survives_the_radio(void)
     c = claim_adapter_context();
     before = c->emitted;
 
-    for (i = 0; i < 200u; i++) {
+    /* ENOUGH TO FILL IT. An earlier version posted two hundred, which produced two
+     * hundred events against a spool of five hundred and twelve, discarded nothing, and
+     * asserted that the count stayed inside the bound. That assertion could not have
+     * failed. The printed line is what gave it away, which is the argument for printing
+     * the numbers a design depends on rather than only asserting them. The same mistake
+     * was made and fixed in ../c/test_claim.c on the same day. */
+    for (i = 0; i < 600u; i++) {
         post(CLAIM_EV_PRESENCE, (i % 2u) == 0u);
     }
-    claim_adapter_sleep_ms(100);
+    claim_adapter_sleep_ms(200);
 
     c = claim_adapter_context();
     CHECK(c->emitted > before,
           "the claim must keep changing with no link: %u events before, %u after",
           (unsigned)before, (unsigned)c->emitted);
-    CHECK(c->spool.count <= claim_spool_capacity(&c->spool),
-          "the spool must stay inside its bound: %u of %u",
+    CHECK(c->spool.count == claim_spool_capacity(&c->spool),
+          "the run must fill the spool or it tests nothing: %u of %u",
           (unsigned)c->spool.count, (unsigned)claim_spool_capacity(&c->spool));
+    CHECK(c->spool.discarded > 0u,
+          "and it must discard, or the bound was never reached");
     CHECK((uint32_t)c->spool.count + c->spool.discarded == c->spool.offered,
           "retained plus discarded must equal offered: %u + %u against %u",
           (unsigned)c->spool.count, (unsigned)c->spool.discarded,
