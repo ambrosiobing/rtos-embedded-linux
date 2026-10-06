@@ -4,24 +4,59 @@ Written on Tuesday 6 October 2026, from the vendor's own schematic and the Analo
 datasheet rather than from another maker's ADXL345 breakout, because the pad order and the
 supply arrangement both vary between makers and getting either wrong is expensive.
 
-Nothing is soldered. The board is unplugged from USB while leads are moved.
+**Built and checked on Tuesday 6 October 2026.** Nothing is soldered. The board is unplugged
+from USB while leads are moved.
 
 ## The two-wire wiring, for the part at 0x53
 
-Six leads. The two that are easy to leave off are the last two, and leaving either off costs
-an evening rather than a part.
+This page first listed six leads from the module to the board. The wiring actually built uses
+a breadboard, and on a breadboard two of those six never leave the module's own rows: SDO is
+held low and CS is held high by short links to the GND and VCC rows that two of the leads
+already feed. Six connections either way. Two of them are local to the module and four reach
+the NUCLEO-H7A3ZI-Q.
 
-| Lead | Colour | SEN0032 pad | Nucleo pin | Signal and direction |
+Two jumpers, each a short link between two rows of the same breadboard:
+
+| Jumper | From | To | What it does |
+|---|---|---|---|
+| A | SEN0032 **SDO** row | SEN0032 **GND** row | address select held low, which makes the part 0x53 |
+| B | SEN0032 **CS** row | SEN0032 **VCC** row | bus select held high, which puts the part in two-wire mode |
+
+Four leads, each from a breadboard row to the NUCLEO-H7A3ZI-Q Morpho header:
+
+| Lead | Colour | SEN0032 pad | NUCLEO-H7A3ZI-Q | Signal and direction |
 |---|---|---|---|---|
 | 1 | red | 2, **VCC** | **3V3** | supply, board to module |
 | 2 | black | 1, **GND** | **GND** | common return |
 | 3 | yellow | 8, **SCL** | **PB8**, the Arduino **D15** position | clock, board to module |
 | 4 | green | 7, **SDA** | **PB9**, the Arduino **D14** position | data, both directions |
-| 5 | black | 6, **SDO** | **GND** | address select held low, which makes the part 0x53 |
-| 6 | red | 3, **CS** | **3V3** | bus select held high, which puts the part in two-wire mode |
+
+The two tables read as a contradiction unless the rows are set out, because the GND row and
+the VCC row each carry a jumper **and** a lead. Row by row, which is the form that cannot be
+misread:
+
+| SEN0032 pad | Everything in that breadboard row |
+|---|---|
+| 1, **GND** | lead 2, black, to a NUCLEO-H7A3ZI-Q pin printed **GND**, and one end of jumper A |
+| 2, **VCC** | lead 1, red, to the NUCLEO-H7A3ZI-Q pin printed **3V3**, and one end of jumper B |
+| 3, **CS** | the other end of jumper B, and nothing else |
+| 4, **INT1** | nothing |
+| 5, **INT2** | nothing |
+| 6, **SDO** | the other end of jumper A, and nothing else |
+| 7, **SDA** | lead 4, green, to **PB9** |
+| 8, **SCL** | lead 3, yellow, to **PB8** |
+
+So SEN0032 GND does reach the board's GND, and SEN0032 VCC does reach the board's 3V3. The
+jumpers do not reach the board; they borrow rows that already do.
 
 Pads 4 and 5, **INT1** and **INT2**, stay unconnected. The trigger build of criterion 5 will
 want one of them; nothing before that does.
+
+**Jumper B is the one checked before power, and the check travels alone.** It puts whatever
+lead 1 delivers onto CS, and CS reaches the die with no level shifter and an absolute maximum
+of 3.3 V, for the reason set out further down this page. The question asked and answered
+before the USB cable went in on Tuesday 6 October 2026 was whether lead 1's female end sits
+on the Morpho pin printed `3V3` rather than `5V` or `VIN`. It does.
 
 **The pad order is the silkscreen's, not the schematic's.** Along the eight pads, from the
 end opposite the mounting hole toward it, the printing reads GND, VCC, CS, INT1, INT2, SDO,
@@ -68,6 +103,12 @@ This is written down because it is the kind of thing that is invisible while eve
 works and is the first suspect when something drifts. It is not a reason to stop, and the
 datasheet is explicit that an absolute maximum is a stress rating rather than a functional
 one, with reliability affected only by extended exposure.
+
+**This is also why jumper B, and not lead 1, is where the risk sits.** Lead 1 on a pin
+printed `5V` would be inside the module's own VCC range and the regulator would absorb it.
+The same 5 V arriving on CS through jumper B would be 1.7 V over the die's absolute maximum
+with nothing in between. The jumper that looks like the harmless one is the one that converts
+a supply mistake into a part mistake.
 
 ## What is not wired, and what that costs
 
