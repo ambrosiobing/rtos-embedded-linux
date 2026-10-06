@@ -44,6 +44,14 @@ jobs:
       - name: Every relative link resolves
         run: python scripts/check_links.py
 
+      # A scripted edit passing through a shell heredoc loses one level of backslash, so
+      # an intended newline escape inside a string literal can arrive as a real newline
+      # and split the literal in two. It has happened twice. A compiler says so at once,
+      # and the authoring laptop runs no compiler for this volume, so this is the gate
+      # that does not depend on remembering to build before pushing.
+      - name: No string literal is left open on its line
+        run: python scripts/check_string_literals.py
+
       # Project 01 implements one table in three languages and every page in it says
       # the three agree row for row. This is that claim as a gate rather than a
       # sentence: it compares state, event, guard, action and destination for every
