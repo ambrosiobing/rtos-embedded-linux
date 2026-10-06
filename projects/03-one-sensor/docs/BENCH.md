@@ -18,7 +18,22 @@ silence.
 ## How it was fixed: the supply does not go through the breadboard rail
 
 The module's VCC is now wired **straight to the NUCLEO-H7A3ZI-Q's `+3V3` pin**, rather than
-to the breadboard's power rail and from there to the module. That ended it.
+to the breadboard's power rail and from there to the module.
+
+**That improved it and did not end it, and the first version of this paragraph said it did.**
+The claim was written from one report before any run tested it, which is the mistake this
+volume has a standing rule against. The runs afterwards: the application failed three times
+out of three at `FAIL adxl345@53 is not ready`, and the scan found `0x53` in two runs out of
+three. In one of those the part answered its address and returned `DEVID 0xe5`, then failed
+the very next register read a few milliseconds later. The shield's own `0x19` dropped out of
+one scan and a spurious `answer at 0x0c` appeared in another, neither of which belongs to any
+part on this bench.
+
+So the rail was **a** fault rather than **the** fault. What remains is the friction contacts,
+and the timing makes the shape of it clear: a scan needs a few milliseconds of contact and
+the application needs about two continuous seconds, because it checks the device, then takes
+ten readings two hundred milliseconds apart. **A scan that succeeds is not evidence that the
+application will.**
 
 **A power rail is the one conductor the continuity tests in this log cannot check.** Tying a
 signal row to the GND row and watching the bus die proves the signal lead and the ground lead,
