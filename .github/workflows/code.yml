@@ -168,6 +168,31 @@ jobs:
               projects/01-presence/cpp/test_presence.cpp
           ./build-host/test_presence_cpp_san
 
+      # P02's cascade, the same standard and the same flags. Where P01's table is a table
+      # in every language, this one is a chain of named predicates in C and an array of
+      # {guard, code} in C++, which is the same ordered policy in the shape each language
+      # reasons about best. The C++ form is the one that can be checked at compile time,
+      # and three of the claims P01 makes in a test are static_asserts here.
+      - name: Compile and run the claim cascade, and print the feature report
+        run: |
+          set -e
+          ${{ matrix.cxx }} -std=$CXXSTD -O2 \
+              -Wall -Wextra -Werror -Wpedantic -Wshadow -Wconversion \
+              -fno-exceptions -fno-rtti \
+              -o build-host/test_claim_cpp \
+              projects/02-the-claim/cpp/test_claim.cpp
+          ./build-host/test_claim_cpp
+
+      - name: The claim cascade under the sanitisers
+        run: |
+          set -e
+          ${{ matrix.cxx }} -std=$CXXSTD -O1 -g \
+              -fsanitize=address,undefined -fno-omit-frame-pointer \
+              -Wall -Wextra -Werror -fno-exceptions -fno-rtti \
+              -o build-host/test_claim_cpp_san \
+              projects/02-the-claim/cpp/test_claim.cpp
+          ./build-host/test_claim_cpp_san
+
   # Rust, three editions, one source. Unlike the C and C++ matrices this is not
   # three compilers' opinions: one toolchain builds every edition, and an edition
   # changes what the language permits rather than what the library offers. So the

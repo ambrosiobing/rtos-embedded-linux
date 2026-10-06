@@ -1,10 +1,12 @@
 # P02. The claim, and the service axis
 
-Status on Tuesday 6 October 2026: **the C cascade is written and green**, in WSL on the
-demo laptop, under `-Werror -Wconversion` with the address and undefined-behaviour
-sanitisers. All seven of chapter 02's acceptance criteria pass, and the twenty-two cases
-reach all seven claim codes, all eight arms, all seven service states and all seven
-service reasons.
+Status on Tuesday 6 October 2026: **the cascade is written in C and in C++, and green in
+twelve compiler and standard combinations** in WSL on the demo laptop. C11, C17 and C23
+under gcc and clang; C++17, C++23 and C++2c under g++ and clang++; all at `-Werror` with
+`-Wpedantic -Wshadow -Wconversion`, the C++ additionally at `-fno-exceptions -fno-rtti`,
+and both under the address and undefined-behaviour sanitisers. All seven of chapter 02's
+acceptance criteria pass in both languages, and the twenty-two cases reach all seven claim
+codes, all eight arms, all seven service states and all seven service reasons.
 
 The design page is [docs/DESIGN.md](docs/DESIGN.md) and it was committed **before any
 code**, which is chapter 02's first requirement and the reason the git history is the
@@ -48,8 +50,26 @@ be booked must not report itself free**.
 | [c/claim.h](c/claim.h) | seven codes and the fall-through, seven service states, seven reasons, the settings and the spool |
 | [c/claim.c](c/claim.c) | the eight arms as one pure function, and a ring bounded in bytes |
 | [c/test_claim.c](c/test_claim.c) | the twenty-two cases as a table, and chapter 02's seven criteria as seven named tests |
+| [cpp/claim.hpp](cpp/claim.hpp) | the same eight arms as a `constexpr` array, the C++17 baseline, compiling unchanged under all three standards |
+| [cpp/test_claim.cpp](cpp/test_claim.cpp) | the same twenty-two cases and the same seven criteria, plus three `static_assert`s |
 | [docs/figures](docs/figures) | the chapter's five figures, as rendered SVG |
-| the other languages, the cross-check, the kernels | **not written** |
+| the version-specific C++ headers, Rust, the cross-check, the kernels | **not written** |
+
+## What the C++ proves at compile time that the C asserts at run time
+
+The C writes the cascade as a chain of named predicates. The C++ writes it as a
+`constexpr std::array` of `{guard, code}`. Both are the same ordered policy with the same
+seven guard names, which is what a comparison is of; the array is the form that can be
+reasoned about before the program runs, and three of the claims become `static_assert`s:
+
+- **the only unguarded arm is the last one**, or it would shadow every arm below it
+- **every arm carries a guard pointer**, with the duplicated `guarded` flag checked
+  against it, exactly as P01's `Row::guarded` is
+- **every code is produced by some arm**, so no code exists that the policy cannot reach
+
+All three hold under C++17 with nothing but `std::array`. That matters for the comparison
+this project is making: the interesting question is not what a later standard allows but
+what the earliest one already did, and the answer here is more than expected.
 
 ## What the run prints, because the page should not be the source of a number
 
@@ -72,9 +92,13 @@ exists to catch something the step before it cannot.
 1. ~~The C cascade and its host test.~~ **Done and green.** The invariants are checked
    after every case rather than at the end, because a broken invariant can be transient
    and still wrong.
-2. **The same cascade in C++17, C++23 and C++2c**, where the later two should be able to
-   prove the arm order and the code count at compile time rather than by a test, as
-   P01's `consteval` proofs do for its table.
+2. **The C++ baseline: done and green** under C++17, C++23 and C++2c, with g++ and
+   clang++, from one unchanged source. **Still to write are the version-specific
+   headers**, `claim23.hpp` and `claim26.hpp`, carrying what each later standard actually
+   adds for this shape: `std::expected` for the fallible paths, `std::inplace_vector` for
+   the spool, which is a bounded ring and so the clearest use of it in either project, and
+   a feature report saying which additions the compiler in front of it provided. P01's
+   `presence23.hpp` and `presence26.hpp` are the pattern.
 3. **The same cascade in Rust**, `no_std`, under editions 2018, 2021 and 2024 from one
    source.
 4. **A cross-check script** comparing the three cascades arm for arm, so that "the same
