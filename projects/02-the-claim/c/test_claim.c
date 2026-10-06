@@ -361,8 +361,18 @@ static void the_room_works_with_the_radio_down(void)
     /* "The link is down" means nothing leaves the spool, so it fills and then discards.
      * The one on the left is drained after every step. The decisions must be identical,
      * because the cascade has no link input at all: that is the structural reason this
-     * criterion holds, and the run is what shows the structure was not quietly broken. */
-    for (i = 0u; i < CASE_COUNT * 40u; i++) {
+     * criterion holds, and the run is what shows the structure was not quietly broken.
+     *
+     * HOW MANY STEPS. An earlier version of this test ran 40 passes of the table and
+     * asserted the spool was full, which it was not: 880 steps produced 279 events,
+     * because emission is on change only and GRACE never emits at all, so the events per
+     * step are a property of the case table and not something to predict. That was the
+     * same mistake as P01's phase 3, where a count true of FreeRTOS was asserted of every
+     * kernel. The step count is now generous enough that the spool fills well before the
+     * end, which is what makes the second half of the run the interesting part: a full,
+     * discarding spool on one side and an empty one on the other, agreeing on every
+     * decision. The counts are printed rather than predicted. */
+    for (i = 0u; i < CASE_COUNT * 200u; i++) {
         const case_t    *k = &CASES[i % CASE_COUNT];
         claim_inputs_t   in = inputs_of(k);
         claim_decision_t a;
@@ -386,10 +396,28 @@ static void the_room_works_with_the_radio_down(void)
         drains.emitted         = 0u;
     }
 
+    printf("   %u steps, %u events, %u retained, %u discarded\n",
+           (unsigned)(CASE_COUNT * 200u), (unsigned)down.emitted,
+           (unsigned)down.spool.count, (unsigned)down.spool.discarded);
+
     CHECK(same, "a full spool changed a decision, so something reads the link");
+
+    /* The relationship, not a number: the spool holds everything offered to it until it
+     * is full, and its capacity after that. An adapter that quietly kept more than its
+     * bound, or that stopped accepting, fails this whatever the step count. */
+    CHECK(down.spool.count == (down.emitted < (uint32_t)claim_spool_capacity(&down.spool)
+                                   ? (size_t)down.emitted
+                                   : claim_spool_capacity(&down.spool)),
+          "retained %u against %u events and a capacity of %u",
+          (unsigned)down.spool.count, (unsigned)down.emitted,
+          (unsigned)claim_spool_capacity(&down.spool));
+
+    /* And the scenario has to have been worth running: if the spool never filled, this
+     * test proved only that two empty spools agree. */
     CHECK(down.spool.count == claim_spool_capacity(&down.spool),
-          "with the radio down the spool should be full: %u of %u",
+          "the run must actually fill the spool or it tests nothing: %u of %u",
           (unsigned)down.spool.count, (unsigned)claim_spool_capacity(&down.spool));
+
     CHECK(claim_check_invariants(&down), "the invariants must hold with the radio down");
 }
 
