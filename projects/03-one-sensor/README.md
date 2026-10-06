@@ -79,6 +79,8 @@ survive the build at all.
 | [overlays/spi.overlay](overlays/spi.overlay) | the same part on the four-wire bus, where the address becomes a chip select |
 | [overlays/impossible.overlay](overlays/impossible.overlay) | a description that cannot be true, which the build must refuse |
 | [docs/WIRING.md](docs/WIRING.md) | the two jumpers and four leads of the two-wire build as it is actually wired, from the vendor's schematic, and why the digital pins have no margin |
+| [docs/BENCH.md](docs/BENCH.md) | the first bring-up on the board, the fault it found, and the three bench facts that cost an hour |
+| [diag/](diag/) | a bus scan, a separate application, written because one FAIL line named five possible causes |
 | the four remaining criteria | **need the board** |
 
 ## The first real figures this volume has for the target
