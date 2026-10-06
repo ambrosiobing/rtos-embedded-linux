@@ -63,6 +63,14 @@ jobs:
       - name: The same table in C, C++ and Rust, row for row
         run: python scripts/crosscheck_table.py
 
+      # P02's equivalent. Three implementations of one policy are three chances to write a
+      # different policy, and no test in any of them can notice the drift, because each is
+      # right about itself. This reads the three sources and compares the ordered list of
+      # guard names and codes, which is why claim.c names its predicates rather than
+      # writing the conditions inline.
+      - name: The same cascade in C, C++ and Rust, arm for arm
+        run: python scripts/crosscheck_cascade.py
+
       # The structural check, and the one that proves the figures really are with
       # their projects rather than only referenced as if they were.
       - name: Twenty chapters, twenty projects, five figures each

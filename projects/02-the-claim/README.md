@@ -15,7 +15,7 @@ code**, which is chapter 02's first requirement and the reason the git history i
 evidence for it rather than this sentence.
 
 The written design is [chapter 02](../../chapters/02-the-claim.md), which is complete.
-What is absent is the cross-check, the adapter contract and the kernels.
+What is absent is the adapter contract and the kernels.
 
 | | |
 |---|---|
@@ -60,8 +60,9 @@ be booked must not report itself free**.
 | [rust/claim_core.rs](rust/claim_core.rs) | the same eight arms as a `static` array of `Option<fn>`, `no_std`, no `unsafe` |
 | [rust/tests_core.rs](rust/tests_core.rs) | the same twenty-two cases, eleven tests, and the whole input space as a test rather than a proof |
 | `rust/e2018`, `e2021`, `e2024` | three crates differing only in their edition line |
+| [scripts/crosscheck_cascade.py](../../scripts/crosscheck_cascade.py) | the three cascades compared arm for arm, in CI, so "the same policy" is enforced rather than repeated |
 | [docs/figures](docs/figures) | the chapter's five figures, as rendered SVG |
-| the cross-check, the adapter and the kernels | **not written** |
+| the adapter contract and the kernels | **not written** |
 
 ## The three languages agree on every number
 
@@ -151,9 +152,11 @@ exists to catch something the step before it cannot.
    is in [docs/LANGUAGE_IDIOMS.md](docs/LANGUAGE_IDIOMS.md): one branch of the C deleted
    rather than translated, `Option<fn>` costing nothing, and one place where the earlier
    language wins outright.
-4. **A cross-check script** comparing the three cascades arm for arm, so that "the same
-   policy" is enforced in CI rather than repeated by hand. P01 has one for its table;
-   this project does not yet.
+4. ~~A cross-check script.~~ **Done and in CI.** It reads the three sources and compares
+   the ordered list of guard names and codes. Five deliberate drifts were introduced to
+   confirm it can fail, and all five were caught: a swapped pair of arms in the Rust, a
+   wrong code in the C++, a renamed guard in the C, a `guarded` flag disagreeing with its
+   own guard, and the unguarded arm moved off the end.
 5. **The adapter contract and the shared phases**, including no kernel header, so that
    one test runs against every kernel instead of each kernel having its own.
 6. **The FreeRTOS and Zephyr adapters**, both of which now have a working local loop and
