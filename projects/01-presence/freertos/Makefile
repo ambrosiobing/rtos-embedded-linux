@@ -87,7 +87,15 @@ fetch:
 $(BUILD):
 	mkdir -p $(BUILD)
 
-$(BIN): | $(BUILD)
+HEADERS := FreeRTOSConfig.h ../adapter/presence_adapter.h ../adapter/phases.h ../c/presence.h
+
+# WHY THE TARGET LISTS ITS SOURCES, which it did not until Tuesday 6 October 2026. The rule
+# below had only an order-only prerequisite on the build directory, so once the binary
+# existed `make run` never rebuilt it, whatever changed. A pull that altered
+# ../adapter/phases.c was followed by a run of the binary from before the pull, and the
+# output looked like a pass. The headers are listed as well as the .c files, because a
+# change to the contract is exactly the kind that must not be skipped.
+$(BIN): $(ADAPTER_SRC) $(TABLE_SRC) $(HEADERS) Makefile | $(BUILD)
 	@test -d "$(FREERTOS_KERNEL)" || { echo "no kernel at $(FREERTOS_KERNEL); run: make fetch"; exit 1; }
 	$(CC) $(KERNEL_CFLAGS) -c $(CORE_SRC) $(PORT_SRC)
 	mv *.o $(BUILD)/
