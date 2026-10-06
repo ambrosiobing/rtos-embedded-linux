@@ -79,7 +79,7 @@ of the evening from guessing into reading.
 ## Three facts about this bench that cost an hour between them
 
 **The ST-LINK virtual COM port stays silent until DTR and RTS are raised.** Three console runs
-returned zero bytes and were nearly blamed on the wiring. A `SerialPort` opened with its
+returned zero bytes and were nearly put down to the wiring. A `SerialPort` opened with its
 defaults never delivers anything on COM13; setting `DtrEnable` and `RtsEnable` before `Open`
 delivers everything, including output buffered from a previous boot.
 
@@ -133,7 +133,7 @@ failing it, so the scan never returns and the output stops mid-line. **A hang is
 measurement**, and recognising it later identified an accidental short in one run rather than
 several.
 
-This also proved lead 2 along the way: tying SDA to the GND row only kills the bus if that row
+This also proved lead 2 along the way: tying SDA to the GND row only stops the bus if that row
 is actually at ground.
 
 ## What this says about the module, and what it does not
