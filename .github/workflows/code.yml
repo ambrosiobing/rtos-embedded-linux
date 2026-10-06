@@ -80,6 +80,36 @@ jobs:
               projects/01-presence/c/test_presence.c
           ./build-host/test_presence_san_${{ matrix.std }}
 
+      # P02's cascade, under the same standard and the same flags. It is a different
+      # shape from P01's table: eight guarded arms as one pure function rather than
+      # rows, and the test asserts WHICH ARM fired and not only the code, because
+      # several arms produce the same code and two of them produce the fall-through
+      # between them. A permuted cascade can leave every code identical.
+      - name: Compile and run the claim cascade
+        run: |
+          set -e
+          gcc -std=$CSTD -O2 \
+              -Wall -Wextra -Werror -Wpedantic -Wshadow -Wconversion \
+              -Wstrict-prototypes -Wmissing-prototypes \
+              -o build-host/test_claim_${{ matrix.std }} \
+              projects/02-the-claim/c/claim.c \
+              projects/02-the-claim/c/test_claim.c
+          ./build-host/test_claim_${{ matrix.std }}
+
+      # The spool is a ring indexed modulo its own capacity in three places, which is
+      # exactly where an off-by-one keeps every count correct and corrupts a slot.
+      # -O2 alone will not say so.
+      - name: The claim cascade under the address and undefined-behaviour sanitisers
+        run: |
+          set -e
+          gcc -std=$CSTD -O1 -g \
+              -fsanitize=address,undefined -fno-omit-frame-pointer \
+              -Wall -Wextra -Werror \
+              -o build-host/test_claim_san_${{ matrix.std }} \
+              projects/02-the-claim/c/claim.c \
+              projects/02-the-claim/c/test_claim.c
+          ./build-host/test_claim_san_${{ matrix.std }}
+
   # The C++ side, three versions, two compilers. presence.hpp is the C++17 baseline
   # and must compile unchanged under all three; presence23.hpp and presence26.hpp
   # add only what their version offers, behind feature-test macros. The test's
@@ -209,6 +239,17 @@ jobs:
               projects/01-presence/c/presence.c \
               projects/01-presence/c/test_presence.c
           ./build-host/test_presence_clang_${{ matrix.std }}
+
+      - name: Compile and run the claim cascade
+        run: |
+          set -e
+          clang -std=${{ matrix.std }} -O2 \
+              -Wall -Wextra -Werror -Wpedantic -Wshadow -Wconversion \
+              -Wstrict-prototypes -Wmissing-prototypes \
+              -o build-host/test_claim_clang_${{ matrix.std }} \
+              projects/02-the-claim/c/claim.c \
+              projects/02-the-claim/c/test_claim.c
+          ./build-host/test_claim_clang_${{ matrix.std }}
 
   # The table under a real kernel, which is a different claim from the ones above.
   # Those compile the table; this runs it with a real queue, a real dispatch task and
