@@ -113,8 +113,7 @@ static void test_stale_timer() {
 // fails: the room goes free with somebody in it. docs/RTOS_VARIANTS.md draws the
 // sequence and names the kernel that can deliver it, which is QNX, by priority.
 static void test_a_stale_timer_cannot_release_a_newer_hold() {
-    std::printf("a stale hold timer arriving while a newer hold runs
-");
+    std::printf("a stale hold timer arriving while a newer hold runs\n");
     start();
     reading(NEAR, 10, 1); reading(NEAR, 20, 0);
     reading(FAR, 30, 9);                  // first hold, due at 30030
