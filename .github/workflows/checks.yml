@@ -123,7 +123,7 @@ jobs:
       - name: Only the file types this repository publishes
         run: |
           set -e
-          odd=$(git ls-files | grep -vE '(\.(md|svg|py|yml|cff|c|h|cpp|hpp|rs|toml|conf|overlay)$|^LICENSE$|^\.git(ignore|attributes)$)' || true)
+          odd=$(git ls-files | grep -vE '(\.(md|svg|py|yml|cff|c|h|cpp|hpp|rs|toml|conf|overlay)$|^LICENSE$|^\.git(ignore|attributes)$|(^|/)Makefile$)' || true)
           if [ -n "$odd" ]; then
             echo "Files of a type this repository does not publish:"
             echo "$odd"

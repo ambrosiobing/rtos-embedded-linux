@@ -1,10 +1,13 @@
 # P01. Presence: free, occupied, held, fault
 
-Status: the table and its host tests are written and they pass. The C and the C++
-in CI, under six compiler and standard combinations; the Rust in WSL, under three
-editions. **Nothing has run on a board, and nothing is compiled on the laptop this
-was written on**, which runs no compiler for it: the toolchains are in CI and in
-WSL on the demo laptop.
+Status on Tuesday 6 October 2026, with the twenty-ninth row in: the table and its
+host tests pass in WSL on the demo laptop. The C under C11, the C++ under C++17, and
+the Rust under all three editions, 33 tests in total. **CI's last three runs are red
+and the cause is fixed but not yet re-run**: a scripted edit split a string literal
+in the C++ test, which took the six C++ jobs down. The C++23 and C++26 builds have
+not been run anywhere since the table changed. **Nothing has run on a board, and
+nothing is compiled on the laptop this was written on**, which runs no compiler for
+it: the toolchains are in CI and in WSL on the demo laptop.
 
 The written design is [chapter 01](../../chapters/01-presence.md). The design page
 for the code is [docs/DESIGN.md](docs/DESIGN.md), and it was written before the
@@ -36,7 +39,8 @@ code, which is the chapter's first requirement.
 | `rust/e2018`, `rust/e2021`, `rust/e2024` | three crates differing only in their edition line |
 | [docs/RTOS_VARIANTS.md](docs/RTOS_VARIANTS.md) | the contract between the table and a kernel, the mapping for Zephyr, FreeRTOS and QNX, and the argument for a twenty-ninth row |
 | [scripts/crosscheck_table.py](../../scripts/crosscheck_table.py) | the three tables compared row for row, in CI, so "the same table" is enforced rather than repeated |
-| the kernel adapters themselves | not written. The design page above comes first, which is this chapter's own rule |
+| [freertos/](freertos/) | the first kernel adapter: one queue, one dispatch task, two timers, static allocation only. **Written, not yet built** |
+| the Zephyr and QNX adapters | not written. Zephyr has no workspace in WSL to build against, and QNX has no licence or target here at all |
 
 ## What the table is, and why it is the specification
 
@@ -99,22 +103,25 @@ In WSL on the demo laptop, the same thing by hand:
 
 ## What is not here yet
 
-- **A run against the twenty-ninth row.** Formatting, clippy at `-D warnings` and
-  all 27 Rust tests passed in WSL on Monday 5 October 2026, nine under each
-  edition, with the exhaustive-match sweep at 96 combinations. That was the table
-  as it stood. Each suite now carries one more case, the stale expiry that an
-  unguarded row 17 would have released, and the sweep is 192 combinations, and
-  none of that has run yet. Five refusals came before that green run, two of them
-  on edition grounds, and all five are in
+- **The C++23 and C++26 builds, and a green CI run.** The twenty-ninth row has been
+  through C11, C++17 and all three Rust editions in WSL. What it has not been
+  through is the two later C++ standards, where `presence23.hpp` proves the guard
+  order at compile time with a `consteval` check and `presence26.hpp` asserts the
+  row count: both of those read the table and neither has seen 29 rows. Nor has
+  CI, whose last three runs are red for a cause since fixed. Six refusals have come
+  before this point and all six are recorded in
   [docs/LANGUAGE_IDIOMS.md](docs/LANGUAGE_IDIOMS.md#what-the-compiler-rejected-in-wsl-on-monday-5-october-2026)
   rather than quietly fixed.
 - **The bare-metal link.** Whether the library is really `no_std` is shown by none
   of the above, because the test configuration pulls in std for the harness. Only
   CI checks it, by building the library alone for `thumbv7em-none-eabihf`.
-- **The kernel adapters.** A thread, a queue, a timer and three lamps per kernel,
-  none of which is allowed to make a decision. The mapping and the three
-  requirements an adapter has to satisfy are in
-  [docs/RTOS_VARIANTS.md](docs/RTOS_VARIANTS.md). FreeRTOS and Zephyr can both run
-  theirs on a host and in CI; QNX cannot be built on this bench at all, and that
-  adapter will say so in its own header.
+- **A build of the FreeRTOS adapter.** [freertos/](freertos/) is written and no
+  compiler has seen it. Its four phases include the two things nothing else here
+  can show: a release produced by a real kernel timer rather than by an injected
+  event, and a full queue counted rather than dropped in silence.
+- **The Zephyr and QNX adapters.** The mapping and the three requirements any
+  adapter must satisfy are in [docs/RTOS_VARIANTS.md](docs/RTOS_VARIANTS.md).
+  Zephyr has no workspace or SDK in WSL on the demo laptop, checked on Tuesday
+  6 October 2026, so it has no local loop; QNX has no licence and no target here
+  at all and will be written without ever being built.
 - **Anything on hardware.** No board has run this.

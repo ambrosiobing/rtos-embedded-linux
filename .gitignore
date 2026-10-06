@@ -77,3 +77,9 @@ __pycache__/
 private_journal/
 correspondence/
 DIARY*.md
+
+# A kernel cloned for the FreeRTOS adapter is not this repository's code. The
+# Makefile puts it outside the tree by default; this is here so that a clone made
+# inside one by hand cannot be committed by accident.
+third_party/
+FreeRTOS-Kernel/

@@ -229,8 +229,8 @@ Three adapters, three different levels of evidence, named rather than averaged.
 
 | Adapter | What can be run | Where |
 |---|---|---|
-| FreeRTOS | **the adapter itself, on a host.** The kernel has an official POSIX port that builds with gcc, so the queue, the timer and the dispatcher can run in CI and the stale expiry of rows 4 and 11 can be provoked on purpose | GitHub Actions, and WSL on the demo laptop |
-| Zephyr | **the adapter itself, on a host**, through `native_sim`, which chapter 01 already uses for its host build. This needs a Zephyr workspace and SDK, and whether one exists in WSL on the demo laptop has not been checked. That check comes before anything is written against it | the same two places, if the workspace is there |
+| FreeRTOS | **the adapter itself, on a host.** The kernel has an official POSIX port that builds with gcc, so the queue, the timer and the dispatcher run for real. **Written on Tuesday 6 October 2026** and not yet built: [`../freertos/`](../freertos/) | WSL on the demo laptop first, then GitHub Actions |
+| Zephyr | **nothing yet, and the reason is checked rather than assumed.** `native_sim` would run it, and chapter 01 already uses that target, but WSL on the demo laptop has no Zephyr workspace, no `west` and no SDK: looked for on Tuesday 6 October 2026 and absent. Until one exists there, CI would be this adapter's first test, which is the opposite of how this bench works | nowhere, until a workspace exists |
 | QNX | **nothing.** No licence, no target. Source and a review only | nowhere on this bench |
 
 The firmware volume's own rule applies to the two that can run: a test that has
