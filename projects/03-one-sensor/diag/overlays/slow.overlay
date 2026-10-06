@@ -1,0 +1,21 @@
+/* projects/03-one-sensor/diag/overlays/slow.overlay: the same wiring at a quarter the rate.
+ *
+ * APPLIED ON TOP OF the project's own overlays/i2c.overlay rather than replacing it, so the
+ * pins, the part and the address all stay exactly where that file puts them and the only
+ * thing this changes is the clock. Pass both, in this order:
+ *
+ *   -DDTC_OVERLAY_FILE="../overlays/i2c.overlay;overlays/slow.overlay"
+ *
+ * WHY IT EXISTS. A two-wire bus is open drain: every device pulls the line down and a
+ * resistor pulls it back up. The rise time is that resistor against the capacitance of the
+ * leads, and a 400 kHz bus allows about a fifth of the rise time a 100 kHz bus does. On
+ * breadboard jumpers, with whatever pull-up the module carries and the processor's own weak
+ * internal one behind it, 400 kHz is the rate most likely to fail and 100 kHz the rate most
+ * likely to work. If the part answers here and not at 400 kHz, the answer is the rise time
+ * and not the wiring.
+ */
+#include <zephyr/dt-bindings/i2c/i2c.h>
+
+&i2c1 {
+	clock-frequency = <I2C_BITRATE_STANDARD>;
+};
