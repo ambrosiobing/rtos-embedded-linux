@@ -251,6 +251,21 @@ fn every_row_is_reachable() {
     post(&mut p, &Ev::plain(Kind::Button, 270), 20);
     sweep(&p);
 
+    // Row 18, which no sequence above reaches: an expiry left over from a hold that
+    // was cancelled, delivered while a newer hold is running. In C and C++ the case
+    // that proves this is in the same accumulating run as the rest; here every test
+    // is its own run, so the sequence belongs in this one as well. Its absence is
+    // what the assertion below reported the first time this file was compiled with
+    // twenty-nine rows, which is the whole purpose of counting.
+    let mut p = start();
+    post(&mut p, &Ev::reading(NEAR, 10), 1);
+    post(&mut p, &Ev::reading(NEAR, 20), 0);
+    post(&mut p, &Ev::reading(FAR, 30), 9);
+    post(&mut p, &Ev::reading(NEAR, 40), 15);
+    post(&mut p, &Ev::reading(FAR, 50), 9);
+    post(&mut p, &Ev::plain(Kind::Timeout, 30_030), 18);
+    sweep(&p);
+
     let untaken: Vec<usize> = (0..ROW_COUNT).filter(|&i| taken[i] == 0).collect();
     // The argument is passed rather than captured inline, and the reason is an
     // edition difference worth knowing: `assert!` hands its message straight to
@@ -393,8 +408,8 @@ fn the_guard_option_costs_nothing_and_the_sizes_are_printed() {
     let row = core::mem::size_of::<Row>();
     println!();
     println!("size report, edition {}", super::EDITION);
-    println!("  Settings            {settings:3} B");
+    println!("  Settings            {settings:3} B, C 12");
     println!("  Ev                  {ev:3} B, C union 20");
-    println!("  Presence            {ctx:3} B, C 152");
+    println!("  Presence            {ctx:3} B, C 156");
     println!("  Row                 {row:3} B, mostly pointers");
 }

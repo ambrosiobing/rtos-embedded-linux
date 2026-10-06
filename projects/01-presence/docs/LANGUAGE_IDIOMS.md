@@ -39,7 +39,7 @@ baseline and the test says so.
 | Version | Addition | What it changes here | Reported by CI |
 |---|---|---|---|
 | C++17 | `enum class` | a `State` cannot be passed where an `Event` is expected, which the C enums permit silently | baseline |
-| C++17 | `std::variant` for the payload | the C union let a caller read a range from a settings event; the variant makes that a checked access. Costs one byte of discriminant | baseline |
+| C++17 | `std::variant` for the payload | the C union let a caller read a range from a settings event; the variant makes that a checked access. It costs a discriminant, and "one byte" was a guess: the C++ suite now prints `sizeof(Ev)` beside the C's 20-byte union and that run has not happened yet | baseline |
 | C++17 | `constexpr std::array` table | the row count is the array's size, so no macro to assert against | baseline |
 | C++17 | `[[nodiscard]]` on `dispatch` | a caller cannot silently ignore `ErrNoRow`, the one return meaning the table is broken | baseline |
 | C++23 | `std::expected<size_t, Result>` | the row index is the return value and the error the alternative, so a caller cannot read `last_row` after a failure and mistake the previous row for this one. A real class of defect removed | **g++ 13.3 only; absent on clang 18 at every flag** |
@@ -267,6 +267,35 @@ it.
 | `the_exhaustive_match_agrees_with_the_table` | **passed in all three editions, at 96 combinations.** It now sweeps 192, because the twenty-ninth row added a third payload dimension, the hold's due time against the event's. The wider sweep has not run yet |
 | `the_table_is_total` | passes. All twenty-four pairs have a row, in every edition |
 | The library is really `no_std` | **still open.** Only CI builds for `thumbv7em-none-eabihf`, and the authoring laptop has no cross target. This is the one remaining step, and finding 3 is why it is not a formality: a host test proves nothing about `no_std`, because the test configuration pulls in std for the harness |
+
+### What the representation costs, measured in WSL on Tuesday 6 October 2026
+
+The C pins its sizes with `_Static_assert` and prints them; the Rust suite prints its
+own. Both ran, so the cost of the safer payload stops being an argument. These are
+from the edition 2018 crate; a layout does not depend on the edition.
+
+| | C | Rust |
+|---|---|---|
+| `Settings`, four values | 12 B | **8 B** |
+| One event | 20 B | 20 B |
+| The context, 29 counters included | 156 B | **148 B** |
+| One table row, on this host | 40 B | 40 B |
+
+**The safer representation is not the larger one, and twice it is smaller.** The C
+carries a bare union and a four-byte enum; Rust carries `Option<Settings>`, which
+needs a discriminant because `Settings` has no spare niche, and an `Option<u8>` where
+the C spends an `int16_t` and the value minus one. On the usual reasoning that should
+cost bytes. It does not, because **Rust is free to reorder fields and C is not.**
+`arrive_runs` as `u16`, `hold_ms` as `u32`, `range_mm_max` as `u16` in that
+declaration order forces C to pad to 12; Rust puts the `u32` first and the two `u16`s
+after it, and the same four values occupy 8. The event comes out identical at 20 bytes
+in both, which is a coincidence of packing rather than a shared layout.
+
+That has one consequence worth stating, because the rest of this page is about parity.
+**The parity between these implementations is behavioural, not binary.** The three
+tables take the same row for the same event, which is what `scripts/crosscheck_table.py`
+enforces; the structures are not layout-compatible and nothing may pass an event from
+one to another as bytes. Each language gets its own adapter, so nothing needs to.
 
 The shape of the five refusals is the result worth keeping, and it needs one
 correction made the day after it was written. **Not one of the five was in the
