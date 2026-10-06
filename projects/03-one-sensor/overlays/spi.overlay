@@ -20,8 +20,15 @@
 	pinctrl-names = "default";
 
 	/* The chip select, which is the four-wire bus's answer to an address. Active low,
-	 * which is the convention this part and nearly every other one expects. */
-	cs-gpios = <&gpioa 4 GPIO_ACTIVE_LOW>;
+	 * which is the convention this part and nearly every other one expects.
+	 *
+	 * PD14, WHICH IS THE ARDUINO D10 POSITION. This was PA4 until the board's own
+	 * arduino_r3_connector.dtsi was read on Tuesday 6 October 2026, and PA4 is not on
+	 * that header at all. The build accepted it, because the part has a PA4; a build
+	 * accepting a pin says the processor can route the signal and says nothing about
+	 * whether a jumper lead can reach it. The three signal pins were already right:
+	 * D13 is PA5, D12 is PA6 and D11 is PA7, which is where the same file puts them. */
+	cs-gpios = <&gpiod 14 GPIO_ACTIVE_LOW>;
 
 	accel: adxl345@0 {
 		compatible = "adi,adxl345";
