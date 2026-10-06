@@ -1,0 +1,36 @@
+/* projects/03-one-sensor/overlays/i2c.overlay: the accelerometer on the two-wire bus.
+ *
+ * Nothing in ../src/ changes between this file and spi.overlay. That is the chapter's claim
+ * and docs/DESIGN.md's first criterion is how it is checked: the application object must be
+ * byte for byte identical between the two builds.
+ *
+ * The board's own description has i2c1 present and disabled. This file turns it on, gives it
+ * pins, and hangs a part off it. The pin groups come from the board manual and from RM0455,
+ * which is this part's reference manual and not the one most published STM32H7 material is
+ * written against.
+ */
+#include <zephyr/dt-bindings/i2c/i2c.h>
+
+&i2c1 {
+	status = "okay";
+	pinctrl-0 = <&i2c1_scl_pb8 &i2c1_sda_pb9>;
+	pinctrl-names = "default";
+	clock-frequency = <I2C_BITRATE_FAST>;
+
+	accel: adxl345@53 {
+		compatible = "adi,adxl345";
+		/* 0x53 with the address link low, which is how the SEN0032 leaves the
+		 * factory. It is 0x1d when that link is pulled up, and criterion 3 is
+		 * exercised by setting this deliberately wrong. */
+		reg = <0x53>;
+		status = "okay";
+	};
+};
+
+/ {
+	aliases {
+		/* The only line the application reads, and the only thing this file has in
+		 * common with spi.overlay. */
+		motion = &accel;
+	};
+};

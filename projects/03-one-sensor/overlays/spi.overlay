@@ -1,0 +1,41 @@
+/* projects/03-one-sensor/overlays/spi.overlay: the same part, the same driver, four wires.
+ *
+ * Read this beside i2c.overlay. The part is the same, the compatible is the same, the driver
+ * is the same file in the Zephyr tree, and the application does not change. What changes is
+ * the controller the part hangs off and what that controller needs to know.
+ *
+ * THE FOUR-WIRE BUS NEEDS TWO THINGS THE TWO-WIRE BUS DOES NOT, and both are here rather
+ * than in the application, which is the point:
+ *
+ *   a chip select, because a four-wire bus addresses by a line rather than by a number;
+ *   a maximum clock frequency, because the part is told the rate instead of the bus.
+ *
+ * An address becomes a wire. That is the whole difference, and it lives in a text file.
+ */
+#include <zephyr/dt-bindings/gpio/gpio.h>
+
+&spi1 {
+	status = "okay";
+	pinctrl-0 = <&spi1_sck_pa5 &spi1_miso_pa6 &spi1_mosi_pa7>;
+	pinctrl-names = "default";
+
+	/* The chip select, which is the four-wire bus's answer to an address. Active low,
+	 * which is the convention this part and nearly every other one expects. */
+	cs-gpios = <&gpioa 4 GPIO_ACTIVE_LOW>;
+
+	accel: adxl345@0 {
+		compatible = "adi,adxl345";
+		/* Not an address: the index of the chip select in the list above. */
+		reg = <0>;
+		spi-max-frequency = <5000000>;
+		status = "okay";
+	};
+};
+
+/ {
+	aliases {
+		/* The only line the application reads, and the only thing this file has in
+		 * common with i2c.overlay. */
+		motion = &accel;
+	};
+};
