@@ -15,6 +15,23 @@ had no power, and **jumper B had nothing to put on CS**, so even a powered part 
 stayed in four-wire mode and ignored the two-wire bus. One missing lead, two reasons for
 silence.
 
+## The fact that reframes all of it: nothing on this module is soldered
+
+**The SEN0032's eight-pin header is not fitted. The module has bare plated holes**, and every
+connection to it is a friction contact: a male pin pushed into a hole and held against the
+wall of that hole by tilting the board, with rolled plastic holding the tilt. That is how it
+was read successfully on a Raspberry Pi 3 Model B+, and it is the only way it has ever been
+read.
+
+So "the six connections are in place" means they are **positioned**, not that they conduct,
+and any one of them can be open at any moment including one that was closed a minute earlier.
+There is no soldering iron on this bench, so fitting a header is not available. The
+arrangement that does not depend on a held tilt is to push each male pin through the module's
+hole and down into a breadboard, so the breadboard's own spring grips the pin and presses it
+against the hole wall.
+
+This belongs at the top of any future bring-up of this part, ahead of every test below it.
+
 ## What the application said, and why that was not enough
 
 The first run on the board printed
