@@ -257,21 +257,23 @@ crate, so that the twenty-eight rows stay one per line and can be read beside
 else in both files is in rustfmt's own form and the `--check` gate still applies to
 it.
 
-**What is settled and what is not.** Two things are now measured in WSL on
-Monday 5 October 2026: `cargo fmt --all --check` passes, including the skipped
-table, and no error specific to edition 2024 remains. Everything else is still open,
-and the list is short: whether clippy at `-D warnings` is finally clean, whether all
-three editions build, whether the 96-combination cross-check between the match and
-the array agrees, and whether the library really is `no_std`, which the job checks by
-building for `thumbv7em-none-eabihf` rather than by trusting the attribute. That last
-one is why finding 3 matters: a host test proves nothing about `no_std`, because the
-test configuration pulls in std for the harness.
+### Measured in WSL on Monday 5 October 2026, after the five fixes
 
-The order of these findings is itself the result worth keeping. Five refusals, and
-not one of them was in the table: every one was in the spelling around it, and the
-twenty-eight rows have not changed since the C was written. The test that could
-disagree with the C about a row is the 96-combination cross-check, and it has not
-run yet.
+| What was open | Result |
+|---|---|
+| `cargo fmt --all --check` | passes, the skipped table included, so the formatting decision above is the toolchain's verdict and not a preference |
+| `cargo clippy --workspace --all-targets -- -D warnings` | silent on all three crates |
+| All three editions build and run | **27 tests pass, nine under each of 2018, 2021 and 2024**, from one `presence_core.rs` and one `tests_core.rs`. This is the claim the three crates exist to make, and it is now a build result |
+| `the_exhaustive_match_agrees_with_the_table` | **passes in all three editions.** The exhaustive `match` and the array agree on all 96 combinations: every state, every event kind, both sides of every guard |
+| `the_table_is_total` | passes. All twenty-four pairs have a row, in every edition |
+| The library is really `no_std` | **still open.** Only CI builds for `thumbv7em-none-eabihf`, and the authoring laptop has no cross target. This is the one remaining step, and finding 3 is why it is not a formality: a host test proves nothing about `no_std`, because the test configuration pulls in std for the harness |
+
+The shape of the five refusals is the result worth keeping. **Not one of them was in
+the table.** Every one was in the spelling around it: an attribute in a file that
+could not carry it, a message macro that an edition reads differently, a lint about
+how a value is built and another about how an array is walked. The twenty-eight rows
+have not changed since the C was written, and the check that could have disagreed
+with the C about a row has now run and does not.
 
 ## How to read the CI log
 

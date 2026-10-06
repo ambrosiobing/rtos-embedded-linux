@@ -1,8 +1,10 @@
 # P01. Presence: free, occupied, held, fault
 
-Status: the table and its host test are written. **Nothing has been compiled on
-this machine and nothing has run on a board.** The compilers are in CI and in WSL;
-the laptop this was written on runs none.
+Status: the table and its host tests are written and they pass. The C and the C++
+in CI, under six compiler and standard combinations; the Rust in WSL, under three
+editions. **Nothing has run on a board, and nothing is compiled on the laptop this
+was written on**, which runs no compiler for it: the toolchains are in CI and in
+WSL on the demo laptop.
 
 The written design is [chapter 01](../../chapters/01-presence.md). The design page
 for the code is [docs/DESIGN.md](docs/DESIGN.md), and it was written before the
@@ -85,13 +87,15 @@ In WSL on the demo laptop, the same thing by hand:
 
 ## What is not here yet
 
-- **A green Rust job.** The three edition crates are written and the C and C++
-  jobs pass, but the `rust` job has not yet run clean: a real toolchain has
-  refused the source five times so far, two of those on edition grounds.
-  All five are recorded in
+- **The bare-metal link.** Formatting, clippy at `-D warnings` and all 27 tests
+  pass in WSL, nine under each edition, the 96-combination cross-check between the
+  exhaustive `match` and the array included. What that does not show is that the
+  library is `no_std`, because the test configuration pulls in std for the
+  harness. Only CI checks it, by building the library alone for
+  `thumbv7em-none-eabihf`. Five refusals came before that green run, two of them
+  on edition grounds, and all five are recorded in
   [docs/LANGUAGE_IDIOMS.md](docs/LANGUAGE_IDIOMS.md#what-the-compiler-rejected-in-wsl-on-monday-5-october-2026)
-  rather than quietly fixed, because two of them are the only edition-level
-  differences this table has produced.
+  rather than quietly fixed.
 - **The kernel adapters.** A thread, a queue, a timer and three lamps per kernel,
   none of which is allowed to make a decision. `docs/RTOS_VARIANTS.md` will carry
   the mapping and name every place the design had to change rather than be
