@@ -454,14 +454,12 @@ impl Spool {
         self.discarded = 0;
         self.offered = 0;
 
-        let mut want = bytes as usize / EVENT_BYTES;
-        if want > SPOOL_SLOTS {
-            want = SPOOL_SLOTS;
-        }
-        if want == 0 {
-            want = 1;
-        }
-        self.cap = want;
+        // Clamped rather than branched. clippy's manual_clamp catches the two-if form that
+        // the C and the C++ both use, and it is right: one expression says the bound is a
+        // range, where two ifs say it twice and leave a reader to work out that they
+        // compose. The lower bound is the one that matters, because a spool of no events
+        // would discard everything in silence.
+        self.cap = (bytes as usize / EVENT_BYTES).clamp(1, SPOOL_SLOTS);
     }
 
     /// Always accepts, discarding the oldest when full, because the newest event is the one
