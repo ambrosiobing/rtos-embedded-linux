@@ -34,7 +34,8 @@ code, which is the chapter's first requirement.
 | [rust/presence_core.rs](rust/presence_core.rs) | the same 28 rows, `no_std`, no `unsafe`, one source compiled under three editions |
 | [rust/tests_core.rs](rust/tests_core.rs) | the same cases, plus the exhaustive `match` held against the table over 96 combinations |
 | `rust/e2018`, `rust/e2021`, `rust/e2024` | three crates differing only in their edition line |
-| the kernel adapters | not started |
+| [docs/RTOS_VARIANTS.md](docs/RTOS_VARIANTS.md) | the contract between the table and a kernel, the mapping for Zephyr, FreeRTOS and QNX, and the argument for a twenty-ninth row |
+| the kernel adapters themselves | not written. The design page above comes first, which is this chapter's own rule |
 
 ## What the table is, and why it is the specification
 
@@ -96,8 +97,18 @@ In WSL on the demo laptop, the same thing by hand:
   on edition grounds, and all five are recorded in
   [docs/LANGUAGE_IDIOMS.md](docs/LANGUAGE_IDIOMS.md#what-the-compiler-rejected-in-wsl-on-monday-5-october-2026)
   rather than quietly fixed.
+- **A twenty-ninth row.** Row 17, the only release, is unguarded, and
+  [docs/RTOS_VARIANTS.md](docs/RTOS_VARIANTS.md#the-defect-requirement-1-was-hiding)
+  shows that this is safe only while events are dispatched in the order they were
+  posted. QNX delivers pulses on a channel in priority order, where a stale hold
+  expiry can arrive after a newer hold has started and release it early, which
+  loses a presence as surely as never releasing does. The fix is a guard in the
+  table rather than a rule in an adapter, and it touches all three languages, both
+  cross-checks and the memory figures. The argument is written; the row is not.
 - **The kernel adapters.** A thread, a queue, a timer and three lamps per kernel,
-  none of which is allowed to make a decision. `docs/RTOS_VARIANTS.md` will carry
-  the mapping and name every place the design had to change rather than be
-  renamed.
+  none of which is allowed to make a decision. The mapping and the three
+  requirements an adapter has to satisfy are in
+  [docs/RTOS_VARIANTS.md](docs/RTOS_VARIANTS.md). FreeRTOS and Zephyr can both run
+  theirs on a host and in CI; QNX cannot be built on this bench at all, and that
+  adapter will say so in its own header.
 - **Anything on hardware.** No board has run this.
