@@ -22,5 +22,6 @@ One process by which a unit of either kind acquires an identity, renews it befor
 
 ## Figures
 
-The chapter's five figures are in [docs/figures](docs/figures), each as
-the rendered SVG and the TikZ source that draws it.
+The chapter's five figures are in [docs/figures](docs/figures), as rendered
+SVG. The LaTeX that draws them stays on the authoring machine: this repository
+publishes no `.tex`, and `checks.yml` fails if one is ever committed.

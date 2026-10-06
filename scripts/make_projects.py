@@ -111,8 +111,9 @@ def main() -> int:
             "",
             "## Figures",
             "",
-            "The chapter's five figures are in [docs/figures](docs/figures), each as",
-            "the rendered SVG and the TikZ source that draws it.",
+            "The chapter's five figures are in [docs/figures](docs/figures), as rendered",
+            "SVG. The LaTeX that draws them stays on the authoring machine: this repository",
+            "publishes no `.tex`, and `checks.yml` fails if one is ever committed.",
         ]
         readme.write_text("\n".join(lines) + "\n", encoding="utf-8")
         made.append(slug)
