@@ -69,13 +69,18 @@ void presence_freertos_assert(const char *file, unsigned long line)
 static StaticTask_t idle_control;
 static StackType_t idle_stack[configMINIMAL_STACK_SIZE];
 
+/* The third parameter is configSTACK_DEPTH_TYPE and not uint32_t. It defaults to
+ * StackType_t, which is an unsigned long on this host and so a different width, and
+ * the first build said so: "conflicting types, have void(..., uint32_t *), previous
+ * declaration void(..., StackType_t *)". Written as the kernel spells it, so that a
+ * port where StackType_t is 16 bits does not quietly disagree. */
 void vApplicationGetIdleTaskMemory(StaticTask_t **ppxTaskTCB,
                                    StackType_t **ppxTaskStack,
-                                   uint32_t *pulTaskStackSize)
+                                   configSTACK_DEPTH_TYPE *puxTaskStackSize)
 {
     *ppxTaskTCB = &idle_control;
     *ppxTaskStack = idle_stack;
-    *pulTaskStackSize = (uint32_t)configMINIMAL_STACK_SIZE;
+    *puxTaskStackSize = (configSTACK_DEPTH_TYPE)configMINIMAL_STACK_SIZE;
 }
 
 static StaticTask_t timer_control;
@@ -83,11 +88,11 @@ static StackType_t timer_stack[configTIMER_TASK_STACK_DEPTH];
 
 void vApplicationGetTimerTaskMemory(StaticTask_t **ppxTimerTCB,
                                     StackType_t **ppxTimerStack,
-                                    uint32_t *pulTimerStackSize)
+                                    configSTACK_DEPTH_TYPE *puxTimerStackSize)
 {
     *ppxTimerTCB = &timer_control;
     *ppxTimerStack = timer_stack;
-    *pulTimerStackSize = (uint32_t)configTIMER_TASK_STACK_DEPTH;
+    *puxTimerStackSize = (configSTACK_DEPTH_TYPE)configTIMER_TASK_STACK_DEPTH;
 }
 
 /* ------------------------------------------------------------------- the trace */
@@ -128,15 +133,6 @@ static void post_reading(uint16_t mm)
     ev.kind = PRESENCE_EV_READING;
     ev.u.range_mm = mm;
     CHECK(presence_adapter_post(&ev), "a reading was refused by the queue");
-}
-
-static void post_plain(presence_event_kind_t k)
-{
-    presence_event_t ev;
-
-    memset(&ev, 0, sizeof(ev));
-    ev.kind = k;
-    CHECK(presence_adapter_post(&ev), "an event was refused by the queue");
 }
 
 static void post_settings(uint16_t runs, uint32_t hold_ms, uint16_t max_mm)

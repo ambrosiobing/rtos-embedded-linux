@@ -59,8 +59,11 @@ ADAPTER_CFLAGS := -std=gnu11 -D_GNU_SOURCE -O2 -g $(WALL) $(INCLUDES)
 # The table, at strict C11 and nothing else, which is the claim.
 TABLE_CFLAGS := -std=c11 -O2 -g $(WALL) $(INCLUDES)
 
-# The kernel and the port. POSIX visible, and not held to this project's warnings.
-KERNEL_CFLAGS := -std=gnu11 -D_GNU_SOURCE -O2 -g $(INCLUDES)
+# The kernel and the port. POSIX visible through gnu11 alone, and not held to this
+# project's warnings. _GNU_SOURCE is deliberately NOT passed here: port.c defines
+# __USE_GNU itself, and passing both made the first build warn that it was redefined.
+# The adapter does not define it, so it still gets the macro.
+KERNEL_CFLAGS := -std=gnu11 -O2 -g $(INCLUDES)
 
 LDFLAGS := -pthread
 
