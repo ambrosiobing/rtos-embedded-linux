@@ -13,7 +13,7 @@ code**, which is chapter 02's first requirement and the reason the git history i
 evidence for it rather than this sentence.
 
 The written design is [chapter 02](../../chapters/02-the-claim.md), which is complete.
-What is absent is the other two languages, the cross-check and the kernels.
+What is absent is Rust, the cross-check and the kernels.
 
 | | |
 |---|---|
@@ -56,7 +56,7 @@ be booked must not report itself free**.
 | [cpp/test_claim.cpp](cpp/test_claim.cpp) | the same twenty-two cases and the same seven criteria, plus two more tests and the feature report |
 | [docs/LANGUAGE_IDIOMS.md](docs/LANGUAGE_IDIOMS.md) | what each version changed for a cascade, filled from the compiler's own report |
 | [docs/figures](docs/figures) | the chapter's five figures, as rendered SVG |
-| the version-specific C++ headers, Rust, the cross-check, the kernels | **not written** |
+| Rust, the cross-check, the adapter and the kernels | **not written** |
 
 ## What the C++ proves at compile time that the C asserts at run time
 
