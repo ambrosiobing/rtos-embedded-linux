@@ -7,11 +7,12 @@ later two prove the guard order and the row count at compile time rather than by
 test; Rust under all three editions, 33 tests; and **both the FreeRTOS and the Zephyr
 adapters**, where the same rows are taken through a real queue, a real dispatch thread
 and a release produced by a real kernel timer, from one shared test that contains no
-kernel header, and both now have a CI job. The three red CI runs before that came from a
-string literal a scripted edit split, which `f59bd18` fixed; CI has not reported since.
-**Nothing has run on a board, and nothing is compiled on the laptop this was written
-on**, which runs no compiler for it: the toolchains are in CI and in WSL on the demo
-laptop.
+kernel header. **All six jobs in `code.yml` are green**, the two adapters among them,
+and so is `checks.yml`: ten green runs on Tuesday 6 October 2026, ending at `7a5d8c3`.
+The three red runs before them came from a string literal a scripted edit split, which
+`f59bd18` fixed. **Nothing has run on a board, and nothing is compiled on the laptop
+this was written on**, which runs no compiler for it: the toolchains are in CI and in
+WSL on the demo laptop.
 
 The written design is [chapter 01](../../chapters/01-presence.md). The design page
 for the code is [docs/DESIGN.md](docs/DESIGN.md), and it was written before the
@@ -122,16 +123,19 @@ In WSL on the demo laptop, the same thing by hand:
 
 ## What is not here yet
 
-- **A green CI run.** Everything above passes locally; CI's last three runs are red
-  from a cause fixed in `f59bd18` and the run after it has not reported. Six
-  refusals have come before this point and all six are recorded in
-  [docs/LANGUAGE_IDIOMS.md](docs/LANGUAGE_IDIOMS.md#what-the-compiler-rejected-in-wsl-on-monday-5-october-2026)
-  rather than quietly fixed.
-- **The bare-metal link.** Whether the library is really `no_std` is shown by none
-  of the above, because the test configuration pulls in std for the harness. Only
-  CI checks it, by building the library alone for `thumbv7em-none-eabihf`.
 - **Anything at all from QNX.** [qnx/](qnx/) is written and no compiler will ever
   see it here, which its own page says in its first line. The mapping and the three
   requirements any adapter must satisfy are in
   [docs/RTOS_VARIANTS.md](docs/RTOS_VARIANTS.md).
-- **Anything on hardware.** No board has run this.
+- **Anything on hardware.** No board has run this, and that is the only one of these
+  four that a second evening of work cannot change.
+
+Two things that were on this list are now off it, which is worth recording rather than
+quietly deleting. **The bare-metal link is proven:** whether the library is really
+`no_std` is shown by none of the local tests, because the test configuration pulls in
+std for the harness, so the `rust` job builds the library alone for
+`thumbv7em-none-eabihf` and that job is green. **And CI is green**, which it had not
+been when the sentence above was written. Six compiler refusals came before this point
+and all six are recorded in
+[docs/LANGUAGE_IDIOMS.md](docs/LANGUAGE_IDIOMS.md#what-the-compiler-rejected-in-wsl-on-monday-5-october-2026)
+rather than quietly fixed.

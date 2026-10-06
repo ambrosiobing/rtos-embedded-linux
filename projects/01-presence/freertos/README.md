@@ -1,6 +1,6 @@
 # The presence table under FreeRTOS
 
-**Status: green in WSL on the demo laptop on Tuesday 6 October 2026.** It builds,
+**Status: green in WSL on the demo laptop and green in CI, Tuesday 6 October 2026.** It builds,
 it links, no allocator is in the binary, and all four phases pass. The table that the
 C, the C++ and the Rust suites exercise by calling `presence_dispatch` directly now
 runs with a real queue, a real dispatch task and a real software timer, and takes the

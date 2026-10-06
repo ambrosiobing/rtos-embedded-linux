@@ -1,7 +1,7 @@
 # The presence table under Zephyr
 
-**Status: green on `native_sim` in WSL on the demo laptop, Tuesday 6 October 2026. A CI
-job is written and has not reported yet.** Three of the four phases passed on the first run; the
+**Status: green on `native_sim` in WSL on the demo laptop and green in CI, Tuesday 6
+October 2026.** Three of the four phases passed on the first run; the
 fourth found a difference between the two kernels rather than a defect, and after the
 correction both kernels pass the same file:
 
@@ -143,7 +143,14 @@ upstream's rather than this project's.
 
 The gate is the printed line, not only the exit status. The executable returns the
 failure count, but a simulation that never reached the phases at all would also exit 0,
-so CI greps for `PASSED: 0 failure(s)` as well.
+so CI greps for `PASSED: 0 failure(s)` as well. That matters more here than it looks,
+because the run is piped through `tee` to keep the log, and a pipeline reports the exit
+status of its last command rather than of the program.
+
+**It was green on its first run**, which is not something to boast about so much as to
+record, since the job had been exercised nowhere before: `a7b6d55` took 4 minutes 36
+seconds with nothing cached, and `7a5d8c3` took 2 minutes 12 seconds on a cache hit, so
+the tree fetch is roughly half of it and the cache key does what it was meant to.
 
 ## What will not be known even when it is green
 
