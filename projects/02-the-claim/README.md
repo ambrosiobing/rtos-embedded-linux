@@ -51,7 +51,10 @@ be booked must not report itself free**.
 | [c/claim.c](c/claim.c) | the eight arms as one pure function, and a ring bounded in bytes |
 | [c/test_claim.c](c/test_claim.c) | the twenty-two cases as a table, and chapter 02's seven criteria as seven named tests |
 | [cpp/claim.hpp](cpp/claim.hpp) | the same eight arms as a `constexpr` array, the C++17 baseline, compiling unchanged under all three standards |
-| [cpp/test_claim.cpp](cpp/test_claim.cpp) | the same twenty-two cases and the same seven criteria, plus three `static_assert`s |
+| [cpp/claim23.hpp](cpp/claim23.hpp) | the six invariants proved over all 224 inputs, and `std::expected` for settings that are refused rather than corrected |
+| [cpp/claim26.hpp](cpp/claim26.hpp) | `std::inplace_vector` as a bounded batch, and the same spool written the wrong way on purpose so the cost can be compared |
+| [cpp/test_claim.cpp](cpp/test_claim.cpp) | the same twenty-two cases and the same seven criteria, plus two more tests and the feature report |
+| [docs/LANGUAGE_IDIOMS.md](docs/LANGUAGE_IDIOMS.md) | what each version changed for a cascade, filled from the compiler's own report |
 | [docs/figures](docs/figures) | the chapter's five figures, as rendered SVG |
 | the version-specific C++ headers, Rust, the cross-check, the kernels | **not written** |
 
@@ -84,6 +87,28 @@ chapter's seventh criterion: retained plus discarded equals offered, and the **o
 went first, which a ring discarding the newest would also satisfy on the counts alone
 while keeping a record of a room that has moved on.
 
+## What the C++ found that the C could not
+
+Three things, each checked by the compiler making the claim rather than asserted on a page.
+The full account is in [docs/LANGUAGE_IDIOMS.md](docs/LANGUAGE_IDIOMS.md).
+
+**The invariants are proved over all 224 inputs, not the 22 cases.** Five booleans and
+seven service states is the entire input space, and a constant evaluator walks it before
+the program runs. A sampled invariant can hold at every point tested and fail where nobody
+wrote a case; an exhausted one cannot. Every one of the eight arms is also proved reachable,
+so an arm cannot become dead code in the shape of a policy.
+
+**That proof did not need C++23**, which the commit adding it predicted and the log
+confirmed: the C++17 column reports `consteval: no` and prints the proof anyway, because
+calling through a function pointer in a constant expression has been legal since C++11.
+What the later standard adds is that a proof cannot be called at run time and become a cost.
+
+**`std::inplace_vector` is absent from both libraries and would be wrong here anyway.**
+Discarding the oldest is one index step in a ring and `erase(begin())` in a vector, which
+shifts all 512 survivors: roughly 450,000 element moves against 880 at this project's own
+discard count. Both forms are written and the test requires identical retained contents, so
+it is a comparison rather than an opinion.
+
 ## What is planned, in the order P01 established
 
 That order is not a preference. It is what made P01's claims checkable, and each step
@@ -92,13 +117,12 @@ exists to catch something the step before it cannot.
 1. ~~The C cascade and its host test.~~ **Done and green.** The invariants are checked
    after every case rather than at the end, because a broken invariant can be transient
    and still wrong.
-2. **The C++ baseline: done and green** under C++17, C++23 and C++2c, with g++ and
-   clang++, from one unchanged source. **Still to write are the version-specific
-   headers**, `claim23.hpp` and `claim26.hpp`, carrying what each later standard actually
-   adds for this shape: `std::expected` for the fallible paths, `std::inplace_vector` for
-   the spool, which is a bounded ring and so the clearest use of it in either project, and
-   a feature report saying which additions the compiler in front of it provided. P01's
-   `presence23.hpp` and `presence26.hpp` are the pattern.
+2. ~~The same cascade in C++17, C++23 and C++2c.~~ **Done and green**, six combinations,
+   with the version-specific headers and a feature report. Three findings came out of it
+   and all three are in [docs/LANGUAGE_IDIOMS.md](docs/LANGUAGE_IDIOMS.md): the
+   whole-input-space proof did not need C++23, `std::inplace_vector` is in neither library
+   yet and would be the wrong container anyway, and a feature macro reports the
+   implementation rather than the standard.
 3. **The same cascade in Rust**, `no_std`, under editions 2018, 2021 and 2024 from one
    source.
 4. **A cross-check script** comparing the three cascades arm for arm, so that "the same
