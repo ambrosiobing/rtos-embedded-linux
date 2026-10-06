@@ -61,6 +61,7 @@ chapter-*.html
 # one source should resolve to one dependency set, and a lock file is how that is
 # checked rather than hoped.
 projects/01-presence/rust/target/
+projects/02-the-claim/rust/target/
 
 # Local virtual environments and editor state
 .venv/

@@ -1,0 +1,15 @@
+# The only difference between this crate and its two siblings is the edition below. All
+# three include the same ../claim_core.rs and the same ../tests_core.rs, so "the cascade
+# compiles and passes under three editions" is a build result rather than a claim, and an
+# edition that needed its own source would surface as a build failure instead of as a
+# footnote.
+[package]
+name = "claim-e2018"
+version = "0.1.0"
+edition = "2018"
+publish = false
+
+[lints.rust]
+# A warning here is a failure. The crate claims no_std, no unsafe and no allocation on the
+# node, and a warning is how each of those quietly stops being true.
+warnings = "deny"
