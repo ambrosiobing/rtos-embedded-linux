@@ -170,10 +170,50 @@ The chapter's contribution is that these are settings keys rather than constants
 so changing one does not mean editing the control flow. P07 owns the versioned
 schema; here they are read once at start.
 
+## What the design costs in memory, and where chapter 01 is stale
+
+Four figures in chapter 01's memory budget were written against a twelve-row table
+with no timestamp on an event and no settings event, and the table in this
+repository has twenty-eight rows, an `at_ms` on every event and six settings rows.
+Three of the four describe themselves as exact. They are corrected here rather than
+in the chapter, because `chapters/` is generated from the volume's LaTeX on the
+authoring machine and nothing else writes it; the chapter's own source needs the
+same edit and has not had it yet.
+
+| Quantity | Chapter 01 says | What the code is |
+|---|---|---|
+| One event | 4 B | **20 B**: a four-byte kind, a four-byte `at_ms`, and a twelve-byte union whose larger arm is the settings |
+| The event queue, 16 deep | 64 B, "by construction" | **320 B** |
+| The per-row counters | 12 rows of 4 B, 48 B, "by construction" | **28 rows, 112 B** |
+| The context | 64 B, "by construction" | **40 B without the counters, 152 B with them** |
+| Rows covered by the test | "all twelve" | all twenty-eight |
+
+Everything mutable this project owns is therefore 472 bytes rather than the 176 the
+chapter implies. On a part with 1.4 MB of SRAM nothing is at risk, and the reason to
+correct it is not the margin: three of those rows claim to be exact, and a number
+that claims to be exact and is wrong by a factor of five is worse than a number
+marked "not measured".
+
+**These are facts of the build now, not arithmetic on this page.** `presence.c`
+pins the settings, the event and the context with `_Static_assert`, so adding a
+field to any of them fails the build and the budget gets revisited on purpose. The
+host test prints all of them, derived from `PRESENCE_ROW_COUNT` and
+`PRESENCE_QUEUE_DEPTH` so they cannot drift, and the C++ and Rust suites print
+their own, because a checked payload is not free: `std::variant` adds a
+discriminant where the C has a bare union, and so does `Option<Settings>`. What
+that costs is in the CI log rather than in a sentence here.
+
+One figure deliberately stays unmeasured. The table's size in flash cannot be had
+from a host run, because a row is mostly pointers and the host's are twice the
+width. The test prints the host's number labelled as the host's, and the budget's
+flash row stays "not measured" until a map file from the board says otherwise.
+
 ## What this design does not decide
 
 - **The queue depth.** Sixteen, from the chapter's data-flow figure, and whether
-  that is enough is a question for a loaded run rather than for this page.
+  that is enough is a question for a loaded run rather than for this page. It is
+  `PRESENCE_QUEUE_DEPTH` in the header, so each kernel adapter sizes its queue
+  from one place and the budget above is one multiplication.
 - **Anything about timing.** This project's acceptance criterion is a test
   result, not a measurement, which is unusual in this volume and deliberate.
 - **Which language version or kernel is better.** The variants exist to be

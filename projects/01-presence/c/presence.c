@@ -236,9 +236,33 @@ static const presence_row_t TABLE[] = {
 _Static_assert(sizeof(TABLE) / sizeof(TABLE[0]) == PRESENCE_ROW_COUNT,
                "PRESENCE_ROW_COUNT disagrees with the table");
 
+/* The three sizes chapter 01's memory budget quotes, pinned here so that they are
+ * compile-time facts rather than arithmetic in a table nobody re-does. A field
+ * added to any of these structures fails this build, which is the intent: the
+ * budget is then revisited deliberately instead of going quietly stale, which is
+ * exactly what happened to it once already.
+ *
+ * These hold on the host and on the part. arm-none-eabi-gcc defaults to
+ * -fshort-enums because AAPCS requires it, so `kind` and `state` are one byte on
+ * the board and four on the host; in both structures the padding before the next
+ * uint32_t absorbs the difference and the totals do not move. That is worth
+ * asserting rather than assuming, because it is luck rather than design. */
+_Static_assert(sizeof(presence_settings_t) == 12u,
+               "the settings are no longer 12 bytes; revisit the memory budget");
+_Static_assert(sizeof(presence_event_t) == 20u,
+               "an event is no longer 20 bytes; every kernel queue is sized from "
+               "this and the budget in the chapter quotes it");
+_Static_assert(sizeof(presence_t) == 152u,
+               "the context is no longer 152 bytes; revisit the memory budget");
+
 size_t presence_row_count(void)
 {
     return sizeof(TABLE) / sizeof(TABLE[0]);
+}
+
+size_t presence_table_bytes(void)
+{
+    return sizeof(TABLE);
 }
 
 /* -------------------------------------------------------------- dispatcher */

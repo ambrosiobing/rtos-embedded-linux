@@ -339,6 +339,31 @@ int main(void)
         printf("  all %u rows taken\n", (unsigned)PRESENCE_ROW_COUNT);
     }
 
+    /* The numbers chapter 01's memory budget quotes, printed rather than asserted
+     * in prose. presence.c pins the three sizes with _Static_assert, so a field
+     * added anywhere fails the build; this block is what a reader checks the
+     * chapter's table against, and it is derived from PRESENCE_ROW_COUNT and
+     * PRESENCE_QUEUE_DEPTH so it cannot drift from either. */
+    printf("\nmemory report, the numbers the budget quotes\n");
+    printf("  settings                              %3zu B\n",
+           sizeof(presence_settings_t));
+    printf("  one event                             %3zu B\n",
+           sizeof(presence_event_t));
+    printf("  context, per-row counters included    %3zu B\n", sizeof(presence_t));
+    printf("    of which the %2u per-row counters    %3zu B\n",
+           (unsigned)PRESENCE_ROW_COUNT, sizeof(p.row_taken));
+    printf("  the event queue, %2u deep              %3zu B\n",
+           (unsigned)PRESENCE_QUEUE_DEPTH,
+           (size_t)PRESENCE_QUEUE_DEPTH * sizeof(presence_event_t));
+    printf("  everything mutable this project owns  %3zu B\n",
+           sizeof(presence_t)
+               + (size_t)PRESENCE_QUEUE_DEPTH * sizeof(presence_event_t));
+    /* Not comparable with the chapter's flash figure, and labelled so. A row is
+     * mostly pointers, so this host number is close to twice the board's. The
+     * flash row of the budget stays unmeasured until a map file says otherwise. */
+    printf("  the table, const, as this host lays it out %zu B\n",
+           presence_table_bytes());
+
     printf("\n%s: %d failure(s)\n", failures ? "FAILED" : "PASSED", failures);
     return failures ? 1 : 0;
 }

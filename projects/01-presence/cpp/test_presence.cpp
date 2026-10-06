@@ -218,6 +218,17 @@ int main() {
     std::printf("  = delete(\"reason\")                     %s\n", f.delete_with_reason ? "available" : "NOT available");
     std::printf("  pack indexing                          %s (no use in this table)\n", f.pack_indexing ? "available" : "NOT available");
 
+    // What the safer payload costs, as a number rather than as a sentence. The C
+    // event is a union of the same two payloads and is pinned at 20 bytes by a
+    // _Static_assert; std::variant adds a discriminant and whatever alignment it
+    // needs. Printed for all three standards, because a later standard changing
+    // the layout would be worth knowing and is not something to assume either way.
+    std::printf("\nsize report, the cost of the payload being checked\n");
+    std::printf("  Settings                               %zu B\n", sizeof(Settings));
+    std::printf("  Reading                                %zu B\n", sizeof(Reading));
+    std::printf("  Ev, payload as std::variant            %zu B (the C union is 20)\n", sizeof(Ev));
+    std::printf("  Context                                %zu B (the C is 152)\n", sizeof(Context));
+
     std::printf("\n%s: %d failure(s)\n", failures ? "FAILED" : "PASSED", failures);
     return failures ? 1 : 0;
 }

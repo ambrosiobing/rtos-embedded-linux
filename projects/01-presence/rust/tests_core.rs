@@ -306,3 +306,36 @@ fn the_guard_discriminant_needs_no_parallel_bool() {
         .collect();
     assert_eq!(guarded, vec![0, 1, 2, 8, 9, 15, 16], "the guarded rows");
 }
+
+#[test]
+fn the_guard_option_costs_nothing_and_the_sizes_are_printed() {
+    // The design's central claim about the guard, checked rather than asserted in
+    // prose: a function pointer cannot be null, so `Option<fn>` occupies that niche
+    // and is exactly the size of the bare pointer. The C spends a `bool guarded`
+    // beside its pointer because gcc 13 would not compare the pointer in a constant
+    // expression. This is the line that says the Rust pays nothing for the same
+    // fact, and it would fail if that niche ever stopped being used.
+    type G = fn(&Presence, &Ev) -> bool;
+    assert_eq!(
+        core::mem::size_of::<Option<G>>(),
+        core::mem::size_of::<G>(),
+        "Option<fn> must cost nothing beyond the pointer itself"
+    );
+
+    // Printed, not asserted, because a layout is not a thing to assume stays put.
+    // The C pins its event at 20 bytes and its context at 152 with `_Static_assert`;
+    // `Option<Settings>` carries a discriminant where the C carries a bare union,
+    // and `Option<u8>` does the same where the C spends an `int16_t` and the value
+    // minus one. What that costs is a number. `--nocapture` puts it in the log, and
+    // it is printed under each edition in case one ever lays these out differently.
+    let settings = core::mem::size_of::<Settings>();
+    let ev = core::mem::size_of::<Ev>();
+    let ctx = core::mem::size_of::<Presence>();
+    let row = core::mem::size_of::<Row>();
+    println!();
+    println!("size report, edition {}", super::EDITION);
+    println!("  Settings            {settings:3} B");
+    println!("  Ev                  {ev:3} B, C union 20");
+    println!("  Presence            {ctx:3} B, C 152");
+    println!("  Row                 {row:3} B, mostly pointers");
+}

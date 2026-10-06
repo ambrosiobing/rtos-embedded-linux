@@ -90,6 +90,13 @@ typedef struct {
  * presence.c, so this constant cannot drift from it. */
 #define PRESENCE_ROW_COUNT 28u
 
+/* How deep the event queue is. The core never touches a queue: this lives here
+ * because every kernel adapter sizes its own queue from it, and because the
+ * memory budget is then one multiplication rather than a number repeated in four
+ * places. Sixteen is chapter 01's figure and is not a measurement: no board has
+ * yet reported a high-water mark. */
+#define PRESENCE_QUEUE_DEPTH 16u
+
 typedef struct {
     presence_state_t state;
     presence_settings_t settings;
@@ -142,5 +149,11 @@ const char *presence_event_name(presence_event_kind_t k);
 /* How many rows the table actually has, so a test can compare it against
  * PRESENCE_ROW_COUNT rather than trusting the macro. */
 size_t presence_row_count(void);
+
+/* How many bytes the table occupies. The row type is private to presence.c, so
+ * this is the only way a caller can report the figure the memory budget wants for
+ * flash. Read it with care: a row is mostly pointers, so the host figure is close
+ * to twice the board's and is not a substitute for the map file. */
+size_t presence_table_bytes(void);
 
 #endif /* PRESENCE_H */
