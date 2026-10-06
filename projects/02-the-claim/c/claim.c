@@ -56,6 +56,55 @@ bool claim_service_blocks(claim_service_t svc)
     }
 }
 
+/* ------------------------------------------------------- the arms, each one named */
+
+/* Each guard is a named predicate rather than a condition written inline. That costs a
+ * line apiece and buys the one thing a three-language comparison needs: the C, the C++
+ * and the Rust carry the SAME guard names in the SAME order, so a script can compare the
+ * cascades arm for arm instead of trusting that the same policy was written three times.
+ * P01's table does it this way and its cross-check compares guards by name; an inline
+ * condition is readable and is not comparable, because the three languages spell the
+ * same test differently.
+ *
+ * The names are deliberately about the SITUATION and not about the outcome:
+ * booked_and_waiting says what is true of the room, not that the answer is GRACE. An
+ * arm whose guard is named after its own code cannot be checked against anything. */
+
+static bool not_activated(const claim_inputs_t *in)
+{
+    return !in->activated;
+}
+
+static bool service_blocks(const claim_inputs_t *in)
+{
+    return claim_service_blocks(in->service);
+}
+
+static bool booked_and_present(const claim_inputs_t *in)
+{
+    return in->window_open && in->present;
+}
+
+static bool booked_and_waiting(const claim_inputs_t *in)
+{
+    return in->window_open && !in->present && !in->past_grace;
+}
+
+static bool booked_and_nobody_came(const claim_inputs_t *in)
+{
+    return in->window_open && !in->present && in->past_grace;
+}
+
+static bool unbooked_and_present(const claim_inputs_t *in)
+{
+    return !in->window_open && in->present;
+}
+
+static bool press_pending(const claim_inputs_t *in)
+{
+    return in->long_press_pending;
+}
+
 /* -------------------------------------------------------------------- the cascade */
 
 #define ARM(n, code_) ((claim_decision_t){ (code_), (uint8_t)(n) })
@@ -64,36 +113,36 @@ claim_decision_t claim_decide(const claim_inputs_t *in)
 {
     /* 1. Not commissioned. Above everything, including the service axis: an
      *    uncommissioned unit does not answer at all, which is what the flag is for. */
-    if (!in->activated) {
+    if (not_activated(in)) {
         return ARM(1, CLAIM_INVISIBLE);
     }
 
     /* 2. The service axis blocks. Above the booking arms, or a room with no power would
      *    report itself booked. */
-    if (claim_service_blocks(in->service)) {
+    if (service_blocks(in)) {
         return ARM(2, CLAIM_REJECTED);
     }
 
     /* 3. A live booking with its holder present. ABOVE WALK-IN, which is the rule this
      *    chapter is named for: a live booking beats a walk-in. */
-    if (in->window_open && in->present) {
+    if (booked_and_present(in)) {
         return ARM(3, CLAIM_BOOKED);
     }
 
     /* 4. Booked, nobody here yet, still inside the grace period. Above the no-show arm,
      *    or every booking would release immediately, because past-grace is false before
      *    grace is. This arm never emits; see claim_emits. */
-    if (in->window_open && !in->present && !in->past_grace) {
+    if (booked_and_waiting(in)) {
         return ARM(4, CLAIM_GRACE);
     }
 
     /* 5. The grace period ran out with nobody present. */
-    if (in->window_open && !in->present && in->past_grace) {
+    if (booked_and_nobody_came(in)) {
         return ARM(5, CLAIM_NO_SHOW);
     }
 
     /* 6. No booking, somebody is here, and they have taken the room. */
-    if (!in->window_open && in->present) {
+    if (unbooked_and_present(in)) {
         return ARM(6, CLAIM_WALKIN);
     }
 
@@ -102,7 +151,7 @@ claim_decision_t claim_decide(const claim_inputs_t *in)
      *    somebody who pressed the button on the way out. A press while they are still in
      *    the room needs no claim of its own, because arm 3 or arm 6 already describes
      *    the room correctly. */
-    if (in->long_press_pending) {
+    if (press_pending(in)) {
         return ARM(7, CLAIM_BRB);
     }
 
