@@ -1,7 +1,7 @@
 # P03. One sensor, two buses, zero code changes
 
-Status on Tuesday 6 October 2026: **both criteria that need no hardware are settled, and
-nothing has run on the board.** Two cross builds for `nucleo_h7a3zi_q`, made in WSL on the
+Status on Wednesday 7 October 2026: **both criteria that need no hardware are settled, and the
+two-wire half of criterion 2 has now been measured on the board.** Two cross builds for `nucleo_h7a3zi_q`, made in WSL on the
 demo laptop with the Zephyr SDK installed the same day, compile the same application for a
 two-wire bus and a four-wire bus and produce **identical instructions**. A third build, of a
 description that cannot be true, is refused.
@@ -100,9 +100,16 @@ being made on the application object alone.
 
 ## What is not here
 
-**Nothing has run on hardware.** Criteria 2, 3, 5 and 6 need the board, the breakout and
-jumper leads, and the second device criterion 6 wants is not wired. The two criteria that
-could be settled without any of that have been.
+**The four-wire build has never been wired.** Criterion 2 asks that both builds read the same
+at rest; the two-wire build now reads 9.88, 9.83 and 9.97 metres per second squared against a
+true 9.8066, and the four-wire build has not been connected, so the comparison the criterion
+exists to make has not been made. Criteria 3, 5 and 6 still need the board, and the second
+device criterion 6 wants is not wired.
+
+**The measurement was taken with the module held by hand.** Its eight-pin header is not
+fitted, so all six connections are friction contacts in bare holes, and one run in roughly
+fifteen held them closed for the two seconds the application needs.
+[docs/BENCH.md](docs/BENCH.md) records both the figure and how it was obtained.
 
 **No measurement.** Every number on this page is a size or a count reported by a build. The
 chapter's timing figures stay unwritten until something is measured with an instrument that

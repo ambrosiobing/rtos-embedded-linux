@@ -148,6 +148,42 @@ it. The module was unpowered during every run, including the ones where the shie
 resistors were on the same bus, so no comparison was ever made between the two pull-up
 strengths. That question is open and belongs to the next session.
 
+## The measurement, in the small hours of Wednesday 7 October 2026
+
+One run in roughly fifteen attempts reached `10 readings taken`, with the module held down by
+hand so that its six friction contacts stayed closed for the two seconds the application
+needs. **How it was obtained is part of the result**, in the same way an instrument is named.
+
+Its first four readings, converted back to counts at `SENSOR_G / 64` per count:
+
+| Reading | x | y | z | vector, counts | vector, m/s squared |
+|---|---|---|---|---|---|
+| 1 | -30 | 20 | 48 | 60.03 | 9.20 |
+| 2 | -33 | 19 | 52 | 64.45 | **9.88** |
+| 3 | -33 | 18 | 52 | 64.16 | **9.83** |
+| 4 | -38 | 22 | 48 | 65.05 | **9.97** |
+
+One g is **64 counts** in this mode, which is 9.8066 metres per second squared. Readings 2, 3
+and 4 sit inside two per cent of that, and a single count is already 1.6 per cent of a g at
+the plus and minus eight g range. Readings 5 to 10 are the hand: line 5 is one count on every
+axis, which is a dropped read, and 6 to 8 are a real acceleration from the pressure.
+
+**That settles the two-wire half of criterion 2 and only that half.** The criterion asks that
+BOTH builds read the same at rest, and the four-wire build has never been wired, so the
+comparison it exists to make has not been made.
+
+**It also withdraws the scale problem.** The 8.35 g measured before the supply was corrected
+was the wandering supply and not a driver defect, so the hypothesis that the driver ignores
+the full resolution bit when scaling is **not** supported by anything here. The driver's
+sensitivity table, `SENSOR_G / 64` for the eight g range, is correct, and the range is eight g
+because `adi,adxl345-common.yaml` gives `range` a default of 2 and the overlay names none.
+
+One consequence worth recording for later rather than acting on now. At plus and minus eight g
+the quantisation is 15.6 mg, where this application never sees more than one g. Setting
+`range = <ADXL345_DT_RANGE_2G>` in the overlay would give four times the resolution, and it
+would also change the devicetree, so criterion 1's object comparison would have to be run
+again afterwards rather than assumed.
+
 ## One mistake worth keeping
 
 A spare jumper added for a continuity test was left in place after the test became
