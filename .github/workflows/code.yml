@@ -489,3 +489,100 @@ jobs:
       - name: The run must have said so
         run: |
           grep -q "^PASSED: 0 failure(s)$" phases.log
+
+  # P03 is the first project in this volume that CROSS COMPILES. P01's and P02's adapters
+  # build for native_sim with the host compiler, which is what made them free and is also
+  # why neither says anything about a build for the real part. This one needs the Zephyr SDK,
+  # which is about 170 MB for the minimal SDK plus the ARM toolchain and is cached.
+  #
+  # Two criteria, neither needing hardware. The first is chapter 03's headline claim.
+  p03_one_sensor:
+    runs-on: ubuntu-latest
+    name: P03, one application across two buses
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Host packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake ninja-build gperf device-tree-compiler python3-pip python3-venv
+
+      - name: A virtual environment, on PATH for every step below
+        run: |
+          python3 -m venv ~/zephyr-venv
+          ~/zephyr-venv/bin/pip install --upgrade pip west
+          echo "$HOME/zephyr-venv/bin" >> "$GITHUB_PATH"
+
+      - name: Restore the Zephyr tree if it has been fetched before
+        id: tree
+        uses: actions/cache@v4
+        with:
+          path: ~/zephyrproject
+          key: zephyr-v4.5.0-rc1-narrow-depth1
+
+      - name: The tree, at a tag, shallow
+        if: steps.tree.outputs.cache-hit != 'true'
+        run: |
+          west init -m https://github.com/zephyrproject-rtos/zephyr \
+            --mr v4.5.0-rc1 ~/zephyrproject
+          cd ~/zephyrproject
+          west update --narrow -o=--depth=1
+
+      - name: Zephyr's Python packages, then the CMake package registry
+        run: |
+          cd ~/zephyrproject
+          west packages pip --install
+          west zephyr-export
+
+      - name: Restore the SDK if it has been fetched before
+        id: sdk
+        uses: actions/cache@v4
+        with:
+          path: ~/zephyr-sdk-1.0.1
+          key: zephyr-sdk-1.0.1-arm-only
+
+      # Only the ARM toolchain, not every architecture the SDK can carry.
+      - name: The Zephyr SDK, ARM only
+        if: steps.sdk.outputs.cache-hit != 'true'
+        run: |
+          cd ~/zephyrproject
+          west sdk install -t arm-zephyr-eabi
+
+      - name: The two-wire build
+        run: |
+          cmake -B build-i2c -GNinja -DBOARD=nucleo_h7a3zi_q \
+            -DDTC_OVERLAY_FILE=overlays/i2c.overlay -S projects/03-one-sensor
+          ninja -C build-i2c
+
+      - name: The four-wire build
+        run: |
+          cmake -B build-spi -GNinja -DBOARD=nucleo_h7a3zi_q \
+            -DDTC_OVERLAY_FILE=overlays/spi.overlay -S projects/03-one-sensor
+          ninja -C build-spi
+
+      # Criterion 1, restated: the instructions must be identical and the objects may differ
+      # only in the devicetree ordinal of the device they name. The chapter asked for byte
+      # equality and the first run of these two builds refuted it; the difference was one
+      # symbol name carrying an ordinal, and the instructions were the same.
+      - name: One application, two buses, the same code
+        run: python3 scripts/check_object_identity.py build-i2c build-spi
+
+      # Criterion 4. The build FAILING is the pass, so its status is inverted here rather
+      # than read off the end of a pipeline: a pipeline reports its last command's status,
+      # which has already misled this project once.
+      - name: A description that cannot be true is refused, and names the bus
+        run: |
+          set +e
+          cmake -B build-impossible -GNinja -DBOARD=nucleo_h7a3zi_q \
+            -DDTC_OVERLAY_FILE=overlays/impossible.overlay \
+            -S projects/03-one-sensor > impossible.log 2>&1
+          status=$?
+          set -e
+          cat impossible.log
+          if [ "$status" -eq 0 ]; then
+            echo "FAIL the build accepted an overlay naming a bus this part does not have"
+            exit 1
+          fi
+          grep -q "undefined node label 'i2c5'" impossible.log
+          echo "refused, and the message names the bus"

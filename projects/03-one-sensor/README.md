@@ -1,9 +1,10 @@
 # P03. One sensor, two buses, zero code changes
 
-Status on Tuesday 6 October 2026: **the chapter's headline claim is settled, and nothing has
-run on the board.** Two cross builds for `nucleo_h7a3zi_q`, made in WSL on the demo laptop
-with the Zephyr SDK installed the same day, compile the same application for a two-wire bus
-and a four-wire bus and produce **identical instructions**.
+Status on Tuesday 6 October 2026: **both criteria that need no hardware are settled, and
+nothing has run on the board.** Two cross builds for `nucleo_h7a3zi_q`, made in WSL on the
+demo laptop with the Zephyr SDK installed the same day, compile the same application for a
+two-wire bus and a four-wire bus and produce **identical instructions**. A third build, of a
+description that cannot be true, is refused.
 
 The design page is [docs/DESIGN.md](docs/DESIGN.md) and it was committed before any code,
 which is the requirement every project here starts with.
@@ -54,6 +55,20 @@ four-wire chip select index, which is exactly the shape of the defect the criter
 to catch: an address became a wire, and an application that read the address compiled
 differently because of it.
 
+## Criterion 4: a description that cannot be true is refused
+
+An overlay naming a bus the board does not have must fail at build time with a message
+naming it. [overlays/impossible.overlay](overlays/impossible.overlay) references `&i2c5`;
+this part has `i2c1` through `i2c4`. The build says:
+
+    devicetree error: ./overlays/impossible.overlay:24 (column 1):
+        parse error: undefined node label 'i2c5'
+
+and CMake then reports that configuring is incomplete and stops. It names the bus. That is the difference between a configuration file and a checked one: a
+description merely wrong about a pin gives a board that does not work and a long afternoon
+finding out why, where a description naming a controller that does not exist does not
+survive the build at all.
+
 ## What exists
 
 | Part | State |
@@ -89,3 +104,10 @@ could be settled without any of that have been.
 **No measurement.** Every number on this page is a size or a count reported by a build. The
 chapter's timing figures stay unwritten until something is measured with an instrument that
 is named.
+
+**A note on reading a build's exit status.** The run that settled criterion 4 was piped
+through `tail`, so the shell reported the exit status of `tail` and not of `cmake`, which
+was zero and meant nothing. The evidence is the `Configuring incomplete` line. The CI job
+inverts the build's own status instead, because a pipeline's exit status is the last
+command's and that has now caught this project twice: the Zephyr phase runs are gated on a
+printed line for the same reason.
