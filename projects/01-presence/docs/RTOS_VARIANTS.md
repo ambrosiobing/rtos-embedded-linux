@@ -139,7 +139,7 @@ interesting rows.
 |---|---|---|---|
 | Queue | `k_msgq`, fixed 20 byte items, renamed | `xQueueCreate` with a 20 byte item size, renamed | **changed.** A pulse carries a four byte value. A 20 byte event does not fit one |
 | Post from a thread | `k_msgq_put` with `K_NO_WAIT` | `xQueueSendToBack` | `MsgSendPulse`, or a message |
-| Post from an interrupt | `k_msgq_put`, same call | `xQueueSendToBackFromISR` with the yield flag | an interrupt handler returns an event, or `MsgDeliverEvent` |
+| Post from an interrupt | `k_msgq_put`, the same call as from a thread | `xQueueSendToBackFromISR`, and the adapter yields on its own behalf | **changed.** `InterruptAttachEvent` delivers to a thread rather than running code in interrupt context, so there is no interrupt service routine here at all. That matters: a real one could not take the mutex the ring needs |
 | Order | first in first out | first in first out | **changed.** Priority order on the channel |
 | Hold timer | `k_timer_start` with one duration and a zero period | `xTimerCreate` one-shot, `xTimerStart` | `timer_create` with `SIGEV_PULSE`, `timer_settime` |
 | Cancel | `k_timer_stop` | `xTimerStop`, which posts a command to the timer service task | `timer_settime` with a zero value |
@@ -231,7 +231,7 @@ Three adapters, three different levels of evidence, named rather than averaged.
 |---|---|---|
 | FreeRTOS | **the adapter itself, and it runs.** Green in WSL on Tuesday 6 October 2026 and a job in `code.yml` since: the queue, the dispatch task and the software timer are real, the row sequence matches the direct-dispatch test, no allocator is linked, and a deliberately overrun queue is counted rather than dropped in silence. [`../freertos/`](../freertos/) | WSL on the demo laptop, and GitHub Actions on every push |
 | Zephyr | **the adapter is written and not yet built**, at [`../zephyr/`](../zephyr/). `native_sim` runs it and builds with the HOST compiler, so this needs a Zephyr tree and `west` but not the cross toolchain, which is a much smaller install than it first appeared. WSL on the demo laptop had neither on Tuesday 6 October 2026, and that install is the step before the first build | WSL on the demo laptop first, then GitHub Actions |
-| QNX | **nothing.** No licence, no target. Source and a review only | nowhere on this bench |
+| QNX | **nothing, and that is permanent here.** No licence, no target. The adapter is written at [`../qnx/`](../qnx/) and every call in it comes from documentation rather than a compiler, which its own page says first. Writing it is nonetheless what produced the twenty-ninth row | nowhere on this bench, ever |
 
 The firmware volume's own rule applies to the two that can run: a test that has
 never been shown to fail has not been shown to work. For these adapters that means
