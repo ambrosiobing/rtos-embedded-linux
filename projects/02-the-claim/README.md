@@ -15,7 +15,7 @@ code**, which is chapter 02's first requirement and the reason the git history i
 evidence for it rather than this sentence.
 
 The written design is [chapter 02](../../chapters/02-the-claim.md), which is complete.
-What is absent is the adapter contract and the kernels.
+All six planned steps are done. What is absent is a board.
 
 | | |
 |---|---|
@@ -61,8 +61,11 @@ be booked must not report itself free**.
 | [rust/tests_core.rs](rust/tests_core.rs) | the same twenty-two cases, eleven tests, and the whole input space as a test rather than a proof |
 | `rust/e2018`, `e2021`, `e2024` | three crates differing only in their edition line |
 | [scripts/crosscheck_cascade.py](../../scripts/crosscheck_cascade.py) | the three cascades compared arm for arm, in CI, so "the same policy" is enforced rather than repeated |
+| [adapter/](adapter/) | the contract every adapter implements, and the four phases, which include no kernel header so that one test runs against every kernel |
+| [freertos/](freertos/) | the first adapter. **Green, and a CI job**: the same decisions through a real queue, a no-show by a real timer, and a bounded record |
+| [zephyr/](zephyr/) | the second adapter, on `native_sim`. **Green on its first run**, which P01's second adapter was not, because the contract it is written against was corrected there |
 | [docs/figures](docs/figures) | the chapter's five figures, as rendered SVG |
-| the adapter contract and the kernels | **not written** |
+| a board | **nothing has run on one** |
 
 ## The three languages agree on every number
 
@@ -157,10 +160,30 @@ exists to catch something the step before it cannot.
    confirm it can fail, and all five were caught: a swapped pair of arms in the Rust, a
    wrong code in the C++, a renamed guard in the C, a `guarded` flag disagreeing with its
    own guard, and the unguarded arm moved off the end.
-5. **The adapter contract and the shared phases**, including no kernel header, so that
-   one test runs against every kernel instead of each kernel having its own.
-6. **The FreeRTOS and Zephyr adapters**, both of which now have a working local loop and
-   a CI job in P01, so neither is new ground.
+5. ~~The adapter contract and the shared phases.~~ **Done.** Four phases, no kernel
+   header, and the two things they cannot do without are a sleep and a way to outrank the
+   dispatcher, which each adapter supplies.
+6. ~~The FreeRTOS and Zephyr adapters.~~ **Both green, both with a CI job.** They agree on
+   every number except one, and that one is the finding.
+
+## The two kernels agree everywhere except where they genuinely differ
+
+| | phase 3, refused | phase 4, offered / retained / discarded |
+|---|---|---|
+| FreeRTOS | **2** | 609 / 512 / 97 |
+| Zephyr | **1** | 609 / 512 / 97 |
+
+`k_msgq_put` hands a message straight to a thread already blocked in `k_msgq_get`, so with
+the dispatcher pending the queue absorbs one more than its depth; FreeRTOS copies into the
+queue storage and then unblocks the receiver. The phase asserts that a refusal happens and is
+counted, and prints the number, which is P01's correction after it asserted two and met a
+kernel that does one.
+
+**And the second kernel earned its place twice over.** A change to the shared phases was
+once run against a FreeRTOS binary that had not been rebuilt, because the Makefile had no
+dependency on its sources. It printed a pass. The only thing that noticed was Zephyr
+building the same file from scratch and printing different numbers for the same commit. Both
+Makefiles now list their sources and their headers.
 
 ## What will not be known even when all of that is green
 

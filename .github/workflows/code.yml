@@ -412,3 +412,80 @@ jobs:
       - name: The run must have said so
         run: |
           grep -q "^PASSED: 0 failure(s)$" phases.log
+
+  # P02's cascade under the same two kernels, from the same shared phases.c. The pair is
+  # worth having for a reason that proved itself on Tuesday 6 October 2026: a stale local
+  # binary printed a pass for a change it had not been built with, and the only thing that
+  # noticed was the second kernel building the same file and printing different numbers.
+  freertos_claim:
+    runs-on: ubuntu-latest
+    name: FreeRTOS, the claim cascade on a host
+    defaults:
+      run:
+        working-directory: projects/02-the-claim/freertos
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The kernel, at the tag this claim is made against
+        run: make fetch
+
+      - name: Build, and refuse a binary containing an allocator
+        run: make
+
+      - name: The four phases
+        run: make run
+
+  zephyr_claim:
+    runs-on: ubuntu-latest
+    name: Zephyr, the claim cascade on native_sim
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Host packages, and no SDK
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake ninja-build gperf device-tree-compiler \
+            python3-pip python3-venv gcc-multilib g++-multilib
+
+      - name: A virtual environment, on PATH for every step below
+        run: |
+          python3 -m venv ~/zephyr-venv
+          ~/zephyr-venv/bin/pip install --upgrade pip west
+          echo "$HOME/zephyr-venv/bin" >> "$GITHUB_PATH"
+
+      # The same cache key as the zephyr job above: one tree, pinned to one tag, restored by
+      # whichever job runs first.
+      - name: Restore the Zephyr tree if it has been fetched before
+        id: tree
+        uses: actions/cache@v4
+        with:
+          path: ~/zephyrproject
+          key: zephyr-v4.5.0-rc1-narrow-depth1
+
+      - name: The tree, at a tag, shallow
+        if: steps.tree.outputs.cache-hit != 'true'
+        run: |
+          west init -m https://github.com/zephyrproject-rtos/zephyr \
+            --mr v4.5.0-rc1 ~/zephyrproject
+          cd ~/zephyrproject
+          west update --narrow -o=--depth=1
+
+      - name: Zephyr's Python packages, then the CMake package registry
+        run: |
+          cd ~/zephyrproject
+          west packages pip --install
+          west zephyr-export
+
+      - name: Build, from outside any west workspace
+        run: |
+          cmake -B build-claim -GNinja -DBOARD=native_sim \
+            -S projects/02-the-claim/zephyr
+          ninja -C build-claim
+
+      - name: The same four phases FreeRTOS runs
+        run: ./build-claim/zephyr/zephyr.exe | tee phases.log
+
+      - name: The run must have said so
+        run: |
+          grep -q "^PASSED: 0 failure(s)$" phases.log
