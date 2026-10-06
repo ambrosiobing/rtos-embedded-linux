@@ -63,16 +63,22 @@ be booked must not report itself free**.
 The C writes the cascade as a chain of named predicates. The C++ writes it as a
 `constexpr std::array` of `{guard, code}`. Both are the same ordered policy with the same
 seven guard names, which is what a comparison is of; the array is the form that can be
-reasoned about before the program runs, and three of the claims become `static_assert`s:
+reasoned about before the program runs, and two of the claims become `static_assert`s:
 
 - **the only unguarded arm is the last one**, or it would shadow every arm below it
-- **every arm carries a guard pointer**, with the duplicated `guarded` flag checked
-  against it, exactly as P01's `Row::guarded` is
 - **every code is produced by some arm**, so no code exists that the policy cannot reach
 
-All three hold under C++17 with nothing but `std::array`. That matters for the comparison
-this project is making: the interesting question is not what a later standard allows but
-what the earliest one already did, and the answer here is more than expected.
+Both hold under C++17 with nothing but `std::array`. That matters for the comparison this
+project is making: the interesting question is not what a later standard allows but what
+the earliest one already did, and the answer here is more than expected.
+
+**A third was attempted and had to come back out**, which is worth leaving on the page
+rather than tidying away. Checking that every arm carries a non-null guard pointer is a
+pointer comparison, and g++ refuses one in a constant expression under
+`-fsanitize=address,undefined` while accepting it at `-O2`. P01 had already recorded that,
+which is why its `Row::guarded` is a bool written beside the pointer rather than derived
+from it. So the duplicated flag is checked against its guard at **run time** here, and the
+cost of getting that wrong was three red CI runs.
 
 ## What the run prints, because the page should not be the source of a number
 
