@@ -8,7 +8,7 @@
 //
 // The last lines are a report of what this compiler actually provided, and the idioms page
 // is filled from that report rather than from a standards table. So read the log.
-#include "claim.hpp"
+#include "claim26.hpp"   // which includes claim23.hpp, which includes claim.hpp
 
 #include <cstdio>
 
@@ -415,12 +415,120 @@ void the_spool_is_bounded_and_the_loss_is_counted() {
                 static_cast<unsigned>(sp.discarded()));
 }
 
+// ------------------------------------- 8. settings that are refused rather than corrected
+
+void bad_settings_are_refused_rather_than_corrected() {
+    std::printf("8. settings that cannot work are refused, not quietly clamped\n");
+
+    claim::Settings good{};
+    CHECK(claim::settings_are_usable(good), "the defaults must be usable");
+
+    claim::Settings zero_grace = good;
+    zero_grace.grace_s = 0;
+    CHECK(!claim::settings_are_usable(zero_grace),
+          "a grace period of zero releases every booking at once and must be refused");
+
+    claim::Settings tiny_spool = good;
+    tiny_spool.spool_bytes = 4;   // smaller than one 8-byte event
+    CHECK(!claim::settings_are_usable(tiny_spool),
+          "a spool bound below one event discards everything in silence");
+
+    claim::Settings short_walkin = good;
+    short_walkin.walkin_len_s = 60;
+    short_walkin.grace_s = 300;
+    CHECK(!claim::settings_are_usable(short_walkin),
+          "a walk-in shorter than the grace period frees a room that is in use");
+
+    // The C clamps instead: claim_spool_init raises a bound of zero up to one event and
+    // says nothing. Both are defensible and only one can be commissioned.
+    claim::Spool sp;
+    sp.init(0);
+    CHECK(sp.capacity() == 1,
+          "the C++17 spool keeps the C's clamping behaviour, capacity %u",
+          static_cast<unsigned>(sp.capacity()));
+
+#if CLAIM_HAS_EXPECTED
+    const auto refused = claim::checked_settings(zero_grace);
+    CHECK(!refused.has_value(), "std::expected must carry the refusal");
+    if (!refused.has_value()) {
+        std::printf("   refused, and says why: %s\n",
+                    claim::settings_error_name(refused.error()));
+    }
+    const auto accepted = claim::checked_settings(good);
+    CHECK(accepted.has_value(), "the defaults must be accepted");
+#else
+    std::printf("   std::expected is absent, so the refusal is a bool here\n");
+#endif
+}
+
+// --------------------------- 9. the bounded vector is correct and is the wrong container
+
+void the_vector_spool_agrees_and_costs_more() {
+    std::printf("9. the same spool as a bounded vector: same answer, worse cost\n");
+
+#if CLAIM_HAS_INPLACE_VECTOR
+    claim::Spool       ring;
+    claim::VectorSpool vec;
+
+    ring.init(claim::kSpoolBytesMax);
+    vec.init(claim::kSpoolBytesMax);
+
+    const std::uint32_t offered = 1000;
+    for (std::uint32_t i = 0; i < offered; ++i) {
+        const claim::Event ev{ i, static_cast<std::uint8_t>(claim::Code::Walkin), 6, 0, 0 };
+        ring.push(ev);
+        vec.push(ev);
+    }
+
+    CHECK(ring.count() == vec.count(), "the two must retain the same number: %u and %u",
+          static_cast<unsigned>(ring.count()), static_cast<unsigned>(vec.count()));
+    CHECK(ring.discarded() == vec.discarded(), "and discard the same number: %u and %u",
+          static_cast<unsigned>(ring.discarded()),
+          static_cast<unsigned>(vec.discarded()));
+
+    bool identical = true;
+    for (std::size_t i = 0; i < ring.count(); ++i) {
+        if (ring.at(i).at_s != vec.at(i).at_s) {
+            identical = false;
+        }
+    }
+    CHECK(identical, "the retained events must be the same events in the same order");
+
+    // The cost, which is the finding. Each discard shifts every surviving event down one.
+    const unsigned long moves =
+        static_cast<unsigned long>(vec.discarded()) * static_cast<unsigned long>(vec.capacity());
+    std::printf("   identical contents; the vector form shifted about %lu events "
+                "where the ring moved %u indices\n",
+                moves, static_cast<unsigned>(vec.discarded()));
+    std::printf("   so inplace_vector is correct here and is the wrong container: "
+                "discard-oldest is O(n) in a vector and O(1) in a ring\n");
+#else
+    std::printf("   std::inplace_vector is absent from this library, so the comparison "
+                "did not run\n");
+#endif
+}
+
 void the_feature_report() {
-    std::printf("\nfeature report, __cplusplus=%ld\n",
-                static_cast<long>(__cplusplus));
-    std::printf("  the only unguarded arm is last, proved at compile time: yes\n");
-    std::printf("  every code is produced by some arm, proved at compile time: yes\n");
-    std::printf("  the event is 8 bytes, proved at compile time: yes\n");
+    const claim::Features f = claim::features();
+
+    std::printf("\nfeature report, __cplusplus=%ld\n", f.cplusplus);
+    std::printf("  std::expected for refused settings      : %s\n",
+                f.expected ? "yes" : "no");
+    std::printf("  std::to_underlying                      : %s\n",
+                f.to_underlying ? "yes" : "no");
+    std::printf("  consteval, so a proof cannot run late   : %s\n",
+                f.consteval_checks ? "yes" : "no");
+    std::printf("  std::inplace_vector                     : %s\n",
+                f.inplace_vector ? "yes" : "no");
+    std::printf("  static_assert with a computed message   : %s\n",
+                f.static_assert_message ? "yes" : "no");
+    std::printf("\nproved at compile time, not by any case above:\n");
+    std::printf("  the only unguarded arm is the last one\n");
+    std::printf("  every code is produced by some arm\n");
+    std::printf("  the event is 8 bytes, so 4096 bytes is 512 events\n");
+    std::printf("  the six invariants hold over all %u inputs, not just the 22 cases\n",
+                static_cast<unsigned>(claim::kInputSpace));
+    std::printf("  every one of the 8 arms is reachable by some input\n");
 }
 
 }  // namespace
@@ -435,6 +543,8 @@ int main() {
     an_unactivated_unit_never_shows_itself_free();
     the_room_works_with_the_radio_down();
     the_spool_is_bounded_and_the_loss_is_counted();
+    bad_settings_are_refused_rather_than_corrected();
+    the_vector_spool_agrees_and_costs_more();
     the_feature_report();
 
     std::printf("\n%s: %d failure(s)\n", failures ? "FAILED" : "PASSED", failures);
