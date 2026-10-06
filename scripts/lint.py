@@ -88,6 +88,22 @@ def _h(text):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def codepoints(chars):
+    """Report offending characters as code points rather than as themselves.
+
+    Two reasons, and the second is why this exists at all. Many of the characters this
+    check catches are invisible: a non-breaking space, a zero-width joiner, a soft hyphen.
+    Printing the glyph shows nothing or shows a replacement box, where U+00A0 is
+    unambiguous.
+
+    And printing the glyph CRASHED this script on Tuesday 6 October 2026. The authoring
+    laptop's console is cp1252, which cannot encode U+2212, so a file containing one
+    produced a UnicodeEncodeError and a stack trace instead of the finding. A check that
+    dies on exactly the input it exists to catch reports nothing at all.
+    """
+    return "[" + ", ".join("U+%04X" % ord(c) for c in chars) + "]"
+
+
 def name_scan(text):
     """Report a forbidden name without ever printing the list it checks.
 
@@ -130,7 +146,7 @@ def check(path):
         problems.append(f"dash: ...{m.group(1)}[{m.group(2)}]{m.group(3)}...".replace("\n", " "))
     bad = sorted({c for c in prose if ord(c) > 126})
     if bad:
-        problems.append(f"non-ASCII in prose: {bad}")
+        problems.append(f"non-ASCII in prose: {codepoints(bad)}")
     for m in VIOLENT.finditer(prose):
         problems.append(f"violent idiom: {m.group(0)!r} near "
                         f"{prose[max(0, m.start()-40):m.end()+40]!r}")
@@ -140,7 +156,7 @@ def check(path):
     for env, code in codes:
         bad = sorted({c for c in code if ord(c) > 126})
         if bad:
-            problems.append(f"non-ASCII in {env} block: {bad}")
+            problems.append(f"non-ASCII in {env} block: {codepoints(bad)}")
         limit = MAXLEN.get(env, MAXCODE)
         for ln in code.splitlines():
             if len(ln) > limit:
