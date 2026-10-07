@@ -109,6 +109,72 @@ static bool report_devid(uint8_t addr, const char *claim)
 	return value == ADXL345_DEVID;
 }
 
+/* CRITERION 6: two devices on one bus do not interfere.
+ *
+ * It lives here rather than in the project's application, and that is not an accident. The
+ * application is not permitted to know there is a bus, so it cannot be the thing that proves
+ * two devices share one. This diagnostic may, and does.
+ *
+ * It needs NO datasheet fact about the neighbour. An address acknowledgement is enough, so
+ * nothing is asserted about a register map that has not been read: the neighbour is whichever
+ * address answered the scan first that is not one of this part's two, and the operation is the
+ * same zero-length probe the scan already uses.
+ *
+ * WHAT THE CRITERION ACTUALLY ASKS, which is easy to get wrong. It does not ask that the error
+ * count be zero. A part held in unsoldered holes by friction fails sometimes on its own, and a
+ * run demanding zero would fail for a reason that has nothing to do with sharing a bus. It
+ * asks that the count be **no worse when the two are interleaved than when each runs alone**.
+ * So each phase is run separately first, and the baseline is the thing the result is compared
+ * against rather than an ideal.
+ */
+#define ROUNDS 200
+
+static int probe_addr(uint8_t addr)
+{
+	uint8_t byte = 0U;
+
+	return i2c_write(bus, &byte, 0, (uint16_t)addr);
+}
+
+static void interference(uint8_t part, uint8_t neighbour)
+{
+	unsigned int part_alone = 0U, nb_alone = 0U;
+	unsigned int part_mixed = 0U, nb_mixed = 0U;
+	unsigned int i;
+	uint8_t value = 0U;
+
+	printf("\ncriterion 6: %d rounds per phase, counting FAILURES\n", ROUNDS);
+	printf("the part is 0x%02x and the neighbour is 0x%02x, chosen by the scan\n",
+	       part, neighbour);
+
+	/* One attempt each, deliberately. read_reg retries, which is right for finding out
+	 * what a register holds and wrong for measuring how often a transaction succeeds. */
+	for (i = 0U; i < ROUNDS; i++) {
+		if (i2c_reg_read_byte(bus, part, ADXL345_REG_DEVID, &value) != 0) {
+			part_alone++;
+		}
+	}
+	for (i = 0U; i < ROUNDS; i++) {
+		if (probe_addr(neighbour) != 0) {
+			nb_alone++;
+		}
+	}
+	for (i = 0U; i < ROUNDS; i++) {
+		if (i2c_reg_read_byte(bus, part, ADXL345_REG_DEVID, &value) != 0) {
+			part_mixed++;
+		}
+		if (probe_addr(neighbour) != 0) {
+			nb_mixed++;
+		}
+	}
+
+	printf("\n  phase          0x%02x   0x%02x\n", part, neighbour);
+	printf("  each alone    %5u  %5u\n", part_alone, nb_alone);
+	printf("  interleaved   %5u  %5u\n", part_mixed, nb_mixed);
+	printf("\nthe criterion is the DIFFERENCE between those two rows, not either row being\n");
+	printf("zero. A part on friction contacts fails sometimes with nothing else on the wire.\n");
+}
+
 /* Integer only, because prj.conf leaves floating point formatting out and a magnitude is the
  * one place a square root cannot be avoided. Newton's method on integers, which terminates. */
 static uint32_t isqrt(uint32_t n)
@@ -214,6 +280,8 @@ static void dump_part(uint8_t addr)
 int main(void)
 {
 	unsigned int addr;
+	unsigned int neighbour = 0U;
+	bool part_here;
 	int found = 0;
 	int disagree = 0;
 
@@ -260,6 +328,14 @@ int main(void)
 			       (by_read == by_write) ? "" :
 			       (by_read ? "   one byte read only" : "   zero length write only"));
 			found++;
+
+			/* The first answering address that is not one of this part's two
+			 * becomes the neighbour for criterion 6. Chosen by the bus rather
+			 * than named here, so the diagnostic needs no list of what else is
+			 * fitted and cannot be wrong about it. */
+			if (neighbour == 0U && addr != ADDR_SDO_LOW && addr != ADDR_SDO_HIGH) {
+				neighbour = addr;
+			}
 		}
 		if (by_read != by_write) {
 			disagree++;
@@ -269,10 +345,20 @@ int main(void)
 	       found, disagree);
 
 	printf("the two addresses this part can have, and what each would mean\n");
-	if (report_devid(ADDR_SDO_LOW, "SDO low, so jumper A is working")) {
+	part_here = report_devid(ADDR_SDO_LOW, "SDO low, so jumper A is working");
+	if (part_here) {
 		dump_part(ADDR_SDO_LOW);
 	}
 	report_devid(ADDR_SDO_HIGH, "SDO high, so jumper A is not");
+
+	if (part_here && neighbour != 0U) {
+		interference(ADDR_SDO_LOW, (uint8_t)neighbour);
+	} else if (neighbour == 0U) {
+		printf("\nno second device answered, so criterion 6 has nothing to interleave\n");
+	} else {
+		printf("\nthe part did not identify itself, so criterion 6 would be measuring\n");
+		printf("one device and a silence rather than two devices\n");
+	}
 
 	printf("\n");
 	if (found == 0) {
