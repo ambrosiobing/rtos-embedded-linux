@@ -193,6 +193,10 @@ def published_files():
     """
     files = sorted((ROOT / "chapters").glob("*.md"))
     files += sorted((ROOT / "projects").rglob("*.md"))
+    # docs/ was outside this list until Wednesday 7 October 2026, so docs/HARDWARE.md was
+    # published without the house rules or the name scan ever having seen it. A check whose
+    # coverage is implied by a directory layout is a check that quietly stops covering things.
+    files += sorted((ROOT / "docs").rglob("*.md"))
     for name in ("README.md", "AUTHORING.md", "SOURCE.md", "CONTENTS.md"):
         p = ROOT / name
         if p.is_file():

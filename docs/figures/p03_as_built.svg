@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 500" width="820" height="500" role="img" aria-label="The two-wire wiring as actually built: four leads from the NUCLEO-H7A3ZI-Q to breadboard rows, two links local to the module, and the supply route through the breadboard power rail that did not conduct.">
+<style>
+  .bg{fill:#ffffff}
+  .box{fill:#f4f6f8;stroke:#334155;stroke-width:1.6}
+  .row{fill:#ffffff;stroke:#94a3b8;stroke-width:1.2}
+  .mod{fill:#eaf0f6;stroke:#1f3b57;stroke-width:2}
+  .wire{stroke:#334155;stroke-width:2;fill:none}
+  .link{stroke:#1f3b57;stroke-width:2.4;fill:none}
+  .bad{stroke:#b45309;stroke-width:2;fill:none;stroke-dasharray:6 5}
+  .ttl{font:600 15px system-ui,-apple-system,Segoe UI,sans-serif;fill:#0f172a}
+  .lbl{font:13px system-ui,-apple-system,Segoe UI,sans-serif;fill:#0f172a}
+  .small{font:11.5px system-ui,-apple-system,Segoe UI,sans-serif;fill:#475569}
+  .note{font:600 12px system-ui,-apple-system,Segoe UI,sans-serif;fill:#b45309}
+  .ok{font:600 12px system-ui,-apple-system,Segoe UI,sans-serif;fill:#15803d}
+  @media (prefers-color-scheme: dark){
+    .bg{fill:#0d1117}
+    .box{fill:#161b22;stroke:#8b949e}
+    .row{fill:#0d1117;stroke:#6e7781}
+    .mod{fill:#18212c;stroke:#9fb6cc}
+    .wire{stroke:#9aa7b4}
+    .link{stroke:#9fb6cc}
+    .bad{stroke:#e3a008}
+    .ttl{fill:#e6edf3}
+    .lbl{fill:#e6edf3}
+    .small{fill:#9aa7b4}
+    .note{fill:#e3a008}
+    .ok{fill:#4ade80}
+  }
+</style>
+<rect class="bg" width="820" height="500"/>
+
+<text class="ttl" x="24" y="30">Six connections, and the one that was never made</text>
+<text class="small" x="24" y="49">Project 03, two-wire build, as it stood on Wednesday 7 October 2026. Pin names from the board's own devicetree.</text>
+
+<!-- host board -->
+<rect class="box" x="30" y="80" width="150" height="330" rx="5"/>
+<text class="ttl" x="44" y="106">NUCLEO</text>
+<text class="ttl" x="44" y="124">H7A3ZI-Q</text>
+<text class="lbl" x="44" y="168">+3V3</text>
+<text class="lbl" x="44" y="208">GND</text>
+<text class="lbl" x="44" y="368">PB8</text>
+<text class="lbl" x="44" y="408">PB9</text>
+
+<!-- breadboard rows -->
+<text class="small" x="300" y="96">breadboard rows</text>
+<rect class="row" x="300" y="152" width="250" height="24" rx="3"/>
+<rect class="row" x="300" y="192" width="250" height="24" rx="3"/>
+<rect class="row" x="300" y="232" width="250" height="24" rx="3"/>
+<rect class="row" x="300" y="272" width="250" height="24" rx="3"/>
+<rect class="row" x="300" y="312" width="250" height="24" rx="3"/>
+<rect class="row" x="300" y="352" width="250" height="24" rx="3"/>
+<rect class="row" x="300" y="392" width="250" height="24" rx="3"/>
+<rect class="row" x="300" y="432" width="250" height="24" rx="3"/>
+
+<!-- module -->
+<rect class="mod" x="600" y="140" width="180" height="328" rx="5"/>
+<text class="ttl" x="616" y="134">SEN0032</text>
+<text class="lbl" x="616" y="170">2  VCC</text>
+<text class="lbl" x="616" y="210">1  GND</text>
+<text class="lbl" x="616" y="250">3  CS</text>
+<text class="lbl" x="616" y="290">4  INT1</text>
+<text class="lbl" x="616" y="330">5  INT2</text>
+<text class="lbl" x="616" y="370">6  SDO</text>
+<text class="lbl" x="616" y="410">8  SCL</text>
+<text class="lbl" x="616" y="450">7  SDA</text>
+
+<!-- pads into rows -->
+<path class="wire" d="M550 164 L600 164"/>
+<path class="wire" d="M550 204 L600 204"/>
+<path class="wire" d="M550 244 L600 244"/>
+<path class="wire" d="M550 364 L600 364"/>
+<path class="wire" d="M550 404 L600 404"/>
+<path class="wire" d="M550 444 L600 444"/>
+
+<!-- four leads -->
+<path class="wire" d="M180 164 L300 164"/>
+<path class="wire" d="M180 204 L300 204"/>
+<path class="wire" d="M180 364 L250 364 L250 404 L300 404"/>
+<path class="wire" d="M180 404 L220 404 L220 444 L300 444"/>
+<text class="small" x="196" y="158">supply lead</text>
+<text class="small" x="196" y="198">ground lead</text>
+<text class="small" x="196" y="358">clock lead</text>
+<text class="small" x="196" y="398">data lead</text>
+
+<!-- local links -->
+<path class="link" d="M576 244 L576 164"/>
+<circle cx="576" cy="244" r="3.6" fill="#1f3b57"/>
+<circle cx="576" cy="164" r="3.6" fill="#1f3b57"/>
+<text class="small" x="398" y="268">link B, chip select to supply, selects the two-wire bus</text>
+
+<path class="link" d="M330 364 L330 204"/>
+<circle cx="330" cy="364" r="3.6" fill="#1f3b57"/>
+<circle cx="330" cy="204" r="3.6" fill="#1f3b57"/>
+<text class="small" x="344" y="340">link A, address select to ground, makes the part 0x53</text>
+
+<!-- the rail that did not conduct -->
+<rect class="row" x="180" y="474" width="370" height="18" rx="3"/>
+<path class="bad" d="M180 172 L160 172 L160 483 L180 483"/>
+<path class="bad" d="M550 483 L572 483 L572 176"/>
+<text class="note" x="196" y="488">the breadboard power rail, first attempt, did not conduct</text>
+<text class="ok" x="196" y="140">as built: the supply lead goes straight to the pin printed +3V3</text>
+</svg>

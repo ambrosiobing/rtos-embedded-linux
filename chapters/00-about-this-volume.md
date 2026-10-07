@@ -107,6 +107,8 @@ A chapter that would be easier with an oscilloscope says so in one sentence and 
 
 ## The bench inventory
 
+The document that is authoritative about each item below, and the handful of lines in it that actually changed a decision in this volume, are collected in [docs/HARDWARE.md](../docs/HARDWARE.md). That page also marks where every fact came from, because a vendor's product page, a vendor's schematic and the operating system's own devicetree are three different kinds of source and this bench has had them disagree.
+
 | Item | What it is | Used in |
 | --- | --- | --- |
 | NUCLEO-H7A3ZI-Q | STM32H7A3ZIT6Q, Cortex-M7 at 280 MHz, 2 MB flash, on-board debug probe and virtual console. No Ethernet, no card socket, no bus transceiver | P01 to P11, P13, P15, P18 |

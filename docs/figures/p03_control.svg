@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 420" width="820" height="420" role="img" aria-label="The control experiment: the same binary on the same two pins at the same clock, with a soldered sensor shield on one branch answering five addresses and the friction-contact module on the other staying silent.">
+<style>
+  .bg{fill:#ffffff}
+  .box{fill:#f4f6f8;stroke:#334155;stroke-width:1.6}
+  .good{fill:#eef7f0;stroke:#15803d;stroke-width:2}
+  .bad{fill:#fdf3e7;stroke:#b45309;stroke-width:2}
+  .wire{stroke:#334155;stroke-width:2;fill:none}
+  .ttl{font:600 15px system-ui,-apple-system,Segoe UI,sans-serif;fill:#0f172a}
+  .lbl{font:13px system-ui,-apple-system,Segoe UI,sans-serif;fill:#0f172a}
+  .small{font:11.5px system-ui,-apple-system,Segoe UI,sans-serif;fill:#475569}
+  .okt{font:600 12.5px system-ui,-apple-system,Segoe UI,sans-serif;fill:#15803d}
+  .badt{font:600 12.5px system-ui,-apple-system,Segoe UI,sans-serif;fill:#b45309}
+  @media (prefers-color-scheme: dark){
+    .bg{fill:#0d1117}
+    .box{fill:#161b22;stroke:#8b949e}
+    .good{fill:#12211a;stroke:#4ade80}
+    .bad{fill:#231a0d;stroke:#e3a008}
+    .wire{stroke:#9aa7b4}
+    .ttl{fill:#e6edf3}
+    .lbl{fill:#e6edf3}
+    .small{fill:#9aa7b4}
+    .okt{fill:#4ade80}
+    .badt{fill:#e3a008}
+  }
+</style>
+<rect class="bg" width="820" height="420"/>
+
+<text class="ttl" x="24" y="30">The control: change one thing, and let the bus report</text>
+<text class="small" x="24" y="49">Same binary, same two pins, same 100 kHz clock, same overlay. Only what hangs off the pins changed.</text>
+
+<!-- host -->
+<rect class="box" x="30" y="160" width="190" height="110" rx="5"/>
+<text class="ttl" x="46" y="190">NUCLEO-H7A3ZI-Q</text>
+<text class="small" x="46" y="212">I2C1 on PB8 and PB9</text>
+<text class="small" x="46" y="232">bias-pull-up enabled,</text>
+<text class="small" x="46" y="250">around 40 kOhm, internal</text>
+
+<!-- split -->
+<path class="wire" d="M220 215 L280 215"/>
+<path class="wire" d="M280 215 L280 120 L360 120"/>
+<path class="wire" d="M280 215 L280 320 L360 320"/>
+
+<!-- branch A -->
+<rect class="good" x="360" y="76" width="250" height="92" rx="5"/>
+<text class="lbl" x="376" y="102">X-NUCLEO-IKS5A1</text>
+<text class="small" x="376" y="124">soldered onto a connector</text>
+<text class="small" x="376" y="144">carries its own pull-up resistors</text>
+<text class="okt" x="640" y="110">5 addresses</text>
+<text class="small" x="640" y="130">0x19, 0x1e, 0x5c,</text>
+<text class="small" x="640" y="148">0x6a, 0x6b</text>
+<text class="small" x="640" y="166">three runs, identical</text>
+
+<!-- branch B -->
+<rect class="bad" x="360" y="276" width="250" height="92" rx="5"/>
+<text class="lbl" x="376" y="302">DFRobot SEN0032</text>
+<text class="small" x="376" y="324">header not fitted, bare holes</text>
+<text class="small" x="376" y="344">no resistors anywhere on it</text>
+<text class="badt" x="640" y="310">silence</text>
+<text class="small" x="640" y="330">0 of 112 addresses,</text>
+<text class="small" x="640" y="348">at 400 kHz and at</text>
+<text class="small" x="640" y="366">100 kHz alike</text>
+
+<text class="small" x="30" y="392">What the upper branch cleared in one step: the controller, the pin assignment, the pin control, both clock rates, the overlay and the scan itself.</text>
+<text class="small" x="30" y="410">What it left: everything on the breadboard. That is the whole value of a control that shares the subject's own pins.</text>
+</svg>

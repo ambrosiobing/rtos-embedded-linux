@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 470" width="820" height="470" role="img" aria-label="The SEN0032 supply path and its four digital lines. The header supply passes through a BL8555-30 regulator to a 3.0 volt die rail, while chip select, address select, data and clock run from the header straight to the die with nothing in between.">
+<style>
+  .bg{fill:#ffffff}
+  .box{fill:#f4f6f8;stroke:#334155;stroke-width:1.6}
+  .die{fill:#eaf0f6;stroke:#1f3b57;stroke-width:2.2}
+  .pad{fill:#ffffff;stroke:#334155;stroke-width:1.3}
+  .wire{stroke:#334155;stroke-width:1.9;fill:none}
+  .dash{stroke:#94a3b8;stroke-width:1.5;fill:none;stroke-dasharray:5 4}
+  .warn{stroke:#b45309;stroke-width:2.4;fill:none}
+  .warnbox{fill:none;stroke:#b45309;stroke-width:1.6;stroke-dasharray:6 4}
+  .ttl{font:600 15px system-ui,-apple-system,Segoe UI,sans-serif;fill:#0f172a}
+  .lbl{font:13px system-ui,-apple-system,Segoe UI,sans-serif;fill:#0f172a}
+  .small{font:11.5px system-ui,-apple-system,Segoe UI,sans-serif;fill:#475569}
+  .note{font:600 12px system-ui,-apple-system,Segoe UI,sans-serif;fill:#b45309}
+  @media (prefers-color-scheme: dark){
+    .bg{fill:#0d1117}
+    .box{fill:#161b22;stroke:#8b949e}
+    .die{fill:#18212c;stroke:#9fb6cc}
+    .pad{fill:#0d1117;stroke:#8b949e}
+    .wire{stroke:#9aa7b4}
+    .dash{stroke:#6e7781}
+    .warn{stroke:#e3a008}
+    .warnbox{stroke:#e3a008}
+    .ttl{fill:#e6edf3}
+    .lbl{fill:#e6edf3}
+    .small{fill:#9aa7b4}
+    .note{fill:#e3a008}
+  }
+</style>
+<rect class="bg" width="820" height="470"/>
+
+<text class="ttl" x="24" y="30">Why the supply may be 5 V and the chip select may not</text>
+<text class="small" x="24" y="49">DFRobot SEN0032. Drawn from the vendor schematic and the ADXL345 datasheet; no vendor artwork is reproduced.</text>
+
+<!-- header -->
+<text class="small" x="34" y="84">header J1</text>
+<rect class="box" x="30" y="90" width="118" height="330" rx="4"/>
+<text class="lbl" x="44" y="118">1  GND</text>
+<text class="lbl" x="44" y="158">2  VCC</text>
+<text class="lbl" x="44" y="198">3  CS</text>
+<text class="lbl" x="44" y="238">4  INT1</text>
+<text class="lbl" x="44" y="278">5  INT2</text>
+<text class="lbl" x="44" y="318">6  SDO</text>
+<text class="lbl" x="44" y="358">7  SDA</text>
+<text class="lbl" x="44" y="398">8  SCL</text>
+
+<!-- regulator -->
+<rect class="box" x="246" y="124" width="168" height="62" rx="4"/>
+<text class="lbl" x="262" y="150">U2  BL8555-30</text>
+<text class="small" x="262" y="170">3.0 V output</text>
+
+<!-- die -->
+<rect class="die" x="560" y="96" width="222" height="318" rx="6"/>
+<text class="ttl" x="580" y="126">ADXL345 die</text>
+<text class="small" x="580" y="148">VDD 2.0 to 3.6 V</text>
+<text class="small" x="580" y="166">VDD I/O tied to 3.0 V</text>
+<text class="small" x="580" y="200">CS  chooses the bus</text>
+<text class="small" x="580" y="222">SDO chooses the address</text>
+<text class="small" x="580" y="244">SDA, SCL  the bus</text>
+
+<!-- supply path -->
+<path class="wire" d="M148 152 L246 152"/>
+<path class="wire" d="M414 152 L478 152 L478 132 L560 132"/>
+<path class="wire" d="M478 152 L478 172 L560 172"/>
+<circle cx="478" cy="152" r="3.4" fill="#334155"/>
+<text class="small" x="424" y="122">3.0 V rail</text>
+
+<!-- ground -->
+<path class="wire" d="M148 112 L196 112 L196 442 L612 442 L612 414"/>
+<text class="small" x="204" y="436">common return</text>
+
+<!-- the four direct lines -->
+<path class="warn" d="M148 192 L560 192"/>
+<path class="warn" d="M148 312 L560 312"/>
+<path class="warn" d="M148 352 L560 352"/>
+<path class="warn" d="M148 392 L560 392"/>
+
+<!-- unused -->
+<path class="dash" d="M148 232 L300 232"/>
+<path class="dash" d="M148 272 L300 272"/>
+<text class="small" x="310" y="236">INT1 and INT2 unconnected</text>
+<text class="small" x="310" y="276">until the trigger build</text>
+
+<!-- warning box over the four -->
+<rect class="warnbox" x="160" y="178" width="392" height="228" rx="6"/>
+<text class="note" x="172" y="300">no regulator, no level shifter, nothing</text>
+
+<!-- annotations -->
+<text class="note" x="24" y="440">5 V here is fine</text>
+<text class="small" x="24" y="456">the regulator exists for it</text>
+
+<text class="note" x="596" y="300">5 V here is 1.7 V over the limit</text>
+<text class="small" x="596" y="320">absolute maximum is VDD I/O + 0.3 V,</text>
+<text class="small" x="596" y="338">or 3.6 V, whichever is less. With</text>
+<text class="small" x="596" y="356">VDD I/O at 3.0 V that is 3.3 V, so a</text>
+<text class="small" x="596" y="374">3.3 V host sits exactly on it.</text>
+</svg>
