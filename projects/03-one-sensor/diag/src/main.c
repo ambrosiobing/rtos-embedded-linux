@@ -61,18 +61,49 @@ static const struct device *const bus = DEVICE_DT_GET(BUS_NODE);
 #define SCAN_FIRST 0x08U
 #define SCAN_LAST  0x77U
 
+/* HOW MANY ATTEMPTS A READ IS GIVEN, and why the count is printed rather than the outcome.
+ *
+ * On Wednesday 7 October 2026 the same register, at the same address, in the same run, read
+ * successfully four times out of four in one place and failed four times out of four a few
+ * milliseconds later in another. Contact noise does not usually sort itself that neatly, so
+ * either one of these call sites is wrong or the probability of success depends on something
+ * neither of them is reporting.
+ *
+ * A single attempt can only say "worked" or "did not", which is what produced that puzzle.
+ * Counting the attempts turns the same run into a measurement: one try means a healthy
+ * contact, three means a marginal one, and five failures in a row at a site that the previous
+ * line just succeeded at is a software question rather than a wiring one. */
+#define READ_TRIES 5
+
+static int read_reg(uint8_t addr, uint8_t reg, uint8_t *value, int *tries)
+{
+	int rc = -1;
+	int n;
+
+	for (n = 1; n <= READ_TRIES; n++) {
+		rc = i2c_reg_read_byte(bus, addr, reg, value);
+		if (rc == 0) {
+			break;
+		}
+	}
+
+	*tries = (n > READ_TRIES) ? READ_TRIES : n;
+	return rc;
+}
+
 static bool report_devid(uint8_t addr, const char *claim)
 {
 	uint8_t value = 0U;
-	int rc = i2c_reg_read_byte(bus, addr, ADXL345_REG_DEVID, &value);
+	int tries = 0;
+	int rc = read_reg(addr, ADXL345_REG_DEVID, &value, &tries);
 
 	if (rc != 0) {
-		printf("  0x%02x  %-34s silent, i2c_reg_read_byte returned %d\n",
-		       addr, claim, rc);
+		printf("  0x%02x  %-34s silent after %d tries, last rc %d\n",
+		       addr, claim, tries, rc);
 		return false;
 	}
 
-	printf("  0x%02x  %-34s DEVID 0x%02x, %s\n", addr, claim, value,
+	printf("  0x%02x  %-34s DEVID 0x%02x on try %d, %s\n", addr, claim, value, tries,
 	       value == ADXL345_DEVID ? "an ADXL345" : "not 0xe5, so not an ADXL345");
 
 	return value == ADXL345_DEVID;
@@ -115,6 +146,7 @@ static void dump_part(uint8_t addr)
 	};
 	uint8_t raw[6];
 	uint8_t fmt = 0U;
+	bool read_ok = false;
 	unsigned int range, one_g, mag;
 	int32_t ax, ay, az;
 	size_t i;
@@ -123,17 +155,29 @@ static void dump_part(uint8_t addr)
 	printf("\nthe part's registers, as whatever ran before this left them\n");
 	for (i = 0U; i < ARRAY_SIZE(regs); i++) {
 		uint8_t value = 0U;
+		int tries = 0;
 
-		rc = i2c_reg_read_byte(bus, addr, regs[i].reg, &value);
+		rc = read_reg(addr, regs[i].reg, &value, &tries);
 		if (rc != 0) {
-			printf("  0x%02x  %-12s read failed, %d\n",
-			       regs[i].reg, regs[i].name, rc);
-			return;
+			/* CARRY ON rather than returning. The first version abandoned the
+			 * whole dump on the first failure, so a run reported one failed read
+			 * and nothing else, and there was no way to tell a dead bus from one
+			 * unlucky transaction. Seven lines of outcome are worth more than one. */
+			printf("  0x%02x  %-12s silent after %d tries\n",
+			       regs[i].reg, regs[i].name, tries);
+			continue;
 		}
-		printf("  0x%02x  %-12s 0x%02x\n", regs[i].reg, regs[i].name, value);
+		printf("  0x%02x  %-12s 0x%02x on try %d\n",
+		       regs[i].reg, regs[i].name, value, tries);
 		if (regs[i].reg == ADXL345_REG_DATA_FORMAT) {
 			fmt = value;
+			read_ok = true;
 		}
+	}
+
+	if (!read_ok) {
+		printf("\n  DATA_FORMAT never read, so nothing below it would mean anything\n");
+		return;
 	}
 
 	range = fmt & 0x03U;
@@ -171,6 +215,7 @@ int main(void)
 {
 	unsigned int addr;
 	int found = 0;
+	int disagree = 0;
 
 	printf("P03 bus scan, written because one FAIL line named nothing\n\n");
 
@@ -188,19 +233,40 @@ int main(void)
 		return 1;
 	}
 
-	printf("scanning 0x%02x to 0x%02x\n", SCAN_FIRST, SCAN_LAST);
+	/* TWO PROBES, BECAUSE THE FIRST ONE IS A SUSPECT.
+	 *
+	 * This scan originally used a one byte read alone. It was chosen over the conventional
+	 * zero-length write because some controllers refuse a zero-length transfer outright,
+	 * which would report every address as absent and look like a dead bus.
+	 *
+	 * On Wednesday 7 October 2026 that choice came under suspicion: across four runs the
+	 * scan listed 0x53 once, while a register read of the very same address a few
+	 * milliseconds later succeeded four times out of four. If the probe is weaker than a
+	 * register read then this scan has been under-reporting, and every conclusion drawn
+	 * from a silent scan deserves re-reading.
+	 *
+	 * So both probes now run at every address and any disagreement between them is counted
+	 * and printed. A scan that cannot report its own unreliability is one more thing to
+	 * take on trust. */
+	printf("scanning 0x%02x to 0x%02x, with two probes at each address\n",
+	       SCAN_FIRST, SCAN_LAST);
 	for (addr = SCAN_FIRST; addr <= SCAN_LAST; addr++) {
-		uint8_t byte;
+		uint8_t byte = 0U;
+		bool by_read = i2c_read(bus, &byte, 1, (uint16_t)addr) == 0;
+		bool by_write = i2c_write(bus, &byte, 0, (uint16_t)addr) == 0;
 
-		/* One byte read rather than a zero-length write. A zero-length transfer is
-		 * the conventional probe and some controllers refuse it outright, which
-		 * would report every address as absent and look like a dead bus. */
-		if (i2c_read(bus, &byte, 1, (uint16_t)addr) == 0) {
-			printf("  answer at 0x%02x\n", addr);
+		if (by_read || by_write) {
+			printf("  answer at 0x%02x%s\n", addr,
+			       (by_read == by_write) ? "" :
+			       (by_read ? "   one byte read only" : "   zero length write only"));
 			found++;
 		}
+		if (by_read != by_write) {
+			disagree++;
+		}
 	}
-	printf("%d address(es) answered\n\n", found);
+	printf("%d address(es) answered, %d disagreement(s) between the two probes\n\n",
+	       found, disagree);
 
 	printf("the two addresses this part can have, and what each would mean\n");
 	if (report_devid(ADDR_SDO_LOW, "SDO low, so jumper A is working")) {
