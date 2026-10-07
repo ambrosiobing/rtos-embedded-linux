@@ -248,6 +248,39 @@ So the four-of-four against zero-of-four was small numbers, and the variation is
 contact. The suspicion is withdrawn and the instrumentation stays, because it is what allowed
 the withdrawal to be a measurement rather than a change of mind.
 
+## The pull-up experiment cannot be run on friction contacts
+
+It was attempted five times on Tuesday 6 October 2026 and Wednesday 7 October 2026 and has
+never produced an interpretable result. The sequence is worth setting out, because the reason
+is structural rather than a run of bad luck.
+
+| Attempt | What happened |
+|---|---|
+| first four | the X-NUCLEO-IKS5A1 was still on the bus, so its 4.7 kOhm resistors were carrying it and the processor's own were never tested. The scan's own address list is what caught this each time |
+| fifth | the shield was genuinely off, and **nothing answered at all**, including the module |
+| the restore | the shield back on, its five addresses returned in three runs out of three, and `0x53` stayed silent in all three |
+
+**The restore is what makes the fifth attempt uninterpretable.** The board, the bus, the
+controller and the shield are all demonstrably fine, and the module is not answering, so the
+silence during the shield-off run cannot be attributed to the pull-ups. The module had most
+likely already lost a contact.
+
+That is the structural problem. **The experiment is a comparison between two conditions, and it
+needs the part to be reliably present in both.** A part held in unsoldered holes by friction is
+present in neither condition reliably, so the comparison has nothing to stand on. Running it
+more times does not help: each run has an independent chance of the contact being open, and a
+silence is produced by both the hypothesis under test and by the apparatus.
+
+**So this question is blocked on the soldering iron, not on bench time.** With an eight-way
+header fitted, it is two runs and ten minutes. Without one, no number of attempts will settle
+it, and attempting it again before then would be spending evenings on a measurement that cannot
+come out.
+
+Worth noticing what did come out of the five attempts, which is not nothing. The scan's address
+list turned out to be a reliable detector of whether the shield was really off, and it caught
+four setup errors that a written instruction did not prevent. **An experiment that reports
+whether it actually happened is worth more than one that is carefully specified.**
+
 ## One mistake worth keeping
 
 A spare jumper added for a continuity test was left in place after the test became
