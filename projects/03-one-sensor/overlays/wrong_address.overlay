@@ -1,0 +1,52 @@
+/* projects/03-one-sensor/overlays/wrong_address.overlay: a description that is wrong rather
+ * than impossible, and the application must refuse it.
+ *
+ * THIS IS CRITERION 3, and it is harder to test honestly than it looks. The application prints
+ *
+ *     FAIL adxl345@53 is not ready, so nothing below would be a reading
+ *
+ * whenever it cannot reach the part, and on Tuesday 6 October 2026 it printed that line perhaps
+ * twenty times for reasons that had nothing to do with an address: no supply, a contact open, a
+ * line held low. **A test that passes when the part is absent proves nothing**, because absence
+ * produces exactly the same output as the fault it is meant to catch.
+ *
+ * So this overlay is applied ON TOP of overlays/i2c.overlay, and the pair of runs is the test:
+ *
+ *   with i2c.overlay alone          the part answers, ten readings, about one g
+ *   with i2c.overlay and this one   the application refuses, and nothing else changed
+ *
+ * Same wiring, same session, same binary except for one property in a text file. Run them in
+ * that order and the second result means something; run the second alone and it does not.
+ *
+ *   cmake -B build-wrong -GNinja -DBOARD=nucleo_h7a3zi_q \
+ *         -DDTC_OVERLAY_FILE="overlays/i2c.overlay;overlays/wrong_address.overlay" \
+ *         -S projects/03-one-sensor
+ *
+ * WHY 0x1d RATHER THAN SOMETHING ABSURD. It is the ADXL345's OTHER legal address, the one the
+ * part answers at when its address select pin is held high instead of low. That makes this the
+ * realistic version of the mistake: somebody moves the link on the breadboard and does not
+ * change the overlay, or changes the overlay and does not move the link. An address of 0x7f
+ * would also fail, and would be a fault nobody makes.
+ *
+ * NOTHING IS DELETED HERE. The node at 0x53 stays, enabled, and its driver still initialises
+ * against the part that is really there. Only the alias moves. That is deliberate and it
+ * strengthens the result: the bus is demonstrably working during the failing run, so the refusal
+ * is specific to the address this description names and not to the wiring.
+ */
+&i2c1 {
+	/* A second node for the same kind of part, at the address the part is NOT at. */
+	absent: adxl345@1d {
+		compatible = "adi,adxl345";
+		reg = <0x1d>;
+		status = "okay";
+	};
+};
+
+/ {
+	aliases {
+		/* The one line that changes what the application talks to. The application is not
+		 * recompiled in any meaningful sense and certainly not edited: it still reads the
+		 * alias `motion` and still knows no bus, no address and no pin. */
+		motion = &absent;
+	};
+};
