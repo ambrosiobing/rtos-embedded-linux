@@ -218,6 +218,36 @@ swing between 78 and minus 60 metres per second squared. That is the hand holdin
 against its unfitted header. The figure for criterion 2 is the earlier run recorded above, and
 this one only had to show that the part was reachable.
 
+## A suspicion about the diagnostic, raised and then withdrawn
+
+On Wednesday 7 October 2026 four consecutive runs produced a pattern that looked like a defect
+rather than noise. Across them the scan listed `0x53` **once**, a register read of the same
+address a few milliseconds later succeeded **four times out of four**, and an identical register
+read a few milliseconds after that failed **four times out of four**.
+
+Two of my own choices became suspects. The scan probed with a one byte read, chosen over the
+conventional zero-length write because some controllers refuse a zero-length transfer outright
+and would then report every address as absent. If that probe were the weaker of the two, the
+scan had been under-reporting and several silent results deserved re-reading. And the register
+dump, which never once succeeded directly after a read that always did, looked like it had a
+fault of its own.
+
+**Neither survived being instrumented.** The scan now runs both probes at every address and
+counts the disagreements, and every register read retries up to five times and prints which
+attempt worked. The first run of that version reported
+
+    6 address(es) answered, 0 disagreement(s) between the two probes
+      0x53  SDO low, so jumper A is working    silent after 5 tries, last rc -5
+
+**Zero disagreements across 112 addresses probed two ways.** The one byte read is not weaker
+than the zero-length write on this controller, so no earlier silent scan is called into question
+by it. And the pattern reversed in the same run: the scan saw `0x53` where before it had not, and
+the register read failed five times where before it had always succeeded.
+
+So the four-of-four against zero-of-four was small numbers, and the variation is the friction
+contact. The suspicion is withdrawn and the instrumentation stays, because it is what allowed
+the withdrawal to be a measurement rather than a change of mind.
+
 ## One mistake worth keeping
 
 A spare jumper added for a continuity test was left in place after the test became
