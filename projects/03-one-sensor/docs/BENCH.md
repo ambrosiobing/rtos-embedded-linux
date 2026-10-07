@@ -184,6 +184,40 @@ the quantisation is 15.6 mg, where this application never sees more than one g. 
 would also change the devicetree, so criterion 1's object comparison would have to be run
 again afterwards rather than assumed.
 
+## Criterion 3, settled on Wednesday 7 October 2026 by a pair of runs
+
+The criterion asks that a wrong address be **reported rather than tolerated**: that the
+application log a device which is not ready instead of printing zeroes from a part it never
+reached.
+
+**The hard part is not making it fail. It is making a failure mean something.** This application
+printed `FAIL adxl345@53 is not ready` perhaps twenty times during the bring-up above, for
+reasons that had nothing to do with an address: no supply, an open contact, a line held low.
+Absence produces exactly the output the fault produces, so a single failing run settles nothing.
+
+So the test is a pair, on the same wiring, in the same session, with nothing touched between
+them.
+
+| Run | Overlays | Result |
+|---|---|---|
+| first | `i2c.overlay` | `device adxl345@53 is ready`, then ten readings |
+| second | `i2c.overlay` plus [`wrong_address.overlay`](../overlays/wrong_address.overlay) | `FAIL adxl345@1d is not ready`, four runs out of four |
+
+**The `1d` is what makes this evidence.** The application prints the device's own name from the
+devicetree, so that digit shows the alias really moved and that the refusal is about the address
+the **description** named. The part was on the same bus, at `0x53`, answering, a minute earlier.
+
+The overlay deletes nothing. The node at `0x53` stays enabled and its driver still binds to the
+real part, so the bus is demonstrably alive during the failing run. The only thing that changed
+between the two runs is which node the alias `motion` points at, and
+[src/main.c](../src/main.c) is not edited, recompiled differently or told anything new.
+
+**What this run is not.** The first run's readings are not a measurement. Its second line reads
+one count on every axis, which is near zero and impossible for a part at rest, and the others
+swing between 78 and minus 60 metres per second squared. That is the hand holding the module
+against its unfitted header. The figure for criterion 2 is the earlier run recorded above, and
+this one only had to show that the part was reachable.
+
 ## One mistake worth keeping
 
 A spare jumper added for a continuity test was left in place after the test became

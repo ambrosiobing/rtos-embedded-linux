@@ -1,7 +1,7 @@
 # P03. One sensor, two buses, zero code changes
 
-Status on Wednesday 7 October 2026: **both criteria that need no hardware are settled, and the
-two-wire half of criterion 2 has now been measured on the board.** Two cross builds for `nucleo_h7a3zi_q`, made in WSL on the
+Status on Wednesday 7 October 2026: **both criteria that need no hardware are settled, criterion
+3 is settled on the board, and the two-wire half of criterion 2 has been measured.** Two cross builds for `nucleo_h7a3zi_q`, made in WSL on the
 demo laptop with the Zephyr SDK installed the same day, compile the same application for a
 two-wire bus and a four-wire bus and produce **identical instructions**. A third build, of a
 description that cannot be true, is refused.
@@ -104,8 +104,17 @@ being made on the application object alone.
 **The four-wire build has never been wired.** Criterion 2 asks that both builds read the same
 at rest; the two-wire build now reads 9.88, 9.83 and 9.97 metres per second squared against a
 true 9.8066, and the four-wire build has not been connected, so the comparison the criterion
-exists to make has not been made. Criteria 3, 5 and 6 still need the board, and the second
-device criterion 6 wants is not wired.
+exists to make has not been made.
+
+**Criterion 3 is settled**, by a pair of runs on one wiring in one session: the part answering at
+`0x53`, then the same application refusing at `adxl345@1d` when the description alone was
+changed, four runs out of four. The pairing is the evidence, because a part that is simply absent
+produces the same line.
+
+**Criterion 5 still needs the board**, and one more connection: the trigger build wants an
+interrupt line, and pads 4 and 5 are unconnected. **Criterion 6's second device is now present**,
+since the X-NUCLEO-IKS5A1 sits on the same two-wire bus and five of its sensors answer alongside
+the accelerometer, but no run yet reads both and shows that neither disturbs the other.
 
 **The measurement was taken with the module held by hand.** Its eight-pin header is not
 fitted, so all six connections are friction contacts in bare holes, and one run in roughly
