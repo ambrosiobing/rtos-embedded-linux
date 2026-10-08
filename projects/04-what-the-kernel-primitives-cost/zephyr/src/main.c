@@ -106,6 +106,31 @@ static void work_fn(struct k_work *w)
 
 static K_WORK_DEFINE(work_item, work_fn);
 
+/* CRITERION 3: THE SAME OPERATION WITH A COLD INSTRUCTION CACHE.
+ *
+ * Worth building only because the caches turned out to be on. The run of Thursday 8 October
+ * 2026 asked the control register and both are enabled, so there really are two states here
+ * and the warm-up visible in every operation's first samples has something behind it.
+ *
+ * THE INVALIDATION SITS OUTSIDE THE BRACKET, at the top of each iteration and before the
+ * first read of the counter. What is measured is the operation running cold, not the cost of
+ * making it cold, and those are different questions.
+ *
+ * The instruction cache only. Invalidating the data cache without cleaning it first would
+ * discard anything dirty, and this case has no need to touch it: what a cold run is being
+ * asked about is the cost of fetching the kernel's code again.
+ */
+static volatile bool cold_mode;
+
+static void chill(void)
+{
+	if (cold_mode) {
+		SCB_InvalidateICache();
+		__DSB();
+		__ISB();
+	}
+}
+
 /* ---- the operations ---------------------------------------------------------------------- */
 
 /* A FULL ROUND TRIP, not one switch. The measurer yields, the equal-priority partner runs and
@@ -126,6 +151,7 @@ static void run_yield(uint32_t *counts, size_t n)
 	k_thread_resume(&partner_thread);
 
 	for (i = 0u; i < n; i++) {
+		chill();
 		uint32_t t0 = measure_now();
 
 		k_yield();
@@ -143,6 +169,7 @@ static void run_block_one(uint32_t *counts, size_t n)
 	size_t i;
 
 	for (i = 0u; i < n; i++) {
+		chill();
 		k_sem_give(&go);
 		k_sem_take(&signalled, K_FOREVER);
 		counts[i] = measure_now() - t_handoff;
@@ -162,6 +189,7 @@ static void run_block_several(uint32_t *counts, size_t n)
 			  &second);
 
 	for (i = 0u; i < n; i++) {
+		chill();
 		k_sem_give(&go);
 		(void)k_poll(events, (int)ARRAY_SIZE(events), K_FOREVER);
 		counts[i] = measure_now() - t_handoff;
@@ -179,6 +207,7 @@ static void run_hand_to_queue(uint32_t *counts, size_t n)
 	size_t i;
 
 	for (i = 0u; i < n; i++) {
+		chill();
 		uint32_t t0 = measure_now();
 
 		(void)k_work_submit(&work_item);
@@ -352,6 +381,7 @@ int main(void)
 	static uint32_t counts[SAMPLES];
 	uint32_t overhead = 0u;
 	uint32_t smallest = 0xFFFFFFFFu;
+	uint32_t warm_min[MEASURE_OP_COUNT];
 	int op;
 
 	k_thread_create(&partner_thread, partner_stack, STACK_SIZE, partner_fn,
@@ -373,6 +403,10 @@ int main(void)
 		return 1;
 	}
 
+	for (op = 0; op < (int)MEASURE_OP_COUNT; op++) {
+		warm_min[op] = 0xFFFFFFFFu;
+	}
+
 	report_caches();
 	overhead = instrument_cost();
 
@@ -391,10 +425,56 @@ int main(void)
 			if (counts[k] < smallest) {
 				smallest = counts[k];
 			}
+
+		for (size_t k = 0u; k < SAMPLES; k++) {
+			if (counts[k] < warm_min[op]) {
+				warm_min[op] = counts[k];
+			}
+		}
 		}
 	}
 
 	printf("\n# %d operations attempted\n", (int)MEASURE_OP_COUNT);
+
+	/* CRITERION 3. The first four operations again, cold. The period row is a sleep and
+	 * the mutex rows take long enough that a cache state would be lost inside them, so
+	 * neither is repeated: a cold measurement of a millisecond would be a cold first
+	 * microsecond and a warm rest, which is not the comparison the criterion asks for. */
+	cold_mode = true;
+	printf("\n# criterion 3: the same four operations with the instruction cache\n");
+	printf("#   invalidated before every bracket, the invalidation outside it\n");
+	printf("#   minimum of 64, because an operation has a floor and no ceiling\n");
+	printf("#\n");
+	printf("#   operation                                        warm    cold\n");
+
+	for (op = 0; op < 4; op++) {
+		uint32_t cold_min = 0xFFFFFFFFu;
+		size_t k;
+
+		if (measure_run((measure_op_t)op, counts, SAMPLES) != 0) {
+			continue;
+		}
+		for (k = 0u; k < SAMPLES; k++) {
+			if (counts[k] < cold_min) {
+				cold_min = counts[k];
+			}
+		}
+
+		if (cold_min >= warm_min[op]) {
+			printf("#   %-46s %6u  %6u   cold is %u per cent higher\n",
+			       measure_op_name((measure_op_t)op),
+			       (unsigned int)warm_min[op], (unsigned int)cold_min,
+			       (unsigned int)(((cold_min - warm_min[op]) * 100u) / warm_min[op]));
+		} else {
+			/* NOT AN IMPOSSIBILITY, AND WORTH PRINTING RATHER THAN HIDING. A cold run
+			 * coming out faster would mean the invalidation is not doing what this
+			 * case assumes, and that is the finding rather than a glitch. */
+			printf("#   %-46s %6u  %6u   COLD IS LOWER, which should not happen\n",
+			       measure_op_name((measure_op_t)op),
+			       (unsigned int)warm_min[op], (unsigned int)cold_min);
+		}
+	}
+	cold_mode = false;
 
 	if (overhead > 0u && smallest != 0xFFFFFFFFu) {
 		printf("# criterion 1: the instrument costs %u counts and the smallest\n",
