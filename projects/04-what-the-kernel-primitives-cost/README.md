@@ -66,6 +66,37 @@ division, so the suite ended in a traceback rather than a named failure. It was 
 what the mutation asked for, and it named nothing. Every case now reports an unexpected
 exception as a failure of that case, because the matrix above is read by a person.
 
+## The capture format, checked by building the firmware's own core on a host
+
+[adapter/measure.c](adapter/measure.c) emits a capture and
+[host/reduce.py](host/reduce.py) parses one. **Two descriptions of one format in two languages
+is two chances to write a different format**, and no test inside either can notice the drift,
+because each is right about itself. P01 met that shape with one table in three languages and
+P02 with one cascade in three.
+
+So the core carries **no kernel header, no vendor header and no processor header**, which is
+what lets [host/emit_capture.c](host/emit_capture.c) compile it with a host port and feed real
+captures to the reduction. Nothing in the pipeline test is hand-written data: every capture
+comes out of the compiled core, and the host adds only the two fields the device genuinely
+cannot know, what the witness resolves and when it saw an edge.
+
+The device half is deliberately half, and a half fed to the reduction by mistake is **refused
+rather than reduced**, because the reduction requires all five fields. That is what should
+happen to an accident.
+
+Three refusals are shown to travel **in the capture** rather than depending on whoever reads
+the file:
+
+| The device knows | The capture says | The reduction |
+|---|---|---|
+| a bracketed region ran past the wrap limit | `wrap_guard unknown` | refuses |
+| an elapsed count came back zero, so a region was never bracketed | `wrap_guard unknown` | refuses |
+| the clock tree is unconfirmed | `clock_hz 0` | refuses |
+
+First built in WSL on the demo laptop on Thursday 8 October 2026, under the volume's own
+warning set rather than a reduced one for a host build, and clean. Continuous integration is
+the second test and not the first.
+
 ## Criterion 7, which is a rule about the table rather than about a run
 
 [docs/RESULTS.md](docs/RESULTS.md) is twenty-six rows and **not one of them is measured**. The

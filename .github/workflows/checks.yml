@@ -81,6 +81,19 @@ jobs:
           cd projects/04-what-the-kernel-primitives-cost/host
           python test_reduce.py
 
+      # The loop between two descriptions of one format in two languages. adapter/measure.c
+      # emits a capture and host/reduce.py parses one, each is right about itself, and neither
+      # can notice a drift. P01 met that shape with one table in three languages and P02 with
+      # one cascade in three. The core carries no kernel, vendor or processor header, which is
+      # what lets it be built here at all. Built with the volume's own warning set rather than
+      # a reduced one, because a core that only compiles cleanly under a cross compiler has a
+      # host build that is not a check.
+      - name: P04's emitter and its parser agree about the capture format
+        run: |
+          cd projects/04-what-the-kernel-primitives-cost/host
+          make
+          python test_capture_pipeline.py build/emit_capture
+
       # P04 criterion 7, and it is enforced rather than remembered because it is the rule most
       # likely to be broken quietly by somebody adding a row in a hurry. The acquisition board
       # resolves about ten microseconds; a context switch is far shorter; a row measuring one
