@@ -282,9 +282,50 @@ static bool clock_rate_agrees(void)
 	return elapsed > (predicted - predicted / 4u) && elapsed < (predicted + predicted / 4u);
 }
 
+/* CRITERION 1: THE INSTRUMENT HAS TO BE CHEAPER THAN EVERYTHING IT MEASURES.
+ *
+ * Two reads of the counter sit inside every bracket in this file, and until now their cost
+ * had never been measured. The criterion asks for at least an order of magnitude between
+ * the instrument and the smallest thing it reports, because below that the table is partly
+ * measuring the measurement.
+ *
+ * This is an empty bracket: two reads and nothing between them. It is reported beside the
+ * clock check rather than as a row of the results table, because it is a property of the
+ * instrument and not of the kernel, and a table row would invite somebody to compare it
+ * with a primitive as though they were the same kind of thing.
+ *
+ * The MINIMUM is the figure that matters here, not the median. An empty bracket has a
+ * floor and no ceiling: anything above the floor is interference, and the floor is what
+ * the instrument actually costs.
+ */
+static uint32_t instrument_cost(void)
+{
+	uint32_t best = 0xFFFFFFFFu;
+	uint32_t worst = 0u;
+	unsigned int i;
+
+	for (i = 0u; i < 256u; i++) {
+		uint32_t t0 = measure_now();
+		uint32_t d = measure_now() - t0;
+
+		if (d < best) {
+			best = d;
+		}
+		if (d > worst) {
+			worst = d;
+		}
+	}
+
+	printf("# instrument: an empty bracket costs %u counts at best, %u at worst\n",
+	       (unsigned int)best, (unsigned int)worst);
+	return best;
+}
+
 int main(void)
 {
 	static uint32_t counts[SAMPLES];
+	uint32_t overhead = 0u;
+	uint32_t smallest = 0xFFFFFFFFu;
 	int op;
 
 	k_thread_create(&partner_thread, partner_stack, STACK_SIZE, partner_fn,
@@ -306,6 +347,8 @@ int main(void)
 		return 1;
 	}
 
+	overhead = instrument_cost();
+
 	for (op = 0; op < (int)MEASURE_OP_COUNT; op++) {
 		int rc = measure_run((measure_op_t)op, counts, SAMPLES);
 
@@ -316,8 +359,23 @@ int main(void)
 			continue;
 		}
 		(void)measure_emit((measure_op_t)op, counts, SAMPLES);
+
+		for (size_t k = 0u; k < SAMPLES; k++) {
+			if (counts[k] < smallest) {
+				smallest = counts[k];
+			}
+		}
 	}
 
 	printf("\n# %d operations attempted\n", (int)MEASURE_OP_COUNT);
+
+	if (overhead > 0u && smallest != 0xFFFFFFFFu) {
+		printf("# criterion 1: the instrument costs %u counts and the smallest\n",
+		       (unsigned int)overhead);
+		printf("#   thing it measured was %u, a ratio of %u. The criterion asks\n",
+		       (unsigned int)smallest, (unsigned int)(smallest / overhead));
+		printf("#   for at least ten, so this run %s\n",
+		       (smallest / overhead) >= 10u ? "meets it" : "does not");
+	}
 	return 0;
 }
