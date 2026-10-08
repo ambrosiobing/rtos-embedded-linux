@@ -113,12 +113,24 @@ static void run_yield(uint32_t *counts, size_t n)
 {
 	size_t i;
 
+	/* THE PARTNER RUNS ONLY HERE, AND THAT IS NOT TIDINESS. On Thursday 8 October 2026
+	 * the first run on the board printed this operation and then stopped dead. The
+	 * partner spins at the measurer's own priority, so while it was running the
+	 * lower-priority giver could never be scheduled, and the next operation blocked
+	 * on a signal that could not arrive.
+	 *
+	 * An always-ready thread at the measurer's priority is exactly what the yield case
+	 * needs and exactly what every other case cannot survive. */
+	k_thread_resume(&partner_thread);
+
 	for (i = 0u; i < n; i++) {
 		uint32_t t0 = measure_now();
 
 		k_yield();
 		counts[i] = measure_now() - t0;
 	}
+
+	k_thread_suspend(&partner_thread);
 }
 
 /* FROM THE GIVE TO THE RESUMPTION. The giver is lower priority, so releasing it does not run
@@ -229,6 +241,47 @@ int measure_run(measure_op_t op, uint32_t *counts, size_t n)
 
 /* ---- the application ---------------------------------------------------------------------- */
 
+/* IS THE DECLARED RATE THE RATE THIS COUNTER ACTUALLY ADVANCES AT?
+ *
+ * measure_clock_hz() reports what the kernel says the hardware cycle rate is and measure_now()
+ * reads a counter. Those are two different claims and nothing had ever checked that they are
+ * about the same thing. If the counter advances at some other rate, every figure in the table
+ * is scaled by an unknown factor and still looks entirely reasonable.
+ *
+ * So bracket a sleep of a known length and compare the count against what the declared rate
+ * predicts. It is the design's own rule turned on the instrument rather than on the subject,
+ * and it runs before any operation, because a mis-scaled table is worse than no table.
+ *
+ * The tolerance is generous on purpose. A sleep is not a precise interval and this does not
+ * measure the sleep; it asks whether the two claims are about the same order of thing. Two per
+ * cent would fail on scheduling noise. Being wrong by a factor is what it has to catch.
+ */
+#define CLOCK_CHECK_MS 200u
+
+static bool clock_rate_agrees(void)
+{
+	uint32_t hz = measure_clock_hz();
+	uint32_t predicted, elapsed, t0;
+
+	if (hz == 0u) {
+		return false;
+	}
+
+	predicted = (hz / 1000u) * CLOCK_CHECK_MS;
+	t0 = measure_now();
+	k_msleep((int32_t)CLOCK_CHECK_MS);
+	elapsed = measure_now() - t0;
+
+	printf("# clock check: %u ms of sleep advanced the counter by %u, and %u Hz\n",
+	       (unsigned int)CLOCK_CHECK_MS, (unsigned int)elapsed, (unsigned int)hz);
+	printf("#   predicts %u, so the count is %u per cent of the prediction\n",
+	       (unsigned int)predicted,
+	       (unsigned int)(((uint64_t)elapsed * 100u) / predicted));
+
+	/* Within a quarter, which catches a factor and tolerates a sleep. */
+	return elapsed > (predicted - predicted / 4u) && elapsed < (predicted + predicted / 4u);
+}
+
 int main(void)
 {
 	static uint32_t counts[SAMPLES];
@@ -236,6 +289,7 @@ int main(void)
 
 	k_thread_create(&partner_thread, partner_stack, STACK_SIZE, partner_fn,
 			NULL, NULL, NULL, PRIO_PARTNER, 0, K_NO_WAIT);
+	k_thread_suspend(&partner_thread);
 	k_thread_create(&giver_thread, giver_stack, STACK_SIZE, giver_fn,
 			NULL, NULL, NULL, PRIO_GIVER, 0, K_NO_WAIT);
 	k_thread_priority_set(k_current_get(), PRIO_MEASURER);
@@ -245,6 +299,11 @@ int main(void)
 		printf("# THE CLOCK IS UNCONFIRMED FOR THIS BUILD. Every capture below carries\n");
 		printf("# clock_hz 0 and the reduction refuses it. That is the point: these\n");
 		printf("# counts are not times and nothing should be able to publish them.\n");
+	} else if (!clock_rate_agrees()) {
+		printf("#\n# REFUSED. The counter does not advance at the rate the kernel\n");
+		printf("# declares, so every count below would be scaled by an unknown\n");
+		printf("# factor while looking entirely reasonable. Nothing is emitted.\n");
+		return 1;
 	}
 
 	for (op = 0; op < (int)MEASURE_OP_COUNT; op++) {
