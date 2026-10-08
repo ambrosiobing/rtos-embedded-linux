@@ -71,6 +71,16 @@ jobs:
       - name: The same cascade in C, C++ and Rust, arm for arm
         run: python scripts/crosscheck_cascade.py
 
+      # P04's host half, which needs no board. Criterion 6 asks that a disagreement between the
+      # two instruments be detectable, and it is the criterion that makes criterion 5 worth
+      # anything: a reduction which cannot report a disagreement would pass the agreement
+      # criterion by being blind. The suite is mostly refusals, and it was shown to go red on
+      # six mutations before it was committed; the project README lists which case caught each.
+      - name: P04's reduction refuses the captures that cannot mean anything
+        run: |
+          cd projects/04-what-the-kernel-primitives-cost/host
+          python test_reduce.py
+
       # The structural check, and the one that proves the figures really are with
       # their projects rather than only referenced as if they were.
       - name: Twenty chapters, twenty projects, five figures each
