@@ -271,10 +271,55 @@ present in neither condition reliably, so the comparison has nothing to stand on
 more times does not help: each run has an independent chance of the contact being open, and a
 silence is produced by both the hypothesis under test and by the apparatus.
 
-**So this question is blocked on the soldering iron, not on bench time.** With an eight-way
-header fitted, it is two runs and ten minutes. Without one, no number of attempts will settle
-it, and attempting it again before then would be spending evenings on a measurement that cannot
-come out.
+**So no further attempt is planned on friction contacts.** That ban is absolute and the fifth
+attempt earned it.
+
+**The cause is worth stating precisely, because an earlier version of this page put it
+loosely.** It said the question was blocked on a soldering iron. The iron is not what the
+comparison needs. **What it needs is the same part reliably present in both arms**, and a fitted
+header is the clean way to get that rather than the only conceivable one. Any contact that stays
+closed through both runs would serve.
+
+**And the iron is not being heated for this question.** It is for **criterion 5**, which needs
+the interrupt line on pad 4, and **criterion 6**, which needs a contact that stays closed long
+enough to put a second address on the bus. Those two are criteria the design asks for. This
+comparison is not one of the six. It is a **ten-minute rider on that same sitting**: shield off,
+scan showing `0x53` and none of the shield's addresses, one run; then 4.7 kOhm fitted on SDA and
+SCL, scan again, second run.
+
+**It does not gate P03 and nothing waits on it.** A reader coming to this later should take
+`open` to mean open, and not `failed`.
+
+One thing the rider will need from whoever does that sitting: **a line saying whether it was
+run**. A rider with no owner becomes an open question nobody holds.
+
+### A bound, so that 40 kOhm is not left looking unexamined
+
+This is arithmetic, not a measurement, and it is marked as such because **there is no
+oscilloscope and no logic analyser on this bench** and nothing here has watched an edge.
+
+A two-wire line rises as a resistor charges the bus capacitance, and the specification measures
+that rise between three tenths and seven tenths of the supply, so
+
+    t_r  =  R * C * ln(0.7 / 0.3)  =  0.8473 * R * C
+
+Standard mode allows 1000 ns and fast mode allows 300 ns. Turning that around gives the
+capacitance each pull-up can carry:
+
+| Pull-up | Standard mode, 1000 ns | Fast mode, 300 ns |
+|---|---|---|
+| the processor's own, about 40 kOhm | about **30 pF** | about **9 pF** |
+| a fitted 4.7 kOhm | about **250 pF** | about **75 pF** |
+
+A few jumper leads sit near the 30 pF figure, so the internal pull-ups are **marginal at
+100 kHz and outside the limit at 400 kHz for any realistic lead**. That is consistent with
+everything observed, and it is not evidence, because a calculation agreeing with an observation
+is not an independent check.
+
+**Two caveats, both of which the comparison would remove.** The 40 kOhm is not quoted from the
+datasheet: [docs/HARDWARE.md](../../../docs/HARDWARE.md) marks it as a gap, and the bound
+inherits that. And a bound on the edge says nothing about whether this part acknowledges, which
+is the thing the comparison would actually show.
 
 Worth noticing what did come out of the five attempts, which is not nothing. The scan's address
 list turned out to be a reliable detector of whether the shield was really off, and it caught
