@@ -86,6 +86,63 @@ that measurement, because nothing here controlled the cache state deliberately. 
 turning up uninvited in a run that was not looking for it, which is a reason to build the
 controlled version rather than a substitute for it.
 
+## Second run, the same evening: criterion 1 settled, and a shift worth noticing
+
+The image gained an instrument-cost measurement and nothing else. It reports an empty bracket,
+two reads of the counter with nothing between them, 256 times, and takes the **minimum**: an
+empty bracket has a floor and no ceiling, so anything above the floor is interference and the
+floor is what the instrument costs.
+
+    # instrument: an empty bracket costs 82 counts at best, 103 at worst
+    # criterion 1: the instrument costs 82 counts and the smallest
+    #   thing it measured was 1200, a ratio of 14. The criterion asks
+    #   for at least ten, so this run meets it
+
+**Criterion 1 is met, and the run evaluated it rather than a person doing the division later.**
+A criterion whose verdict is computed by hand is one somebody eventually forgets to compute.
+
+**The margin is thinner than "met" suggests, and that is worth saying plainly.** 82 counts is
+**seven per cent** of the cheapest row, and it sits inside every bracket in the table. Here is
+what subtracting it does:
+
+| Operation | As measured | Less the instrument | Relative, as measured | Relative, corrected |
+|---|---|---|---|---|
+| hand work to a queue | 1200 | 1118 | 1.00 | 1.00 |
+| block on one object | 1460 | 1378 | 1.22 | 1.23 |
+| block on several objects | 1803 | 1721 | 1.50 | 1.54 |
+| yield round trip | 2600 | 2518 | 2.17 | 2.25 |
+
+The ratios move by two or three per cent, which is small and is not nothing. The eventual table
+will have to say which column it is reporting, and this page records both so that the choice is
+visible rather than silent.
+
+### The figures moved between two builds that changed nothing relevant
+
+The only difference between the two runs is the instrument measurement, which executes before
+any operation and touches none of them.
+
+| Operation | First run | Second run | Change |
+|---|---|---|---|
+| hand work to a queue | 1217 | 1200 | down 1.4 per cent |
+| block on one object | 1478 | 1460 | down 1.2 per cent |
+| block on several objects | 1817 | 1803 | down 0.8 per cent |
+| yield round trip | 2573 | 2600 | **up** 1.0 per cent |
+
+**Three went down and one went up, from adding code that none of them executes.** That is the
+signature of instruction placement rather than of the kernel: the same operations, laid out
+differently in flash, cost slightly differently. It is more evidence for the suspicion already
+recorded above, that the caches and the flash wait states dominate these figures, and it is a
+direct warning about criterion 2.
+
+It also sets a floor on how precisely any of these numbers can be quoted. **A figure from this
+project is good to about two per cent at best**, because recompiling with an unrelated change
+moves it by that much, and anything finer would be reporting the build rather than the kernel.
+
+The second run's distributions are also markedly more degenerate than the first: `hand work to a
+queue` reads exactly 1200 in sixty-two of sixty-four samples, and `block on one object` exactly
+1460 in forty-eight consecutive samples. That is the kind of stability that makes a mean and a
+median identical and makes the minimum the only honest statistic for an operation with a floor.
+
 ## What this run does not settle, and why no row is filled in
 
 **Criterion 1, the instrument being cheaper than everything it measures.** Two reads of the
