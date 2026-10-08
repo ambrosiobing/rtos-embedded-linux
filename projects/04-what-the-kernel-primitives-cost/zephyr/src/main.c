@@ -23,6 +23,7 @@
 #include "mutex_case.h"
 
 #include <zephyr/kernel.h>
+#include <cmsis_core.h>
 #include <zephyr/sys/util.h>
 
 #include <errno.h>
@@ -320,6 +321,32 @@ static uint32_t instrument_cost(void)
 	return best;
 }
 
+/* ARE THE CACHES ON? The question behind every figure this project has produced.
+ *
+ * A single context switch measured about 1300 counts, which is 4.6 us at 280 MHz and slow
+ * for a Cortex-M7. The standing suspicion has been the caches and the flash wait states
+ * rather than the kernel, and two builds differing only in code that nothing executes moved
+ * the figures by about one per cent each, which is what instruction placement does.
+ *
+ * This asks the hardware rather than the configuration. Kconfig says what the build asked
+ * for; the control register says what the processor is actually doing, and those are two
+ * different claims. If they disagree, the disagreement is the finding.
+ *
+ * It also decides whether criterion 3 is worth building. Warm against cold is a comparison
+ * between two cache states, and with no cache there is only one state and nothing to
+ * compare, so a run showing both off would retire that criterion rather than fail it.
+ */
+static void report_caches(void)
+{
+	printf("# caches, as the build asked and as the hardware reports\n");
+	printf("#   the build asked for CONFIG_ICACHE %s and CONFIG_DCACHE %s\n",
+	       IS_ENABLED(CONFIG_ICACHE) ? "y" : "n",
+	       IS_ENABLED(CONFIG_DCACHE) ? "y" : "n");
+	printf("#   the control register says instruction cache %s, data cache %s\n",
+	       (SCB->CCR & SCB_CCR_IC_Msk) ? "ON" : "OFF",
+	       (SCB->CCR & SCB_CCR_DC_Msk) ? "ON" : "OFF");
+}
+
 int main(void)
 {
 	static uint32_t counts[SAMPLES];
@@ -346,6 +373,7 @@ int main(void)
 		return 1;
 	}
 
+	report_caches();
 	overhead = instrument_cost();
 
 	for (op = 0; op < (int)MEASURE_OP_COUNT; op++) {
