@@ -66,6 +66,33 @@ division, so the suite ended in a traceback rather than a named failure. It was 
 what the mutation asked for, and it named nothing. Every case now reports an unexpected
 exception as a failure of that case, because the matrix above is read by a person.
 
+## The first run on the board, Thursday 8 October 2026
+
+Five operations, no wiring at all, and **two resets producing identical output**.
+[docs/BENCH.md](docs/BENCH.md) has the figures and, more importantly, the four reasons no row of
+[docs/RESULTS.md](docs/RESULTS.md) has been filled in.
+
+The instrument checked itself before measuring anything: 200 ms of sleep advanced the counter by
+56023503 against a prediction of 56000000, so the declared rate and the counter agree to four
+parts in ten thousand and the counts below are times rather than numbers.
+
+| Operation | Steady, cycles | Relative |
+|---|---|---|
+| hand work to a queue rather than do it in place | 1217 | 1.00 |
+| block on one object, be signalled, return | 1478 | 1.21 |
+| block on several objects, be signalled, return | 1817 | 1.49 |
+| yield to an equal-priority ready thread | 2573 | 2.11 |
+
+**The relative column is the product.** A cost in cycles belongs to this board and this build; a
+ratio is what a later chapter needs when it chooses one primitive over another. Waiting on
+several objects costs 23 per cent more than waiting on one.
+
+Two findings came out of a run that was not looking for either. **The periodic thread's period
+is 1.1 ms rather than 1 ms**, in sixty-four samples out of sixty-four, which is tick granularity
+and means any chapter describing a 1 kHz release on this configuration would be describing
+909 Hz. And **the first sample of every operation is the largest**, by 13.6 per cent for the
+cheapest one, which is criterion 3's warm-against-cold effect turning up uninvited.
+
 ## The capture format, checked by building the firmware's own core on a host
 
 [adapter/measure.c](adapter/measure.c) emits a capture and
