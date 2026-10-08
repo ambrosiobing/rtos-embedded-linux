@@ -143,6 +143,69 @@ queue` reads exactly 1200 in sixty-two of sixty-four samples, and `block on one 
 1460 in forty-eight consecutive samples. That is the kind of stability that makes a mean and a
 median identical and makes the minimum the only honest statistic for an operation with a floor.
 
+## Criterion 4, settled Thursday 8 October 2026: what priority inversion costs
+
+The contended case ran for the first time. Three threads: the measurer at priority 5 wanting the
+lock, a medium thread at 6 that is runnable and holds nothing, and a holder at 7 inside a
+bounded amount of work with the lock.
+
+| Arm | Steady, counts | Steady | Spread across 64 samples |
+|---|---|---|---|
+| priority inheritance on, a `k_mutex` | 11100 | **39.6 us** | 11061 to 11192 |
+| priority inheritance off, a binary semaphore | 39450 | **140.9 us** | 39409 to 39474 |
+
+**The difference is 28350 counts, or 101 microseconds.** The wait is 3.55 times longer without
+inheritance, and the criterion asked only that the two differ, so **criterion 4 is met**.
+
+That is the textbook result with a number attached. Without the protocol the high-priority
+thread waits for essentially the whole of an unrelated thread's work, and here that is 101 us
+added to a 39.6 us wait.
+
+### The arithmetic closes on itself, which is why the figure is believable
+
+Medium is given 8000 spin iterations and the holder 2000. If the only difference between the
+arms is medium's work, then:
+
+    28350 counts of difference / 8000 iterations  =  3.54 counts per iteration
+
+Apply that same cost to the holder's 2000 iterations and its work should be about 7090 counts.
+Subtract it from the inheriting arm:
+
+    11100 - 7090  =  4010 counts of something that is not spinning
+
+**4010 counts is about three context switches** at the 1300 counts already measured for one
+earlier this evening, and three is what the sequence contains: the measurer blocking, the
+boosted holder resuming, and the measurer being woken on the release. Two independent
+measurements taken for different purposes agree, which is a check rather than a coincidence.
+
+### The prediction was close and slightly high, and the reason is identifiable
+
+The prediction written before the run was a factor of **four or five**, from medium being given
+four times the holder's work. The measurement says **3.55**.
+
+The gap is the fixed cost. Both arms carry the same 4010 counts of switching and locking, which
+does not scale with the work, so it dilutes the ratio: the work alone is in the ratio 5 to 1 and
+the measured totals are in the ratio 3.55 to 1. **A prediction about the work was applied to a
+total that also contains overhead**, which is a small error of the kind worth recording, because
+the same mistake in a chapter would read as the inheritance protocol being less effective than
+it is.
+
+**The right statement for the chapter is the difference, not the ratio.** 101 microseconds is
+medium's work, whatever the holder was doing, and it transfers to any other case where the
+question is what an unrelated thread costs you.
+
+### The other four rows reproduced
+
+| Operation | Second run | Third run | Change |
+|---|---|---|---|
+| hand work to a queue | 1200 | 1201 | 0.1 per cent |
+| block on one object | 1460 | 1476 | 1.1 per cent |
+| block on several objects | 1803 | 1806 | 0.2 per cent |
+| yield round trip | 2600 | 2598 | 0.1 per cent |
+
+All inside the **two per cent** bound this project set for itself after the previous pair of
+runs, which is the first time that bound has been used rather than merely stated.
+
 ## What this run does not settle, and why no row is filled in
 
 **Criterion 1, the instrument being cheaper than everything it measures.** Two reads of the

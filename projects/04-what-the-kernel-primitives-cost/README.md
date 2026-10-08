@@ -93,6 +93,27 @@ and means any chapter describing a 1 kHz release on this configuration would be 
 909 Hz. And **the first sample of every operation is the largest**, by 13.6 per cent for the
 cheapest one, which is criterion 3's warm-against-cold effect turning up uninvited.
 
+## Criterion 4: what priority inversion costs on this board
+
+| Arm | Steady, counts | Steady |
+|---|---|---|
+| priority inheritance on, a `k_mutex` | 11100 | 39.6 us |
+| priority inheritance off, a binary semaphore | 39450 | 140.9 us |
+
+**101 microseconds of difference, a wait 3.55 times longer.** The criterion asked only that the
+two differ, so it is met, and the figure a chapter should quote is the **difference** rather
+than the ratio: 101 us is the medium thread's work, and it transfers to any case asking what an
+unrelated thread costs you.
+
+**What is being compared is two protocols, not two settings of one object.** Zephyr's `k_mutex`
+always inherits and offers no switch, so the second arm is a binary semaphore used as a lock.
+Saying otherwise would make the row read as a claim about a flag that does not exist.
+
+[docs/BENCH.md](docs/BENCH.md) shows the arithmetic closing on itself: the difference divided by
+medium's spin count gives 3.54 counts per iteration, and applying that to the holder's spin
+leaves 4010 counts unaccounted for, which is about three context switches at the rate measured
+independently earlier the same evening.
+
 ## The capture format, checked by building the firmware's own core on a host
 
 [adapter/measure.c](adapter/measure.c) emits a capture and
