@@ -1,10 +1,19 @@
 # P04. What the kernel primitives cost, by the cycle counter
 
-Status: not started. Nothing in this directory has been built, and no
-number here has been measured.
+Status on Thursday 8 October 2026: **the design page exists and no code does.** No number
+here has been measured and every row of the eventual table reads `not measured`.
 
-The written design is [chapter 04](../../chapters/04-what-the-kernel-primitives-cost.md), which is
-complete. What is absent is the code.
+[docs/DESIGN.md](docs/DESIGN.md) sorts the chapter's seven acceptance criteria by what each
+costs, and **two of them need no hardware at all**: that the reduction can report a
+disagreement it was shown, and that no row of the table cites an instrument which cannot see
+what the row claims. Those two come first, because a check that cannot fail has shown nothing.
+
+It also records the one decision that goes beyond the chapter, with its cost: the same
+primitives will be priced under **two kernels**, so that a ratio between primitives can be
+shown to survive a change of kernel rather than being a property of one.
+
+The written specification is [chapter 04](../../chapters/04-what-the-kernel-primitives-cost.md),
+which is complete. What is absent is the code.
 
 | | |
 |---|---|
