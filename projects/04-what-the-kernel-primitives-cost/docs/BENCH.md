@@ -206,6 +206,43 @@ question is what an unrelated thread costs you.
 All inside the **two per cent** bound this project set for itself after the previous pair of
 runs, which is the first time that bound has been used rather than merely stated.
 
+## The cache explanation is withdrawn, and the hardware was asked rather than assumed
+
+Three times in this log the slow context switch was attributed to the caches and the flash wait
+states on this part. The run of Thursday 8 October 2026 at 22:48 asked the processor instead of
+reasoning about it:
+
+    # caches, as the build asked and as the hardware reports
+    #   the build asked for CONFIG_ICACHE y and CONFIG_DCACHE y
+    #   the control register says instruction cache ON, data cache ON
+
+**Both caches are on, and the build and the hardware agree.** The explanation is refuted and is
+withdrawn here rather than quietly dropped.
+
+Two things follow, and the second is more useful than the first.
+
+**Criterion 3 is not retired, it is worth building.** With both caches on there really are two
+states to compare, so warm against cold is a measurement rather than a formality, and the
+warm-up visible in every operation's first samples has something behind it.
+
+**The figure is probably not what I have been calling it.** About 1300 counts has been described
+in this log as "a single context switch", and that is an inference from the yield case being
+roughly twice the block-on-one case rather than a statement about what the bracket contains.
+`block on one object` runs from the giver's stamp to the measurer's resumption. That is a
+**complete wake-up path**: the give executing, the scheduler choosing, the switch itself, and
+the return from the take. A published context-switch figure usually measures something a good
+deal tighter.
+
+So the open question has moved. It is no longer "why is the switch slow" but **"is this the same
+quantity anybody else is quoting"**, and that is exactly what criterion 2 is for. The comparison
+has to be like for like or the disagreement it finds will be about definitions rather than about
+this board.
+
+The lesson for the volume is the one already in its own rules and broken here anyway: **a
+plausible cause that nothing has tested is a guess**, and this one survived three separate
+write-ups because it sounded right. The processor could have been asked at any point, and
+answering took eight lines.
+
 ## What this run does not settle, and why no row is filled in
 
 **Criterion 1, the instrument being cheaper than everything it measures.** Two reads of the
@@ -215,10 +252,9 @@ criterion asks for an order of magnitude.
 
 **Criterion 2, agreement with published figures within a stated factor.** About 1300 cycles for
 a single context switch is 4.6 us at 280 MHz, which is **slow for a Cortex-M7** and is the one
-figure here I would not publish without a comparison. The likeliest explanation is the caches
-and the flash wait states on this part rather than the kernel, and the honest next step is to
-find out rather than to assume: the criterion exists so that a disagreement becomes the finding
-instead of an embarrassment.
+figure here I would not publish without a comparison. **The explanation offered here was the
+caches, and it is wrong: see the withdrawal below, where the control register was asked and
+said both are on.**
 
 **Criterion 3, warm against cold.** The effect is visible above and has not been controlled.
 
