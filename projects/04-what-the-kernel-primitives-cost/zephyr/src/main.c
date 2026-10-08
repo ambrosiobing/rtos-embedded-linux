@@ -20,6 +20,7 @@
  * somebody says whether it includes the trip back.
  */
 #include "../../adapter/measure.h"
+#include "mutex_case.h"
 
 #include <zephyr/kernel.h>
 #include <zephyr/sys/util.h>
@@ -227,13 +228,11 @@ int measure_run(measure_op_t op, uint32_t *counts, size_t n)
 		run_period(counts, n);
 		return 0;
 	case MEASURE_OP_MUTEX_INHERIT_ON:
+		mutex_case_run(true, counts, n);
+		return 0;
 	case MEASURE_OP_MUTEX_INHERIT_OFF:
-		/* NOT YET, AND NOT BECAUSE IT IS HARD TO CALL. The contended case needs three
-		 * threads sequenced so that the medium-priority one is genuinely runnable while
-		 * the low-priority one holds the lock, and a version that does not arrange that
-		 * would produce two equal numbers and read as a refutation of criterion 4 when it
-		 * was really a badly built case. It gets its own piece of work. */
-		return -ENOTSUP;
+		mutex_case_run(false, counts, n);
+		return 0;
 	default:
 		return -EINVAL;
 	}
