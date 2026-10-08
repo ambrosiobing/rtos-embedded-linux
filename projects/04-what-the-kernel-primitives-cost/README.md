@@ -66,6 +66,34 @@ division, so the suite ended in a traceback rather than a named failure. It was 
 what the mutation asked for, and it named nothing. Every case now reports an unexpected
 exception as a failure of that case, because the matrix above is read by a person.
 
+## Criterion 7, which is a rule about the table rather than about a run
+
+[docs/RESULTS.md](docs/RESULTS.md) is twenty-six rows and **not one of them is measured**. The
+column says `not measured` rather than being left blank, because a blank invites somebody to
+fill it in and a refusal does not.
+
+[scripts/check_instruments.py](../../scripts/check_instruments.py) runs on every push. Criterion
+7 is its first rule: **a row predicted to be below the witness's resolution may not name the
+witness.** The other three exist because a table that can be relabelled to suit a number is not
+a check.
+
+The `Scale` column is a **prediction made before any number exists**, and that is what makes it
+checkable. A measured duration that contradicts its own Scale fails, so a row cannot be quietly
+moved to the other side of the boundary when the number comes out awkwardly.
+
+**Shown to reject seven bad tables before it was committed.** The mutations are applied to the
+table rather than to the checker, because a check is proven by the inputs it rejects:
+
+| What the table was made to say | The check |
+|---|---|
+| a below-resolution row citing the witness | refused, criterion 7 itself |
+| a below row measured at 40 us, contradicting its own prediction | refused |
+| an above row measured at 2 us, which the witness could not have seen | refused |
+| a cycle count published with no duration beside it | refused, a count is not a time |
+| the cold half of a warm and cold pair deleted | refused, one alone reports an accident of ordering |
+| an instrument this bench does not have | refused |
+| an above row given a cache it has no use for | refused |
+
 ## What it would deliver
 
 A table of primitive costs in cycles, each with its own method and its own refutation, and a witness that confirms the one claim the cycle counter cannot make about itself

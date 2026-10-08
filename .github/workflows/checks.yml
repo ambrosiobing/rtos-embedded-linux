@@ -81,6 +81,14 @@ jobs:
           cd projects/04-what-the-kernel-primitives-cost/host
           python test_reduce.py
 
+      # P04 criterion 7, and it is enforced rather than remembered because it is the rule most
+      # likely to be broken quietly by somebody adding a row in a hurry. The acquisition board
+      # resolves about ten microseconds; a context switch is far shorter; a row measuring one
+      # with the other would publish a property of the instrument. Shown to reject seven bad
+      # tables before it was committed, which the project README lists.
+      - name: P04 claims no instrument that cannot see what the row claims
+        run: python scripts/check_instruments.py
+
       # The structural check, and the one that proves the figures really are with
       # their projects rather than only referenced as if they were.
       - name: Twenty chapters, twenty projects, five figures each
