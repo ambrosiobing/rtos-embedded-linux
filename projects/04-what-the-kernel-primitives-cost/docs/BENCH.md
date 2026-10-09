@@ -267,6 +267,11 @@ read as a refutation when it was really a badly built case.
 one general-purpose pin to the acquisition board on the Raspberry Pi, and it is the only row in
 the table that has a second instrument at all.
 
+> Written Thursday 8 October 2026 and **superseded on Friday 9 October 2026**, when the leads were
+> fitted. The sentence is left standing because this section is a dated record of what one run did
+> not settle, and rewriting it would make that run look better informed than it was. See
+> [the witness is wired](#the-witness-is-wired-friday-9-october-2026) at the foot of this page.
+
 So [RESULTS.md](RESULTS.md) still reads `not measured` in every row, and that is correct rather
 than lazy. **A number obtained is not a number earned.**
 
@@ -751,3 +756,54 @@ rows stay unmeasured here because the cold pass covers only the first four opera
 has to be decided today. But the `Scale` column has now mis-predicted two different ways, which
 strengthens the case for the resolution recommended in [CRITERION2.md](CRITERION2.md) over the
 other two.
+
+## The witness is wired, Friday 9 October 2026
+
+![The NUCLEO-H7A3ZI-Q and the MCC 118 on the Raspberry Pi, two leads between them, recorded
+Friday 9 October 2026](figures/z04_as_built.gif)
+
+*Figure. Six seconds across the bench as built, at eight frames a second. The
+NUCLEO-H7A3ZI-Q is on the left, the Raspberry Pi carrying the MCC 118 acquisition HAT on the
+right, and two leads cross between them.*
+
+**This is the first binary file in the repository and the reason it earned the exception is
+narrow: no drawing can show that a wire is actually fitted.** `z04_wiring.svg` in the same folder
+says what the connection is meant to be, and it said so before anything was connected. A dated
+picture of the bench says what is there. Those are different claims and this project has already
+been caught once treating the first as evidence for the second, which is why
+[the bench state is not the record](../../03-one-sensor/docs/BENCH.md) exists as a rule.
+
+### What it shows, and what it does not
+
+**It shows**: two boards on the bench together, two leads running from the NUCLEO-H7A3ZI-Q's
+headers across to the green screw terminals on the MCC 118, one orange and one dark, and a lit
+red indicator on the Pi. That is enough to establish that the criterion 5 wiring is no longer a
+plan.
+
+**It does not show which pin.** At 640 pixels across a pan, the header position cannot be counted
+and the terminal cannot be read. **So the wiring table for P04 is still owed and this file does
+not discharge it.** P03 carries a `docs/WIRING.md` with a row per lead naming both endpoints,
+after two separate occasions when naming a destination instead of an endpoint produced an
+ambiguity that cost a bench session. P04 has no such page yet, and criterion 5 cannot be reported
+without one: a period measured by two instruments is worth nothing if the reader cannot tell which
+pin the second instrument was watching.
+
+**A moving picture is weaker evidence than a table and stronger evidence than a drawing**, and it
+is worth being exact about where it sits rather than letting it look like documentation.
+
+### What it cost, so that the next one is a decision and not a habit
+
+Before this file the largest thing tracked in the repository was 96 KB, an SVG. This is 3.45 MB,
+thirty-six times that, and git keeps a blob after a later commit removes it, so it is permanent in
+every clone from here on.
+
+It was 5.47 MB at the first attempt and came down by dropping to eight frames a second and
+sixty-four colours, which cost nothing a reader needs: the board's own silkscreen label is still
+legible at that size. The source is a 14 MB recording at 1920 by 1080 and thirty frames a second,
+and **that file is not in the repository and should not be**: the allowlist refuses `.mp4`, which
+was checked rather than assumed.
+
+Two guards changed in the same commit as the file, and the second exists because of the first.
+`checks.yml` now admits `gif`, and it now refuses **any** tracked file over four megabytes. A type
+admitted without a ceiling is how a documentation repository becomes a download, and a limit
+written later is a limit nobody writes.

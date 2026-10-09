@@ -167,16 +167,62 @@ jobs:
       # purpose of this guard is unchanged and is not about source types: it keeps
       # out the PDF, the HTML and the LaTeX. Source files are what the repository
       # is for, so the allowlist names the ones the projects carry.
+      #
+      # EXTENDED AGAIN ON FRIDAY 9 OCTOBER 2026, TO ADMIT ONE BINARY TYPE, AND THIS
+      # ONE IS A REAL RELAXATION RATHER THAN A CLARIFICATION. Read before adding more.
+      #
+      # The sentence above says a reader should not be asked to download anything,
+      # and a GIF is a download. The clause after it says the purpose is to keep out
+      # the PDF, the HTML and the LaTeX, which a GIF is not. The two halves of the
+      # original comment disagree about this case, so it was decided rather than
+      # deduced: P04's criterion 5 needs a wire between two boards, and no drawing
+      # proves a wire is actually fitted. A dated moving picture of the bench does.
+      # SVG can show what was intended; it cannot witness what was built.
+      #
+      # THE COST IS NOT SMALL AND IS STATED SO IT IS NOT REDISCOVERED. Before this,
+      # the largest tracked file in the repository was 96 KB. The first GIF is 3.45
+      # MB, which is thirty-six times that and permanent in every clone, because git
+      # keeps it even if a later commit removes it. That is why the size guard below
+      # was added in the same commit: admitting a type without a ceiling is how a
+      # documentation repository becomes a download.
       - name: Only the file types this repository publishes
         run: |
           set -e
-          odd=$(git ls-files | grep -vE '(\.(md|svg|py|yml|cff|c|h|cpp|hpp|rs|toml|conf|overlay)$|^LICENSE$|^\.git(ignore|attributes)$|(^|/)Makefile$|(^|/)CMakeLists\.txt$)' || true)
+          odd=$(git ls-files | grep -vE '(\.(md|svg|gif|py|yml|cff|c|h|cpp|hpp|rs|toml|conf|overlay)$|^LICENSE$|^\.git(ignore|attributes)$|(^|/)Makefile$|(^|/)CMakeLists\.txt$)' || true)
           if [ -n "$odd" ]; then
             echo "Files of a type this repository does not publish:"
             echo "$odd"
             exit 1
           fi
-          echo "Markdown, SVG, the scripts, the workflow, the licence and the citation, as intended"
+          echo "Markdown, SVG, GIF, the scripts, the workflow, the licence and the citation, as intended"
+
+      # THE CEILING THAT COMES WITH THE RELAXATION ABOVE, WRITTEN IN THE SAME COMMIT.
+      #
+      # A temporary or widening change needs its limit written at the moment it is
+      # made, or nobody writes it later. Four megabytes admits the one GIF that
+      # prompted this and refuses the careless one: a full-resolution capture of the
+      # same six seconds is over fifty.
+      #
+      # If this ever fails on a file that genuinely belongs, the answer is almost
+      # always to make the file smaller, not the number bigger. The GIF it was
+      # written around came down from 5.47 MB by dropping to eight frames a second
+      # and sixty-four colours, with no loss of anything a reader needs to see.
+      - name: Nothing in the tree is larger than four megabytes
+        run: |
+          set -e
+          big=$(git ls-files | while IFS= read -r f; do
+            s=$(stat -c%s "$f")
+            if [ "$s" -gt 4194304 ]; then printf '%s %s\n' "$s" "$f"; fi
+          done)
+          if [ -n "$big" ]; then
+            echo "Files over four megabytes are committed, in bytes and path:"
+            echo "$big"
+            echo
+            echo "Git keeps a blob even after a later commit removes it, so this"
+            echo "is permanent in every clone. Make the file smaller."
+            exit 1
+          fi
+          echo "nothing over four megabytes, as intended"
 
       - name: No journal and no correspondence is published
         run: |
