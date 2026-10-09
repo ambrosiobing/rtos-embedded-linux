@@ -1,12 +1,19 @@
 # Criterion 2: the mapping and the factor, written before the comparison
 
-**No upstream number appears on this page.** The suite has not been built or run. What is written
-here is which upstream measurement each of our rows may be compared with, the span each one
-brackets read off the upstream source, and the factor the criterion will be judged against.
+**Criterion 2 failed.** The verdict is at the foot of this page, with the numbers. Everything above
+it was committed at 08:26 on Friday 9 October 2026 in `75adb59`, before the upstream suite had been
+built, and it is left exactly as it was written.
 
-That order is the point. **A factor chosen after seeing both numbers is not a criterion**, and
-criterion 2 asks that our minimum agree with the upstream suite within a *stated* factor. Stated
-when, is the whole question.
+Everything down to the end of the configuration section therefore says "the suite has not been
+run", in the present tense, and that tense is the point rather than an oversight. **A factor chosen
+after seeing both numbers is not a criterion**, and criterion 2 asks that our minimum agree with
+the upstream suite within a *stated* factor. Stated when, is the whole question, and the commit
+history is the only thing that can answer it.
+
+What was written first is: which upstream measurement each of our rows may be compared with, the
+span each one brackets read off the upstream source, the factor to be judged against, and two
+sharper predictions. **Both predictions were wrong, and one was wrong in its direction**, which is
+worth more than either would have been right.
 
 ## What the upstream suite is
 
@@ -174,3 +181,121 @@ benchmark is our code again, and comparing our code with our code is not what cr
 for.** The fallback in that case is to state criterion 2 as blocked on the timing API and leave it
 blocked, which is a smaller loss than it sounds given that five of the seven rows have no upstream
 counterpart in any case.
+
+## The upstream run, Friday 9 October 2026 at 08:46: criterion 2 fails
+
+The suite built and ran. **The named risk did not materialise**: `CONFIG_TIMING_FUNCTIONS=y` is
+supported on `nucleo_h7a3zi_q`, the build completed at 40352 bytes of flash, and the run ended
+`PROJECT EXECUTION SUCCESSFUL` with forty-eight rows.
+
+| Row | Upstream | Ours | Ratio |
+|---|---|---|---|
+| `thread.yield.preemptive.ctx.k_to_k` | 188 cycles, **671 ns** | 1295 counts, **4625 ns** | **6.9** |
+| `semaphore.give.wake+ctx.k_to_k` | 290 cycles, **1037 ns** | 1461 counts, **5218 ns** | **5.0** |
+
+*Table. The two comparable rows. Ours are from the 08:03 run, with the yield halved as
+[CRITERION2.md](CRITERION2.md) specified before the comparison.*
+
+**Criterion 2 asked for agreement within a factor of 1.5. The factors are 6.9 and 5.0, so
+criterion 2 fails**, and it fails by enough that no reading of the numbers rescues it.
+
+### Both predictions were wrong, and the direction is the more informative error
+
+The predictions said upstream should land **at or above** ours, because upstream reports an
+average and we report a minimum of sixty-four, and a minimum cannot exceed an average of the same
+quantity. **Upstream came in five to seven times below.**
+
+That argument was sound and its conclusion is refuted, which leaves exactly one reading: **the two
+spans are not the same quantity**, whatever their endpoints say. The endpoints were established
+from the upstream source, line by line, and they do match. So the difference is not in where the
+brackets open and close. It is in what is inside them, or in what measures them.
+
+### It is not a unit error, and the check that establishes that was built in beforehand
+
+[CRITERION2.md](CRITERION2.md) said the comparison would be reported in nanoseconds with the
+suite's own cycles-to-nanoseconds ratio checked against 280 MHz beside it, so that comparing
+counts would only be done if both sides count the same counter.
+
+    188 cycles / 671 ns   = 280.2 MHz
+    290 cycles / 1037 ns  = 279.7 MHz
+
+**Upstream's counter ticks at 280 MHz and so does ours**, gated on every run to four parts in ten
+thousand. Both sides count the same rate, the comparison is valid in cycles as well as in
+nanoseconds, and the factor of five is real rather than a mislabelled unit.
+
+### The residuals agree with each other, which is the one real clue
+
+Our figures do not look like upstream's times a factor. **They look like upstream's plus a
+constant.**
+
+| Row | Ours | Upstream | Ours less upstream |
+|---|---|---|---|
+| one context switch | 1295 | 188 | **1107** |
+| semaphore wake and return | 1461 | 290 | **1171** |
+
+**Those two residuals agree to 64 counts, which is 5.6 per cent of their mean.** The two
+operations have different paths inside them and the offset does not change, which is what an
+additive cost outside the operation looks like rather than a path that is genuinely slower.
+
+It also explains a shape that had gone unremarked. Upstream says a bare switch at 188 is much
+cheaper than a semaphore wake at 290, a ratio of 0.65. Ours says 1295 against 1461, a ratio of
+0.89, nearly equal. **A large constant added to both would flatten exactly that way**, and the
+flattening is visible in our own table without any reference to upstream.
+
+**The additive model does not fit the third row, and that is recorded rather than set aside.**
+`hand work to a queue` reads 1196, and subtracting 1140 leaves 56 counts for a work submit plus a
+dispatch, against upstream's 339 for the analogous `fifo.put.wake+ctx`. 56 counts is implausibly
+small. So the offset is not simply present in every bracket, and **no mechanism is claimed here.**
+Two residuals agreeing is a clue and three operations are not enough to fit a model to.
+
+### Criterion 1's verdict is now in doubt, and that follows directly
+
+Criterion 1 asks that the instrument be cheaper than everything it measures by at least an order
+of magnitude. Every run has reported it met: 81 counts against a smallest measured figure of 1196,
+a ratio of 14.
+
+**That division used our own figures on both sides.** Upstream's comparable span is 290 cycles, so
+our 81-count instrument against the operation as upstream prices it is a ratio of **3.6**, which is
+not an order of magnitude. And upstream's `semaphore.give.immediate` is 47 cycles, so **our empty
+bracket costs more than a whole semaphore give.**
+
+Criterion 1 is not withdrawn, because its arithmetic over the figures this project actually took is
+correct. **What is withdrawn is the comfort.** Its verdict depends on the figures being
+measurements of the operations rather than of the operations plus an offset, and criterion 2 has
+just put that in question. If the offset is real, criterion 1 fails.
+
+This is the same error pattern the log already records twice: a check whose two sides come from
+the same suspect source cannot find a fault in that source.
+
+### What this does and does not touch elsewhere
+
+**Criterion 3 is unaffected.** It compares warm against cold within one build using one
+instrument, so a constant common to both arms cancels in the difference. The penalties of 725,
+843, 944 and 1004 counts are differences and survive. Their **percentages do not**, because those
+divide by a baseline that may carry the offset.
+
+**Criterion 4's ratio survives and one of its explanations does not.** The 101 microsecond
+difference is a difference and stands. But its arithmetic read 4010 counts of residual as "about
+three context switches at the 1300 counts already measured for one". At upstream's 188 cycles per
+switch, 4010 counts is twenty-one switches, not three. **That reading was self-consistent and
+anchored to a figure now in question**, so it is withdrawn as an explanation while the number
+stays.
+
+**The configuration was still not matched for this comparison.** The 08:03 figures were taken with
+`CONFIG_TIMESLICING=y` and a 20 ms slice, which `5bd71db` set to `n` to match upstream, and that
+rebuilt image has not yet been run. It cannot account for a factor of five, so the failure above
+stands, but the matched run is owed and is not a substitute for the test below.
+
+### The decisive next test, one variable
+
+**Replace `measure_now()` with the timing API that upstream uses, change nothing else, and run the
+same seven operations.** Ours calls `k_cycle_get_32()`; upstream calls `timing_timestamp_get()`,
+which on this part reads the cycle counter directly, and the suite additionally measures and
+subtracts its own timestamp overhead in `timing_sc.c`.
+
+If our figures fall toward upstream's, the difference was the instrument and this project has been
+pricing its own measuring apparatus. If they do not move, the difference is inside the brackets and
+the next suspect is the configuration, starting with `CONFIG_POLL=y`, which we set and upstream
+does not, and which puts poll notification into every semaphore give.
+
+**One variable, and it can fail either way**, which is the only reason it is worth a build.
