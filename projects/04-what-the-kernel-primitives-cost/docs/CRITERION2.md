@@ -383,3 +383,70 @@ be right than any model of the residual.
 and a project can spend an arbitrary number of evenings chasing a factor of 1.7. The criterion was
 written to be answerable, and "fails by 1.7, with the instrument and two configuration settings
 accounted for" is a publishable answer.
+
+## The last configuration difference, and what it is predicted to do, before the run
+
+Both sides state this one explicitly and in opposite directions, which is why no amount of
+reasoning about defaults would have found it.
+
+The board's own `nucleo_h7a3zi_q_defconfig`:
+
+    # Enable MPU
+    CONFIG_ARM_MPU=y
+
+    # Enable HW stack protection
+    CONFIG_HW_STACK_PROTECTION=y
+
+Zephyr's `latency_measure/prj.conf`:
+
+    CONFIG_TEST_HW_STACK_PROTECTION=n
+    # Disable HW Stack Protection (see #28664)
+    CONFIG_HW_STACK_PROTECTION=n
+
+**With an MPU and stack protection the kernel reprograms a guard region on every thread switch.**
+That is a per-switch cost in the path of every row in this table, and it is the right shape for
+the residual: proportional rather than constant, and present in both compared rows whose only
+shared content is a context switch.
+
+`CONFIG_PM` appears in neither file, so it is at its Kconfig default of `n` on both sides and
+needs no change. It is printed anyway, along with `CONFIG_FPU_SHARING`, because the last two
+rounds were both caused by a default nobody had read.
+
+### The predictions, before the build
+
+| | Now, protection on | Predicted, protection off | Upstream |
+|---|---|---|---|
+| yield round trip | 691 | **380 to 500** | 376 for two switches |
+| block on one object | 500 | **290 to 360** | 290 |
+| criterion 2's two factors | 1.84 and 1.72 | **under 1.5, so met** | |
+
+If the guard is the residual, the per-switch cost of it falls out as **about 150 to 210 counts, or
+0.54 to 0.75 microseconds**, and that is a number worth more than the criterion it was chased for.
+
+**And if the figures do not fall, the guard is cleared and this stops.** The rule was written
+before this round and it holds: criterion 2 then gets published as failing at 1.7, with the
+instrument and three configuration settings accounted for, and the residual characterised as
+proportional to the number of context switches in the bracket. That is an answer. A tuned
+agreement reached by hunting would be worth less.
+
+### This is not only a comparison fix, which changes how it should be reported
+
+**Turning a stack guard off is a real reduction in safety.** It is done here to make one
+comparison like for like, not because it is a good idea in firmware anybody ships, and the chapter
+must not read as advice. Real firmware on this board will have it on, because the board's own
+defconfig turns it on deliberately and says so.
+
+So the reporting splits, and both halves are useful:
+
+- **the figures a chapter should quote for ordinary use are the protection-on ones**, from the run
+  of Friday 9 October 2026 at 09:40, already in [BENCH.md](BENCH.md) and
+  [RESULTS.md](RESULTS.md)
+- **the protection-off figures exist to answer criterion 2**, and are a configuration nobody
+  should copy into a product
+- **the difference between them is what hardware stack protection costs per context switch on this
+  part**, which is a question an engineer choosing between them actually has
+
+That third item was not on the project's list of seven criteria and is arguably the most
+transferable thing to come out of the chase. It is the second time today that matching a
+configuration for a comparison turned up a figure worth having on its own: the first was
+`CONFIG_TIMESLICING`, where the answer happened to be that it changed nothing measurable.

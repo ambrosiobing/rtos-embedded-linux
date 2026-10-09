@@ -511,6 +511,15 @@ static void report_config(void)
 	printf("#   CONFIG_ASSERT %s, CONFIG_POLL %s, and upstream sets both n and y\n",
 	       IS_ENABLED(CONFIG_ASSERT) ? "y" : "n",
 	       IS_ENABLED(CONFIG_POLL) ? "y" : "n");
+	/* The guard region reprogrammed on every thread switch, and the two settings it needs.
+	 * Printed because this is the one difference from upstream that both sides state
+	 * explicitly and in opposite directions, so neither default can be assumed. */
+	printf("#   CONFIG_ARM_MPU %s, CONFIG_HW_STACK_PROTECTION %s, upstream sets the latter n\n",
+	       IS_ENABLED(CONFIG_ARM_MPU) ? "y" : "n",
+	       IS_ENABLED(CONFIG_HW_STACK_PROTECTION) ? "y" : "n");
+	printf("#   CONFIG_PM %s and CONFIG_FPU_SHARING %s, both expected n on both sides\n",
+	       IS_ENABLED(CONFIG_PM) ? "y" : "n",
+	       IS_ENABLED(CONFIG_FPU_SHARING) ? "y" : "n");
 	/* THE STOPWATCH NAMES ITSELF, for the same reason the application does. Two captures with
 	 * different instruments and no line saying which are two numbers nobody can reconcile. */
 	printf("#   instrument: %s\n",
