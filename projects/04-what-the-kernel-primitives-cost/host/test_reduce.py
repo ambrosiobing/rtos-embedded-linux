@@ -158,6 +158,10 @@ def main() -> int:
     ok &= must_refuse("a clock rate of zero, which is how an unconfirmed tree reports", capture(clock=0))
     ok &= must_refuse("the wrap guard is unknown", capture(guard="unknown"))
     ok &= must_refuse("the wrap guard failed", capture(guard="wrapped"))
+    # The guard value added Friday 9 October 2026, when a zero count stopped being reported as a
+    # possible wrap. The case below it, with guard 'ok' and a zero in the counts, is the one that
+    # proves this reduction does not simply trust the device's own verdict.
+    ok &= must_refuse("the device reports a zero count", capture(guard="zero"))
     ok &= must_refuse("no resolution, so agreement has no tolerance", capture(resolution=None))
     ok &= must_refuse("a resolution of zero", capture(resolution=0.0))
     # These two isolate ONE floor each, and the first version of this suite did not. It was

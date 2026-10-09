@@ -70,13 +70,15 @@ const char *measure_instrument_name(measure_instrument_t instrument)
 
 measure_summary_t measure_summarise(const uint32_t *counts, size_t n)
 {
-	measure_summary_t s = { .wrap_ok = true, .n = n, .min = 0u, .max = 0u };
+	measure_summary_t s = { .wrap_ok = true, .nonzero = true, .n = n, .min = 0u, .max = 0u };
 	size_t i;
 
 	if (counts == NULL || n == 0u) {
 		/* NO SAMPLES IS NOT A PASSED GUARD. An empty run has nothing to assert about, and
 		 * reporting `ok` for it would let a capture that measured nothing look sound. */
 		s.wrap_ok = false;
+		s.nonzero = false;
+		s.n = 0u;
 		return s;
 	}
 
@@ -92,13 +94,35 @@ measure_summary_t measure_summarise(const uint32_t *counts, size_t n)
 		}
 		/* A zero elapsed count is not a fast operation. It is a region that was never
 		 * bracketed, or one bracketed around nothing, and either way it is not a
-		 * measurement. */
-		if (counts[i] == 0u || counts[i] >= MEASURE_WRAP_LIMIT) {
+		 * measurement. It is recorded SEPARATELY from the wrap, because the two have
+		 * different causes and a capture that names the wrong one sends its reader to
+		 * the wrong place. */
+		if (counts[i] == 0u) {
+			s.nonzero = false;
+		}
+		if (counts[i] >= MEASURE_WRAP_LIMIT) {
 			s.wrap_ok = false;
 		}
 	}
 
 	return s;
+}
+
+const char *measure_guard_name(measure_summary_t summary)
+{
+	/* Order matters only in that a capture reports one fault, and the one it reports should
+	 * be the one a reader can act on. No samples is checked first because with none, neither
+	 * of the other two flags means anything. */
+	if (summary.n == 0u) {
+		return "unknown";
+	}
+	if (!summary.nonzero) {
+		return "zero";
+	}
+	if (!summary.wrap_ok) {
+		return "wrapped";
+	}
+	return "ok";
 }
 
 size_t measure_emit(measure_op_t op, const uint32_t *counts, size_t n)
@@ -122,7 +146,7 @@ size_t measure_emit(measure_op_t op, const uint32_t *counts, size_t n)
 		printf("instrument %s\n", measure_instrument_name(inst));
 		printf("clock_hz %u\n", (unsigned int)hz);
 	}
-	printf("wrap_guard %s\n", s.wrap_ok ? "ok" : "unknown");
+	printf("wrap_guard %s\n", measure_guard_name(s));
 
 	printf("a_counts");
 	for (i = 0u; i < n; i++) {

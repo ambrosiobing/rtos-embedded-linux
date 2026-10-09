@@ -817,6 +817,16 @@ to miss:
    labelled `core` outright, so the two halves hold each other to it. That refusal was shown to
    catch by mutation before it was committed: with the three instrument checks stripped from a
    copy, exactly the three new cases went red and nothing else did.
+
+   Tightening that suite found a second defect immediately, and in itself. The pipeline test's
+   three refusal cases were changed to assert **why** a capture was refused rather than only
+   that it was, and `zerocount` failed at once: it was being refused for the wrap guard and had
+   never reached the condition it is named after. `measure_summarise()` cleared one flag for
+   both a wrap and a zero count, so a capture containing a zero announced `wrap_guard unknown`
+   and sent its reader looking for a wrap. **Two faults under one flag, and the case had passed
+   on the wrong one for its whole life.** The guard now reports `ok`, `wrapped`, `zero` or
+   `unknown`, and the reduction names which it got. A test that asserts only that something
+   failed is a test that cannot tell you it is testing the wrong thing.
 3. **The Pi side**, producing the `b_edges_s` that [reduce.py](../host/reduce.py) already requires
    and [test_reduce.py](../host/test_reduce.py) already tests against. That half has been designed
    and exercised on synthetic input since before any of this; it is the only one of the three that

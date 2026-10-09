@@ -133,11 +133,22 @@ def validate(cap: Capture) -> None:
             "every figure by an unknown factor while still looking like a measurement"
         )
     if cap.wrap_guard != "ok":
-        raise Refusal(
-            f"wrap_guard is {cap.wrap_guard!r} rather than 'ok'. The counter wraps in about "
-            "fifteen seconds at this clock, and a wrapped region reads as a plausible small "
-            "number rather than as an error"
-        )
+        # The device names which fault it hit, so the refusal can too. Before Friday 9 October
+        # 2026 every fault came back as 'unknown' and a reader of a zero-count capture was sent
+        # looking for a wrap.
+        why = {
+            "wrapped": (
+                "a count passed the wrap limit. The counter wraps in about fifteen seconds at "
+                "this clock, and a wrapped region reads as a plausible small number rather "
+                "than as an error"
+            ),
+            "zero": (
+                "a count was zero, which is a region that was never bracketed or one bracketed "
+                "around nothing, and either way is not a measurement"
+            ),
+            "unknown": "the device vouches for nothing, which includes a run with no samples",
+        }.get(cap.wrap_guard, "the device did not vouch for these counts")
+        raise Refusal(f"wrap_guard is {cap.wrap_guard!r} rather than 'ok': {why}")
     if cap.resolution_s <= 0.0:
         raise Refusal(
             "resolution_s is absent or zero. Agreement is meaningless without the tolerance "

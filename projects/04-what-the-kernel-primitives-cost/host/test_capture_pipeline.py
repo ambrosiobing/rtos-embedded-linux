@@ -110,9 +110,14 @@ def main(argv: list[str]) -> int:
     # it to whoever reads the file. The reason is matched for the same cause as above: these
     # three used to run on op 0, which the instrument check now refuses first, and all three
     # would have kept passing while testing nothing they name.
+    # The reason strings are the device's own guard values, and matching them is what found, on
+    # Friday 9 October 2026, that `zerocount` had never reached the condition it is named after:
+    # a zero count also cleared the wrap flag, so the capture said 'unknown' and was refused for
+    # the wrap. Two faults under one flag, and the case passed on the wrong one for its whole
+    # life. The device now names which it hit.
     for mode, why, reason in (
-        ("wrapped", "a count past the wrap limit", "wrap_guard"),
-        ("zerocount", "a zero elapsed count", "zero or negative"),
+        ("wrapped", "a count past the wrap limit", "wrap_guard is 'wrapped'"),
+        ("zerocount", "a zero elapsed count", "wrap_guard is 'zero'"),
         ("zeroclock", "an unconfirmed clock tree", "clock_hz"),
     ):
         text = device_half(binary, PERIOD_OP, mode) + witness_half()

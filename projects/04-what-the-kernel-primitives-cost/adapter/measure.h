@@ -100,12 +100,29 @@ int measure_run(measure_op_t op, uint32_t *counts, size_t n);
  * reasonable. */
 #define MEASURE_WRAP_LIMIT 0x80000000u
 
+/* TWO CONDITIONS, TWO FLAGS, AND THEY USED TO SHARE ONE.
+ *
+ * Until Friday 9 October 2026 a zero count also cleared `wrap_ok`, so a capture containing one
+ * announced `wrap_guard unknown` and told its reader the counter might have wrapped when the
+ * actual fault was a region that was never bracketed. Two different faults, one flag, and the
+ * wrong diagnosis published for whichever arrived second.
+ *
+ * It was found by a test that had been passing for the wrong reason since it was written: the
+ * pipeline's zero-count case was being refused for the wrap guard and never reached the check
+ * it was named after. The case was not made to assert WHY it was refused until that evening,
+ * and the moment it did, it failed. */
 typedef struct {
-	bool wrap_ok;   /* every count below the limit */
+	bool wrap_ok;   /* every count below the wrap limit */
+	bool nonzero;   /* no count is zero */
 	size_t n;
 	uint32_t min;
 	uint32_t max;
 } measure_summary_t;
+
+/* "ok", "wrapped", "zero" or "unknown", character for character the `wrap_guard` value of a
+ * capture. The reduction refuses anything but "ok" and names the value it got, so the capture
+ * carries its own diagnosis rather than leaving the reader to guess which fault it hit. */
+const char *measure_guard_name(measure_summary_t summary);
 
 measure_summary_t measure_summarise(const uint32_t *counts, size_t n);
 
