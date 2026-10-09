@@ -1,8 +1,9 @@
 # Criterion 2: the mapping and the factor, written before the comparison
 
-**Criterion 2 failed.** The verdict is at the foot of this page, with the numbers. Everything above
-it was committed at 08:26 on Friday 9 October 2026 in `75adb59`, before the upstream suite had been
-built, and it is left exactly as it was written.
+**Criterion 2 is met, at 0.98 and 1.12 against a stated factor of 1.5.** It failed twice first,
+at 6.9 and then at 1.84, and all three verdicts are at the foot of this page in the order they
+happened. Everything above the first verdict was committed at 08:26 on Friday 9 October 2026 in
+`75adb59`, before the upstream suite had been built, and it is left exactly as it was written.
 
 Everything down to the end of the configuration section therefore says "the suite has not been
 run", in the present tense, and that tense is the point rather than an oversight. **A factor chosen
@@ -450,3 +451,138 @@ That third item was not on the project's list of seven criteria and is arguably 
 transferable thing to come out of the chase. It is the second time today that matching a
 configuration for a comparison turned up a figure worth having on its own: the first was
 `CONFIG_TIMESLICING`, where the answer happened to be that it changed nothing measurable.
+
+## Friday 9 October 2026 at 21:15: criterion 2 is met
+
+`CONFIG_HW_STACK_PROTECTION=n`, as upstream sets it, and nothing else changed.
+
+| Row | Upstream | Ours | Factor | Criterion |
+|---|---|---|---|---|
+| `thread.yield.preemptive.ctx` | 188 cycles | 370 halved, **185** | **0.98** | met |
+| `semaphore.give.wake+ctx` | 290 cycles | **324** | **1.12** | met |
+
+**Criterion 2 asked for a factor of 1.5. The factors are 0.98 and 1.12.** The progression across
+the three rounds, each of which removed one difference:
+
+| Round | What changed | yield | semaphore |
+|---|---|---|---|
+| 08:03 | nothing yet | 6.9 | 5.0 |
+| 09:40 | the timing API in place of `k_cycle_get_32` | 1.84 | 1.72 |
+| 21:15 | the stack guard off, as upstream has it | **0.98** | **1.12** |
+
+**Nothing about the kernel was ever in question.** The entire factor of five to seven was an
+instrument this project built and two configuration settings it had never read: one default it
+inherited, and one the board's own defconfig sets deliberately.
+
+### The prediction written before any comparison existed
+
+[Committed at 08:26 in `75adb59`](CRITERION2.md), before the suite had been built:
+
+> yield, halved, against `thread.yield.preemptive.ctx`: **ours halved lands within 10 per cent of
+> the upstream average, and below it**
+
+185 against 188 is **1.6 per cent below**. That prediction is met exactly, including its
+direction, which was the part that could have failed and did fail in the first two rounds.
+
+The other prediction said `block on one object` would land between 0.7 and 1.0 times upstream.
+It came in at **1.117, just above the window.** Upstream subtracts its own timestamp overhead and
+we do not; subtracting our 23 counts gives 301 against 290, a factor of **1.04**, which is inside
+the criterion and still just outside that window. **It is recorded as missed rather than as met
+after an adjustment**, because the adjustment was not part of the prediction when it was written.
+
+### What hardware stack protection costs per context switch on this part
+
+This was not one of the seven criteria and is the most transferable figure of the day. The two
+runs differ in one setting, so the difference between them is the guard:
+
+| Operation | Guard on, 09:40 | Guard off, 21:15 | Difference | Switches in the bracket | Per switch |
+|---|---|---|---|---|---|
+| yield round trip | 691 | 370 | 321 | 2 | **160** |
+| block on one object | 500 | 324 | 176 | 1 | **176** |
+| block on several objects | 850 | 671 | 179 | 1 | **179** |
+| hand work to a queue | 677 | 481 | 196 | 1 | **196** |
+
+**160 to 196 counts, a mean of 178, which is 0.64 microseconds per context switch.** The
+prediction written before the run was 150 to 210 counts, or 0.54 to 0.75 microseconds, and it is
+met.
+
+The band is tight across four operations whose paths otherwise have little in common, which is
+what a cost attached to the switch itself should look like. On a part where a bare switch is 185
+counts, **the guard roughly doubles it.**
+
+### The same figure works backwards, as a way of counting switches
+
+If a switch carries 178 counts of guard, then the guard's disappearance measures how many switches
+a bracket contains. For the four rows above it returns 2, 1, 1, 1, which is what they were designed
+to contain, so the method checks out on cases whose answer is known.
+
+Applied to the contended mutex row, where the switch count has only ever been inferred: the
+inheriting arm fell by 389 counts, and 389 divided by 178 is **2.2 switches**.
+
+**The earlier arithmetic said three.** That came from a different route, subtracting the spin work
+and dividing the residual by a per-switch figure. Two independent estimates giving 2.2 and 3 do
+not agree, and this is recorded as a disagreement rather than resolved by preferring one.
+Neither route is strong: the first depends on a per-switch cost measured elsewhere in the same
+run, and the second on the spin loop costing exactly the same in both arms.
+
+### Criterion 4 keeps improving in the direction its own explanation predicted
+
+| Run | Difference | Ratio |
+|---|---|---|
+| old instrument, guard on | 28334 counts, **101.19 us** | 3.55 |
+| timing API, guard on | 28229 counts, **100.82 us** | 4.37 |
+| timing API, guard off | 28082 counts, **100.29 us** | **4.51** |
+
+**The difference is the same to 0.9 per cent across an instrument change and a configuration
+change.** It is medium's actual work, and the advice to quote the difference rather than the ratio
+is now demonstrated three times over.
+
+**The ratio is the more interesting column.** The prediction was four to five, from medium being
+given four times the holder's work, and the pure work ratio is 10000 over 2000, which is exactly
+5. Each round that removed overhead moved the measured ratio toward 5: 3.55, then 4.37, then 4.51.
+**The explanation offered when it read 3.55, that fixed overhead common to both arms dilutes the
+ratio, predicted that trend and the trend happened**, which is a better outcome than the original
+prediction having been right first time.
+
+The residual is now 972 counts of the inheriting arm that is not spinning. Three switches at 185
+counts is 555, and upstream prices a mutex lock and unlock at 96 and two immediate semaphore
+operations at 94, which together reach about 745. **That is the right order and it does not
+close**, and it is left open rather than forced.
+
+### Criterion 3's penalties fell again, and one reading is now retired rather than weakened
+
+| Operation | Old instrument | Timing API, guard on | Timing API, guard off |
+|---|---|---|---|
+| yield round trip | 725 | 380 | **205** |
+| block on one object | 843 | 525 | **325** |
+| block on several objects | 1004 | 729 | **600** |
+| hand work to a queue | 944 | 703 | **498** |
+| widest over narrowest | 1.39 | 1.92 | **2.93** |
+
+**The claim that the four penalties sit in one tight band is withdrawn.** It was offered on the
+first set as evidence that the cold cost is a property of the memory system rather than of each
+primitive, weakened once when the band went to 1.92, and at 2.93 it is not a band. Each weakening
+came from measuring better, and a claim that only survives poor measurement is not a claim.
+
+**What survives is the reading given beside it, that the penalty tracks how much distinct code the
+bracket contains.** The yield round trip still has the largest switch count and the smallest
+penalty, 205 against 325 for a single wake-up, because it traverses one path twice and pays the
+refill once. That has now held through three instruments and two configurations.
+
+Criterion 1 is met with room: the instrument costs 23 counts against a smallest measured figure of
+324, a ratio of 14, and 12.6 against upstream's pricing of the same span.
+
+### Six of the seven criteria are settled
+
+| | Criterion | State |
+|---|---|---|
+| 1 | the instrument is cheaper by an order of magnitude | met, 14 against our figures and 12.6 against upstream's |
+| 2 | agreement with the upstream suite within a stated factor | **met, 0.98 and 1.12 against a stated 1.5** |
+| 3 | warm and cold differ, and by how much | met, 205 to 600 counts |
+| 4 | priority inheritance changes the contended result | met, 100.29 us and a ratio of 4.51 |
+| 5 | two instruments agree on the period | **open**, and the only one left |
+| 6 | the disagreement is detectable | met, on synthetic input, before any hardware |
+| 7 | no row claims an instrument that cannot see | met, enforced on every push |
+
+Criterion 5 needs the three pieces listed under [the witness is
+wired](BENCH.md#the-witness-is-wired-friday-9-october-2026), of which only the host half exists.

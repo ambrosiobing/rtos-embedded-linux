@@ -19,6 +19,15 @@ their cold value crossed the witness's ten microsecond resolution while their `S
 5.64 microseconds, the `below` prediction holds for every one, and the open question about what
 the `Scale` column claims does not have to be answered for these rows.
 
+**These are the figures with hardware stack protection on, and that is a decision rather than an
+accident of which run came last.** A later run the same evening, at 21:15, turned the guard off
+to match Zephyr's own benchmark configuration and met criterion 2 with it; every figure fell, by
+about 178 counts per context switch, which is what the guard costs. Those smaller figures are in
+[CRITERION2.md](CRITERION2.md) and are **not** the ones to quote: the board's own defconfig turns
+the guard on deliberately, real firmware on it runs that way, and the setting went back to the
+default the same evening so that a reader building this tree reproduces this table and not the
+comparison. The 21:15 numbers describe a configuration nobody should copy into a product.
+
 **It does still have to be answered for the contended mutex rows.** Those measured 8381 and 36610
 counts, which are **29.9 and 130.8 microseconds**, both far above the witness's ten, while their
 rows say `below`. That prediction was falsified by the first contended run and has nothing to do
