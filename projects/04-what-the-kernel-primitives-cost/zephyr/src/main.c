@@ -25,6 +25,7 @@
 #include <zephyr/kernel.h>
 #include <cmsis_core.h>
 #include <zephyr/sys/util.h>
+#include <zephyr/timing/timing.h>
 
 #include <errno.h>
 #include <stdio.h>
@@ -53,15 +54,53 @@ static volatile uint32_t t_handoff; /* written by the other side, read by the me
 
 /* ---- the port ---------------------------------------------------------------------------- */
 
+/* WHICH INSTRUMENT, AND WHY THERE ARE NOW TWO.
+ *
+ * Criterion 2 failed on Friday 9 October 2026 by a factor of five to seven against Zephyr's own
+ * latency_measure suite, on two spans whose endpoints were established line by line from the
+ * upstream source and do match. The residuals are the clue: ours less upstream is 1107 counts on
+ * one context switch and 1171 on a semaphore wake, agreeing to 5.6 per cent. **A cost that does
+ * not change when the path does sits outside the operation**, and the first suspect outside the
+ * operation is the thing holding the stopwatch.
+ *
+ * Ours has always called k_cycle_get_32(). Upstream calls the timing API, which on this part
+ * reads the cycle counter directly. So the instrument becomes selectable, both are kept, and the
+ * run prints which one it used.
+ *
+ * KEEPING BOTH IS THE POINT, not caution. If the timing API is substituted and the old path
+ * deleted, the figures will change and there will be nothing to attribute the change to. With
+ * both present and named in the output, every capture says which stopwatch produced it, and the
+ * k_cycle_get_32 figures already in BENCH.md stay comparable rather than becoming orphans.
+ *
+ * This test can fail either way and that is why it is worth a build. If the figures fall toward
+ * upstream's, this project has been pricing its own measuring apparatus. If they do not move, the
+ * difference is inside the brackets and the next suspect is CONFIG_POLL, which we set and
+ * upstream does not, and which puts poll notification into every semaphore give.
+ */
+#ifndef MEASURE_USE_TIMING_API
+#define MEASURE_USE_TIMING_API 1
+#endif
+
 uint32_t measure_now(void)
 {
+#if MEASURE_USE_TIMING_API
+	return (uint32_t)timing_counter_get();
+#else
 	return k_cycle_get_32();
+#endif
 }
 
 uint32_t measure_clock_hz(void)
 {
 #if defined(CONFIG_BOARD_NUCLEO_H7A3ZI_Q)
+	/* Each instrument reports its own rate, because a count is only a time under the clock of
+	 * the counter that produced it. Mixing the two would be the error criterion 7 exists to
+	 * prevent, one level down. The 200 ms gate below checks whichever is returned. */
+#if MEASURE_USE_TIMING_API
+	return (uint32_t)timing_freq_get();
+#else
 	return (uint32_t)sys_clock_hw_cycles_per_sec();
+#endif
 #else
 	/* NOT THIS BOARD, SO NOT A CONFIRMED CLOCK. Every capture from this build is refused by
 	 * the reduction, which is the intended outcome rather than an inconvenience. */
@@ -422,6 +461,11 @@ static void report_config(void)
 	printf("#   CONFIG_ASSERT %s, CONFIG_POLL %s, and upstream sets both n and y\n",
 	       IS_ENABLED(CONFIG_ASSERT) ? "y" : "n",
 	       IS_ENABLED(CONFIG_POLL) ? "y" : "n");
+	/* THE STOPWATCH NAMES ITSELF, for the same reason the application does. Two captures with
+	 * different instruments and no line saying which are two numbers nobody can reconcile. */
+	printf("#   instrument: %s\n",
+	       MEASURE_USE_TIMING_API ? "the timing API, as upstream uses"
+				      : "k_cycle_get_32, as every run before 9 October 2026");
 }
 
 int main(void)
@@ -439,6 +483,14 @@ int main(void)
 	k_thread_create(&giver_thread, giver_stack, STACK_SIZE, giver_fn,
 			NULL, NULL, NULL, PRIO_GIVER, 0, K_NO_WAIT);
 	k_thread_priority_set(k_current_get(), PRIO_MEASURER);
+
+#if MEASURE_USE_TIMING_API
+	/* Before anything asks the instrument for a rate or a count. timing_freq_get() has nothing
+	 * to report until this has run, and a zero rate would be refused by the gate below, which
+	 * is the right failure but an uninformative one. */
+	timing_init();
+	timing_start();
+#endif
 
 	printf("# p04 under zephyr\n");
 	/* THE BUILD STAMP, AND IT EXISTS BECAUSE THE NAME ABOVE WAS NOT ENOUGH.
