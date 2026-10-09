@@ -894,6 +894,40 @@ three, and a chapter quoting either should say which.
 The button bounced again, two boots from one press, the first truncated partway through the
 third cold count dump. Third time today.
 
+## Friday 9 October 2026 at 22:30: the marker drives the pin, and the first witness capture was flat
+
+Built 22:25:02 with [app.overlay](../zephyr/app.overlay) found by name, and the console says what
+the build handed it:
+
+    #   marker for the witness: pin 4 on gpio@58020400, configured as an output, one toggle per period
+
+The period row emitted with `instrument wall` and the same 308000 counts. The Pi recorded
+1499828 samples at 100 kHz with no overrun. **And `witness.py` refused the recording as flat**, a
+swing of 20.4 mV across fifteen seconds, which is four converter codes and the floor the bench
+record gives for that HAT. `reduce.py` then refused the empty witness half for its missing
+resolution, so both guards fired, in order, and nothing was reduced.
+
+### Diagnosed from two clocks rather than from a photograph
+
+The console log is named for the second it opened, 22:30:16, and its byte counter shows every
+byte had arrived by the ten-second mark, so the reset was pressed between 22:30:16 and 22:30:26.
+The capture's own metadata says `captured_utc 20:30:44`, which is 22:30:44 local. **The Pi
+started listening eighteen seconds after the board had finished toggling.** Seventy milliseconds
+of marker, then a pin sitting still for the whole of the recording.
+
+So the hand-over's order was wrong for a human at a bench: it opened the console first, then the
+Pi, then the reset, and a console that is already counting invites the press. The Pi's window is
+the constraint and it is the slowest thing to start, so it starts first, with twenty seconds
+rather than fifteen so the order has room in it.
+
+**What this capture does establish**: the pin is configured, by the build's own account, so a
+flat recording on the next attempt would be the lead and not the firmware. The refusal that
+fired is the exact failure this project had for most of the day, a wire with nothing behind it,
+caught in software this time rather than discovered by eye.
+
+The transcription is noted where it matters: the device half reduced here was taken from the
+console as pasted, and the log file on win11 skyhorizon's Desktop is the record.
+
 ### What it cost, so that the next one is a decision and not a habit
 
 Before this file the largest thing tracked in the repository was 96 KB, an SVG. This is 3.45 MB,
