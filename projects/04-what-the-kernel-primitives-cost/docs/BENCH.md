@@ -988,6 +988,46 @@ side of its ten millisecond threshold. It takes the longest closely-spaced run r
 last, because the last would pick up a burst truncated by the recording ending and the reduction
 would then report agreement from a capture that had been cut short.
 
+## Friday 9 October 2026 at 22:59: the wire works, and timing was the whole of it
+
+The resting beacon ran, three ten second recordings were taken at leisure with no coordination
+at all, and all three say the same thing:
+
+| Capture | Swing | Edges | Intervals | Bursts |
+|---|---|---|---|---|
+| `p04-wire` | 3.332 V | 40 | 250.4 to 250.7 ms | 0 |
+| `p04b-wire` | 3.338 V | 40 | 250.7 to 251.0 ms | 0 |
+| `p04c-wire` | 3.332 V | 40 | 250.7 to 250.8 ms | 0 |
+
+**The marker drives the full 3.3 volt rail into CH0.** The lead is on PB4 at CN7 pin 19 as
+[WIRING.md](WIRING.md) says, the pin is configured as the console reports, and both flat
+captures earlier in the evening were the recording window missing the event. Zero bursts is
+correct and is the refusal working: forty edges a quarter of a second apart are a beacon, and
+`witness.py` declines to call that a measurement.
+
+**Three recordings rather than one, and that is the point of a test that needs no
+coordination.** Repeating a capture that has to be landed on a seventy millisecond event is
+expensive; repeating one that only requires the board to be powered costs ten seconds. The
+measurement now has the same property.
+
+### A rate difference worth stating before the next run rather than after it
+
+The beacon asks for 250 milliseconds and the witness measures 250.4 to 251.0, an excess of
+**0.2 to 0.4 per cent**. That is far more than tick rounding can explain: at the 100 microsecond
+tick this board has shown all day, a `k_msleep(250)` rounds up by at most one tick, which is 0.1
+milliseconds, and the excess is four to seven ticks.
+
+So the board's millisecond and the MCC 118's millisecond differ by something between two and
+four parts in a thousand, and **which of the two clocks is the one that moved is not established
+here.** The sibling volume has the same question open against the same HAT.
+
+It carries a prediction for criterion 5, and a tight one. Applied to a 1.1 millisecond period,
+0.2 to 0.4 per cent is **2.2 to 4.4 microseconds** of expected disagreement between the device's
+count and the witness's edges, against a tolerance of 10 microseconds, which is the witness's
+own resolution. **Criterion 5 should pass, by a factor of between two and five rather than
+comfortably.** If it fails, this is the first place to look, and if it passes by much more than
+that, the beacon's excess and the burst's do not share a cause.
+
 ### What it cost, so that the next one is a decision and not a habit
 
 Before this file the largest thing tracked in the repository was 96 KB, an SVG. This is 3.45 MB,

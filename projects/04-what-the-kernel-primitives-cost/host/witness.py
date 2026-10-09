@@ -31,6 +31,7 @@ Exit status is 0 when a witness half was written, 1 otherwise.
 from __future__ import annotations
 
 import json
+import statistics
 import sys
 from pathlib import Path
 
@@ -125,6 +126,25 @@ def marker_edges(samples: list[float], fs: float) -> list[float]:
     return edges
 
 
+def all_bursts(edges: list[float], max_interval_s: float = BURST_MAX_INTERVAL_S,
+               min_edges: int = 8) -> list[list[float]]:
+    """Every run of closely-spaced edges, longest first discarded in favour of source order.
+
+    The firmware repeats the measurement burst for as long as it is powered, so a recording
+    holds several. They are reported rather than merged: **a recording that disagrees with
+    itself is the one thing that would invalidate comparing the device's burst against a later
+    repeat of it**, and merging them would hide exactly that.
+    """
+    runs: list[list[float]] = []
+    start = 0
+    for i in range(1, len(edges) + 1):
+        if i == len(edges) or edges[i] - edges[i - 1] > max_interval_s:
+            if i - start >= min_edges:
+                runs.append(edges[start:i])
+            start = i
+    return runs
+
+
 def select_burst(edges: list[float], max_interval_s: float = BURST_MAX_INTERVAL_S) -> list[float]:
     """The longest run of edges with no gap longer than `max_interval_s` between them.
 
@@ -186,11 +206,34 @@ def witness_half(samples: list[float], meta: dict, source: str) -> str:
     # The sample floor belongs to the reduction, which refuses a capture with too few periods
     # and says so. Repeating it here would be a second check on the same condition, and a
     # redundant check is how the zero-count case went a whole life passing for the wrong reason.
+    # DOES THE RECORDING AGREE WITH ITSELF? The device's counts are one run of the loop and the
+    # burst below is a later repeat, so the comparison is only sound if every repeat reports
+    # the same period. The spread across bursts is stated in the capture rather than checked
+    # here, because this file produces evidence and reduce.py is what refuses things.
+    runs = all_bursts(edges)
+    agreement = ""
+    if len(runs) > 1:
+        medians = [statistics.median([b - a for a, b in zip(r, r[1:])]) for r in runs]
+        spread = max(medians) - min(medians)
+        agreement = (
+            f"# {len(runs)} bursts in this recording; their median periods span "
+            f"{spread * 1e6:.2f} us, against a witness resolution of {1e6 / fs:.1f} us. "
+            + ("They agree." if spread <= 1.0 / fs else
+               "THEY DISAGREE, so the repeats are not one process and the burst below "
+               "cannot stand in for the measured run.")
+        )
+    elif len(runs) == 1:
+        agreement = "# one burst in this recording, so nothing here checks it against a repeat"
+
     lines = [
         f"# p04 witness half, from {source}, {len(samples)} samples at {fs:.3f} Hz,"
-        f" {len(edges)} edges both polarities, {len(burst)} of them in the measurement burst",
+        f" {len(edges)} edges both polarities, {len(burst)} of them in the burst used",
         f"# the burst runs from {burst[0]:.6f} s to {burst[-1]:.6f} s of the recording;"
-        f" {len(edges) - len(burst)} edges outside it are the beacon or another boot",
+        f" {len(edges) - len(burst)} edges outside it are the preamble or other repeats",
+    ]
+    if agreement:
+        lines.append(agreement)
+    lines += [
         f"resolution_s {1.0 / fs:.9f}",
         "b_edges_s " + " ".join(f"{e:.9f}" for e in burst),
     ]

@@ -365,36 +365,62 @@ static void marker_beacon(void)
 	(void)gpio_pin_set_dt(&marker, 0);
 }
 
-/* THE RESTING BEACON, WHICH NEVER RETURNS, AND WHY IT IS THE ONE THAT MATTERS.
+/* THE RESTING PATTERN, WHICH NEVER RETURNS, AND WHY IT REPEATS THE MEASUREMENT.
  *
- * The beacon above still asks somebody to start a recording near a reset. This one does not.
- * After every row has been measured and printed, the pin toggles at a quarter of a second for
- * as long as the board is powered, so a witness recording started at ANY later moment contains
- * it. **The wire can then be tested with no coordination whatsoever**: flash, reset, walk away,
- * record whenever, and either the edges are there or the lead is not on the pin.
+ * The preamble above still asks somebody to start a recording near a reset. This does not. On
+ * Friday 9 October 2026 the first version of this toggled at a quarter of a second forever,
+ * which proved the wire in one capture taken at leisure: forty edges in ten seconds, the lead
+ * reaches CH0, PB4 drives it. **That settled the wire and left the burst still needing to be
+ * caught**, which was the actual difficulty: seventy milliseconds inside a thirty second
+ * window, missed twice by eighteen and by forty seconds.
  *
- * Twice on Friday 9 October 2026 a flat recording left two live causes, a mistimed window and
- * a wrong lead, and no way to tell them apart. This separates them permanently and costs
- * nothing, because the application had finished its work and was returning from main anyway.
+ * So the resting pattern repeats the measurement instead of merely announcing itself: a gap,
+ * then the same sixty-four sleeps of a millisecond the period row brackets, forever. A ten
+ * second recording started at any later moment contains six of them, and the operator's job is
+ * reduced to taking a recording while the board is powered.
  *
- * Its interval is the beacon's, far above witness.py's burst threshold, so select_burst()
- * excludes it from the measurement exactly as it excludes the preamble.
+ * WHAT THIS COSTS, SAID PLAINLY, BECAUSE IT IS A REAL WEAKENING. The device's `a_counts` are
+ * the sixty-four periods measured during the run; the witness's burst is a LATER repeat of the
+ * same loop. Criterion 5 then compares two instruments' views of the same periodic PROCESS
+ * rather than of the same sixty-four events.
+ *
+ * That is sound only if the process is stationary, so it is not assumed: every run since
+ * Thursday 8 October 2026 has reported the same 308000 counts, and witness.py reports how many
+ * bursts a recording held and how far their medians spread, so a recording that disagrees with
+ * itself is visible rather than averaged. If those medians ever disagree by more than the
+ * witness can resolve, this arrangement is wrong and the figure must not be published.
+ *
+ * The gap is the preamble's interval, far above witness.py's burst threshold, so the bursts
+ * are separated from each other by interval exactly as the preamble is.
  */
 static void marker_rest(void)
 {
+	unsigned int i;
+
 	if (!marker_ready) {
-		printf("\n# no marker, so no resting beacon. The pin could not be configured.\n");
+		printf("\n# no marker, so no resting pattern. The pin could not be configured.\n");
 		return;
 	}
-	printf("\n# resting beacon: the marker now toggles every %u ms for as long as this\n",
-	       (unsigned int)BEACON_MS);
-	printf("#   board is powered, so a witness recording started at any later moment\n");
-	printf("#   contains it. Edges here mean the lead reaches CH0; a flat recording\n");
-	printf("#   taken now means it does not, and no timing is involved either way.\n");
+	printf("\n# resting pattern: a gap, then the same %u periods this row measured,\n",
+	       (unsigned int)SAMPLES);
+	printf("#   repeating for as long as this board is powered. A witness recording\n");
+	printf("#   started at any later moment contains several whole bursts, so the\n");
+	printf("#   burst no longer has to be caught at the reset.\n");
+	printf("#   The device counts above are the measured run; a witness burst is a\n");
+	printf("#   later repeat of the same loop, so the comparison is of one process\n");
+	printf("#   seen twice, and witness.py reports whether the bursts agree.\n");
 
 	for (;;) {
-		k_msleep((int32_t)BEACON_MS);
+		/* The gap, which is what separates one burst from the next. */
+		(void)gpio_pin_set_dt(&marker, 0);
+		k_msleep(1500);
+
+		/* The same loop run_period brackets, marker only. 65 edges for 64 periods. */
 		(void)gpio_pin_toggle_dt(&marker);
+		for (i = 0u; i < SAMPLES; i++) {
+			k_msleep(1);
+			(void)gpio_pin_toggle_dt(&marker);
+		}
 	}
 }
 
