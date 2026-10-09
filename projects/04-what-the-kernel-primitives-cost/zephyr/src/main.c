@@ -411,8 +411,17 @@ static void marker_rest(void)
 	printf("#   seen twice, and witness.py reports whether the bursts agree.\n");
 
 	for (;;) {
-		/* The gap, which is what separates one burst from the next. */
-		(void)gpio_pin_set_dt(&marker, 0);
+		/* The gap, which is what separates one burst from the next.
+		 *
+		 * NO set() HERE, AND THE FIRST RUN SHOWED WHY. This drove the pin low before
+		 * the gap, and the burst's 65 toggles leave it high, so the set fired a falling
+		 * edge microseconds after the burst's last rising one. The witness samples every
+		 * ten microseconds and its hysteresis wants an established level, so it merged
+		 * the pair and reported 64 edges where the burst had 65. Criterion 5 was reduced
+		 * from 63 periods instead of 64 on Friday 9 October 2026 and still passed, which
+		 * is the only reason this is a tidy-up rather than a defect that cost a figure.
+		 * The level the burst starts from does not matter: edges are what the witness
+		 * counts, in either direction. */
 		k_msleep(1500);
 
 		/* The same loop run_period brackets, marker only. 65 edges for 64 periods. */

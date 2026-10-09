@@ -1044,3 +1044,86 @@ Two guards changed in the same commit as the file, and the second exists because
 `checks.yml` now admits `gif`, and it now refuses **any** tracked file over four megabytes. A type
 admitted without a ceiling is how a documentation repository becomes a download, and a limit
 written later is a limit nobody writes.
+
+## Friday 9 October 2026 at 23:16: criterion 5 is met, and with it all seven
+
+The repeating burst, a ten second recording taken afterwards with no coordination at all, and
+the two halves joined:
+
+    instrument       wall, from the capture
+    clock            280000000 Hz, from the capture
+    witness can see  10.0 us, from the capture
+    samples          64 counts, 63 witness periods
+
+                          min          median         max
+      cycle counter   1099.961 us   1100.000 us   1100.036 us
+      witness         1099.985 us   1100.504 us   1109.775 us
+
+    medians differ by 0.504 us against a tolerance of 10.0 us
+    AGREE the two instruments report the same period
+
+**0.504 microseconds between two instruments that share nothing**: one counts the processor's
+own cycles on the board, the other samples a voltage on a different computer through a different
+clock. The tolerance is the witness's own resolution and the agreement is twenty times inside it.
+
+`witness.py` found **seven bursts** in the recording and their median periods span **0.69
+microseconds**, so the repeats agree with each other and a later burst genuinely stands in for
+the measured run. That check exists because the firmware repeats the burst rather than emitting
+it once, and without it the whole arrangement would rest on an assumption.
+
+### The prediction missed by a factor of four to nine, and it said what that would mean
+
+Written before the run, from the beacon's 250 millisecond interval measuring 250.4 to 251.0:
+
+> Applied to a 1.1 millisecond period, 0.2 to 0.4 per cent is **2.2 to 4.4 microseconds** of
+> expected disagreement. Criterion 5 should pass, by a factor of between two and five rather
+> than comfortably. If it passes by much more than that, the beacon's excess and the burst's do
+> not share a cause.
+
+It passed by a factor of twenty. **The beacon's excess and the burst's do not share a cause**,
+which the prediction named in advance as the thing a large margin would mean.
+
+They cannot be one rate difference, and the arithmetic says so rather than the intuition. A rate
+error scales: 0.24 per cent on 250 milliseconds is 0.6 milliseconds, and the same 0.24 per cent
+on 1.1 milliseconds would be 2.6 microseconds. The measured disagreement on the period is 0.5.
+Conversely a rate error of 0.046 per cent, which is what the period shows, would put the
+beacon's 250 milliseconds at 250.1, and it measures 250.7.
+
+**So the beacon's 250 millisecond sleep overshoots by something that is not a clock rate and not
+tick rounding**, which can account for one tick of 100 microseconds and the excess is four to
+seven. What it is remains open. It does not touch criterion 5, because the period row is
+measured by the processor's own counter and confirmed by the witness, and neither involves a
+250 millisecond sleep. It is recorded because it was predicted, scored, and found to be a
+separate thing.
+
+### One edge was lost, and the row was reduced from 63 periods rather than 64
+
+`witness.py` reported 64 edges in the burst where the firmware emits 65. The cause is in the
+resting loop: it drove the pin low before each gap, and the burst's 65 toggles leave it high, so
+that store fired a falling edge microseconds after the burst's last rising one. The witness
+samples every ten microseconds and its hysteresis wants an established level, so it merged the
+pair.
+
+**The row therefore rests on 63 periods rather than 64**, which is above the reduction's floor
+of twenty and changes nothing about the verdict. The store is removed, since the level a burst
+starts from does not matter when edges are what is counted. It is recorded rather than quietly
+fixed because a capture that silently drops one event is the shape of a thing that could drop
+more.
+
+### What all seven criteria cost, and which of them were about the kernel
+
+| | Criterion | Verdict | What it turned on |
+|---|---|---|---|
+| 1 | the instrument is cheaper by an order of magnitude | met, ratio 21 | an instrument that was itself most of the figure, until it was replaced |
+| 2 | agreement with the upstream suite within a stated factor | met, 0.98 and 1.12 | one instrument and two configuration settings, none of them the kernel |
+| 3 | warm and cold differ, and by how much | met | the invalidation reaching the bracket it was meant to |
+| 4 | priority inheritance changes the contended result | met, 100.3 us | nothing; it was right from the first run and its prediction improved as overhead left |
+| 5 | two instruments agree on the period | **met, 0.504 us** | a wire, a pin, two refusals and three mistimed recordings |
+| 6 | the disagreement is detectable | met | synthetic input, before any hardware existed |
+| 7 | no row claims an instrument that cannot see it | met | enforced on every push since the table existed |
+
+**Not one of the seven was ever in doubt because of Zephyr.** Every difficulty in this project
+was the apparatus: the stopwatch, two Kconfig defaults nobody had read, a counter that stops when
+the core idles, a flag carrying two faults, a build directory configured before a file existed,
+and a seventy millisecond event in a thirty second window. The kernel figures were right within
+two per cent from the second run onwards.

@@ -1,9 +1,45 @@
 # P04 results
 
-**Eight rows of twenty-six are measured, and the other eighteen read `not measured`.** The method
+**Nine rows of twenty-six are measured, and the other seventeen read `not measured`.** The method
 is written and the refutations are written; most of the runs have not happened. A reader should
 still treat this mainly as a protocol, which is why the column exists and is filled in with a
 refusal rather than left blank.
+
+## The ninth row, and the only one two instruments watched
+
+`periodic thread period` under Zephyr went in on **Friday 9 October 2026 at 23:16**, and it is
+the row the whole second half of the project existed for. Criterion 5 asks that two instruments
+agree on it, and they do:
+
+The processor's own counter: minimum 1099.961, **median 1100.000**, maximum 1100.036
+microseconds. The MCC 118 on the Raspberry Pi: minimum 1099.985, **median 1100.504**, maximum
+1109.775. That is 64 counts against 63 witness periods, from `p04-burst` and the console log
+`p04-20261009-231653.log`, and **the medians differ by 0.504 microseconds against a tolerance of
+10**, which is the witness's own resolution.
+
+(Written as prose rather than as a table on purpose. `check_instruments.py` parses the first
+pipe table on this page and refuses a header it does not recognise, so a second table here would
+either break the check or force it to be loosened. It refused this section once already, which
+is the guard doing its job on the person who wrote it.)
+
+**Criterion 5 is met.** With it, all seven are.
+
+**The two cells this row shows are the cycle counter's pair, and the Instrument column says
+witness.** That looks like a contradiction and is a limitation of a table with one column per
+quantity: a count and a duration have to be one measurement, so the pair shown is the one that
+is internally consistent, 308000 counts at the stated 280 MHz. The column names the witness
+because criterion 7 is about which instrument may see a row at all, and this is the only row the
+witness can see. **The row's actual product is neither number but the 0.504 microseconds between
+them**, which is in [BENCH.md](BENCH.md) with the capture it came from.
+
+One more caveat belongs with it. The device's counts are the 64 periods measured during the run;
+the witness's edges are a later repeat of the same loop, because the firmware repeats the burst
+for as long as it is powered so that no recording has to be landed on a 70 millisecond event.
+The comparison is therefore of one periodic process seen twice rather than of the same 64
+events, and it is sound only if the process is stationary. That is not assumed: `witness.py`
+found seven bursts in this recording and their median periods span 0.69 microseconds.
+
+## The other eight
 
 The eight are the four bracketed operations under Zephyr, warm and cold, from the run of **Friday
 9 October 2026 at 09:40**. Nothing from any earlier run survives in this table, and the reason is
@@ -103,7 +139,7 @@ because a count is not a time until a clock rate is stated, and the check enforc
 | contended mutex, priority inheritance off | zephyr | below | cycle counter | cold | not measured | not measured |
 | contended mutex, priority inheritance off | freertos | below | cycle counter | warm | not measured | not measured |
 | contended mutex, priority inheritance off | freertos | below | cycle counter | cold | not measured | not measured |
-| periodic thread period | zephyr | above | witness | n/a | not measured | not measured |
+| periodic thread period | zephyr | above | witness | n/a | 308000 | 1100.00 |
 | periodic thread period | freertos | above | witness | n/a | not measured | not measured |
 
 *Table. Twenty-six rows, eight of them measured, all from the run of Friday 9 October 2026 at
