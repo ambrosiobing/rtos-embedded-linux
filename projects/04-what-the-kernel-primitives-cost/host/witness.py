@@ -39,8 +39,21 @@ MIN_SAMPLES = 16
 
 # A marker swing smaller than this is noise, not a pin. The MCC 118's resting floor is about two
 # converter codes wide and the marker drives 3.3 V, so a tenth of a volt separates the two
-# cases by more than an order of magnitude either way.
+# cases by more than an order of magnitude either way. Two flat captures on Friday 9 October
+# 2026 both measured a swing of 20.4 mV, which is what that floor looks like.
 MIN_SWING_V = 0.1
+
+# THE BURST IS THE MEASUREMENT; EVERYTHING ELSE ON THE PIN IS NOT.
+#
+# The firmware puts two seconds of beacon on the marker before it measures anything, so that a
+# recording which overlaps the boot contains proof the wire works. The beacon's edges are 250 ms
+# apart and the measurement's are about 1.1 ms apart, a factor of 227, so the two are separated
+# by interval alone with an enormous margin either side of this threshold.
+#
+# Ten milliseconds is nine times the longest interval the measurement produces and a fortieth of
+# the shortest the beacon produces. A number in the middle of a gap that wide is not a tuned
+# parameter, which is the only reason one hard-coded threshold is acceptable here.
+BURST_MAX_INTERVAL_S = 0.010
 
 
 class Refusal(Exception):
@@ -112,6 +125,33 @@ def marker_edges(samples: list[float], fs: float) -> list[float]:
     return edges
 
 
+def select_burst(edges: list[float], max_interval_s: float = BURST_MAX_INTERVAL_S) -> list[float]:
+    """The longest run of edges with no gap longer than `max_interval_s` between them.
+
+    A recording of a P04 run holds the beacon, then a rest, then the measurement burst, and may
+    hold a previous boot's as well if the board was reset twice. The longest closely-spaced run
+    is the measurement: the beacon's eight edges are a quarter of a second apart and never
+    qualify, and a partial burst caught at the end of a recording is shorter than a whole one.
+
+    Returning the longest rather than the last is deliberate. The last would pick up a burst
+    truncated by the recording ending, which yields fewer periods that each look correct, and
+    the reduction would then report agreement from a capture that had been cut short.
+    """
+    if len(edges) < 2:
+        return list(edges)
+
+    best_start, best_len = 0, 1
+    start = 0
+    for i in range(1, len(edges)):
+        if edges[i] - edges[i - 1] > max_interval_s:
+            if i - start > best_len:
+                best_start, best_len = start, i - start
+            start = i
+    if len(edges) - start > best_len:
+        best_start, best_len = start, len(edges) - start
+    return edges[best_start:best_start + best_len]
+
+
 def witness_half(samples: list[float], meta: dict, source: str) -> str:
     """The two lines reduce.py needs from the witness, plus a comment saying where they came from."""
     if meta.get("overrun"):
@@ -135,11 +175,24 @@ def witness_half(samples: list[float], meta: dict, source: str) -> str:
             "most once, which is a reset and not a period"
         )
 
+    burst = select_burst(edges)
+    if len(burst) < 2:
+        raise Refusal(
+            f"{len(edges)} edges found but no two closer than "
+            f"{BURST_MAX_INTERVAL_S * 1000:.0f} ms. That is a beacon with no measurement after "
+            "it, so the recording caught the boot and ended before the period row ran"
+        )
+
+    # The sample floor belongs to the reduction, which refuses a capture with too few periods
+    # and says so. Repeating it here would be a second check on the same condition, and a
+    # redundant check is how the zero-count case went a whole life passing for the wrong reason.
     lines = [
         f"# p04 witness half, from {source}, {len(samples)} samples at {fs:.3f} Hz,"
-        f" {len(edges)} edges both polarities",
+        f" {len(edges)} edges both polarities, {len(burst)} of them in the measurement burst",
+        f"# the burst runs from {burst[0]:.6f} s to {burst[-1]:.6f} s of the recording;"
+        f" {len(edges) - len(burst)} edges outside it are the beacon or another boot",
         f"resolution_s {1.0 / fs:.9f}",
-        "b_edges_s " + " ".join(f"{e:.9f}" for e in edges),
+        "b_edges_s " + " ".join(f"{e:.9f}" for e in burst),
     ]
     return "\n".join(lines) + "\n"
 

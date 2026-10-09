@@ -323,6 +323,81 @@ static void run_hand_to_queue(uint32_t *counts, size_t n)
 static const struct gpio_dt_spec marker = GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), marker_gpios);
 static bool marker_ready;
 
+/* THE BEACON, AND WHY A MEASUREMENT GETS A PREAMBLE IT DOES NOT NEED.
+ *
+ * The period row is 64 sleeps of a millisecond: seventy milliseconds of marker in a recording
+ * that is thirty seconds long. Twice on Friday 9 October 2026 the witness recorded a flat line,
+ * and the first time two clocks showed the Pi had started listening eighteen seconds after the
+ * board had finished. **Asking a person to land a thirty second window on a seventy millisecond
+ * event is a coordination problem, not a measurement problem**, and it can be removed rather
+ * than practised.
+ *
+ * So the pin carries two seconds of slow square wave before anything is measured. Any recording
+ * that overlaps the board's first seconds at all contains it, which makes the beacon a test of
+ * the wire that needs no timing skill: beacon present means the lead reaches CH0 and the pin
+ * drives it, and a flat recording after that is the lead and nothing else.
+ *
+ * ITS INTERVALS ARE DELIBERATELY NOTHING LIKE THE MEASUREMENT'S. 250 ms against 1.1 ms is a
+ * factor of 227, so witness.py can separate the burst from the preamble by interval alone and
+ * neither can be mistaken for the other. The measurement is unaffected: the beacon finishes,
+ * the pin rests, and the first bracketed row starts afterwards.
+ */
+#define BEACON_EDGES 8u
+#define BEACON_MS    250u
+
+static void marker_beacon(void)
+{
+	unsigned int i;
+
+	if (!marker_ready) {
+		return;
+	}
+	printf("# marker beacon: %u edges %u ms apart, about %u ms of slow square wave,\n",
+	       (unsigned int)BEACON_EDGES, (unsigned int)BEACON_MS,
+	       (unsigned int)(BEACON_EDGES * BEACON_MS));
+	printf("#   so a witness recording that overlaps this boot at all contains it\n");
+
+	for (i = 0u; i < BEACON_EDGES; i++) {
+		k_msleep((int32_t)BEACON_MS);
+		(void)gpio_pin_toggle_dt(&marker);
+	}
+	/* Left low, so the measurement burst starts from the same level every run. */
+	(void)gpio_pin_set_dt(&marker, 0);
+}
+
+/* THE RESTING BEACON, WHICH NEVER RETURNS, AND WHY IT IS THE ONE THAT MATTERS.
+ *
+ * The beacon above still asks somebody to start a recording near a reset. This one does not.
+ * After every row has been measured and printed, the pin toggles at a quarter of a second for
+ * as long as the board is powered, so a witness recording started at ANY later moment contains
+ * it. **The wire can then be tested with no coordination whatsoever**: flash, reset, walk away,
+ * record whenever, and either the edges are there or the lead is not on the pin.
+ *
+ * Twice on Friday 9 October 2026 a flat recording left two live causes, a mistimed window and
+ * a wrong lead, and no way to tell them apart. This separates them permanently and costs
+ * nothing, because the application had finished its work and was returning from main anyway.
+ *
+ * Its interval is the beacon's, far above witness.py's burst threshold, so select_burst()
+ * excludes it from the measurement exactly as it excludes the preamble.
+ */
+static void marker_rest(void)
+{
+	if (!marker_ready) {
+		printf("\n# no marker, so no resting beacon. The pin could not be configured.\n");
+		return;
+	}
+	printf("\n# resting beacon: the marker now toggles every %u ms for as long as this\n",
+	       (unsigned int)BEACON_MS);
+	printf("#   board is powered, so a witness recording started at any later moment\n");
+	printf("#   contains it. Edges here mean the lead reaches CH0; a flat recording\n");
+	printf("#   taken now means it does not, and no timing is involved either way.\n");
+
+	for (;;) {
+		k_msleep((int32_t)BEACON_MS);
+		(void)gpio_pin_toggle_dt(&marker);
+	}
+}
+
 /* THE PERIOD, which is the one row the external witness can also see, and the only row where
  * two instruments are meant to agree.
  *
@@ -689,6 +764,7 @@ int main(void)
 
 	report_caches();
 	report_config();
+	marker_beacon();
 	overhead = instrument_cost();
 
 	for (op = 0; op < (int)MEASURE_OP_COUNT; op++) {
@@ -803,5 +879,9 @@ int main(void)
 		printf("#   for at least ten, so this run %s\n",
 		       (smallest / overhead) >= 10u ? "meets it" : "does not");
 	}
+
+	/* Everything above is printed before this is reached, so a console capture is complete
+	 * whether or not anybody is watching the pin. This does not return. */
+	marker_rest();
 	return 0;
 }

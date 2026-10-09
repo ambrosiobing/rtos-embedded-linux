@@ -928,6 +928,66 @@ caught in software this time rather than discovered by eye.
 The transcription is noted where it matters: the device half reduced here was taken from the
 console as pasted, and the log file on win11 skyhorizon's Desktop is the record.
 
+## The second flat capture, and the two analysers disagreeing about it
+
+The attempt was repeated at 22:46 with the instruction to start the Pi first. The two clocks say
+it went the other way round again, and further:
+
+| | Attempt 1 | Attempt 2 |
+|---|---|---|
+| console log opened | 22:30:16 | 22:46:38 |
+| all console bytes in by | the 10 second mark | the 10 second mark |
+| so the reset was pressed before | 22:30:26 | 22:46:48 |
+| the Pi began recording | 22:30:44 | **22:47:22** |
+| the Pi started after the board had finished by | 18 s | **34 to 44 s** |
+
+*Table. Two attempts, Friday 9 October 2026, timed from the console log's filename and the
+capture's own `captured_utc`.*
+
+**The ordering instruction did not survive contact with the bench twice, so the instruction is
+the defect.** Seventy milliseconds of marker inside a thirty second window is a coordination
+problem being handed to a person, and no amount of restating the order fixes that.
+
+### The same file, two analysers, and only one of them says anything useful
+
+`rate.py` from the sibling firmware volume was run on the second capture and reported **16063
+rising edges**, a fitted rate of 503.06 Hz, an interval spread of 3926.81 microseconds, a worst
+interval of 76.88 milliseconds and 18740 missing edges, failing all five of its criteria.
+`witness.py` refused the same file in one line: a swing of 20.4 mV, wire not fitted or pin not
+driven.
+
+**Both are correct and the difference is a floor.** `rate.py` takes its thresholds from the
+observed swing with no lower bound on what counts as a swing, so on a flat recording it adapts
+them to the noise and then finds edges in the noise. That is the trap the sibling volume
+documented against this very HAT, where thresholds adapted to a half-volt fragment counted the
+catches rather than the signal.
+
+The consequence is about diagnosis rather than correctness. `rate.py`'s output sends a reader to
+the firmware's timing: a wrong rate, enormous jitter, thousands of dropped edges. The actual
+fault is that nothing was connected to the measurement. **A tool that fails for the right reason
+and names the wrong cause costs more than one that refuses**, which is why `MIN_SWING_V` is in
+`witness.py` and why the 20.4 mV figure is identical in both captures: it is the HAT's resting
+floor, four converter codes, and not a measurement of anything.
+
+### The marker now beacons, and the coordination requirement is deleted rather than restated
+
+Two changes, and the second is the one that matters.
+
+**A preamble**: eight edges 250 milliseconds apart before anything is measured, so a recording
+overlapping the boot contains proof the wire works and a landmark for where the burst begins.
+
+**A resting beacon**: after every row has been measured and printed, the pin toggles every 250
+milliseconds for as long as the board is powered. **A witness recording started at any later
+moment contains it.** The wire can be tested with no coordination at all: flash, reset, walk
+away, record whenever. Edges mean the lead reaches CH0; a flat recording taken then means it
+does not, and timing cannot be the explanation either way.
+
+Both intervals are 250 milliseconds against the measurement's 1.1, a factor of 227, so
+`select_burst()` in `witness.py` separates them by interval alone with an enormous margin either
+side of its ten millisecond threshold. It takes the longest closely-spaced run rather than the
+last, because the last would pick up a burst truncated by the recording ending and the reduction
+would then report agreement from a capture that had been cut short.
+
 ### What it cost, so that the next one is a decision and not a habit
 
 Before this file the largest thing tracked in the repository was 96 KB, an SVG. This is 3.45 MB,

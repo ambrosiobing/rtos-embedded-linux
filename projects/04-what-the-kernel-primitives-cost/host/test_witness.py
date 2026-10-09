@@ -19,7 +19,7 @@ import statistics
 import sys
 
 from reduce import Refusal as ReduceRefusal, reduce_capture
-from witness import MIN_SAMPLES, Refusal, marker_edges, witness_half
+from witness import MIN_SAMPLES, Refusal, marker_edges, select_burst, witness_half
 
 FS = 100_000.0       # the MCC 118 on one channel
 PERIOD_S = 0.0011    # 1.1 ms, which is what the board actually produces at this tick
@@ -63,8 +63,78 @@ def check(name: str, ok: bool, detail: str = "") -> bool:
     return ok
 
 
+def beaconed(period_s: float, edges: int, fs: float, beacon_s: float = 0.25,
+             beacon_edges: int = 8, trailing_edges: int = 12, seed: int = 3) -> list[float]:
+    """A whole P04 recording: beacon, rest, measurement burst, rest, resting beacon.
+
+    This is the shape the firmware actually produces since Friday 9 October 2026, and the
+    reason select_burst() exists. Built by concatenating levels rather than by calling
+    square_wave twice, so the quiet stretches between the three parts are explicit.
+    """
+    rng = random.Random(seed)
+    out: list[float] = []
+    level = 0.0
+
+    def hold(seconds: float) -> None:
+        for _ in range(int(seconds * fs)):
+            out.append(level + rng.gauss(0.0, 0.004))
+
+    hold(0.3)
+    for _ in range(beacon_edges):            # the preamble, 250 ms apart
+        hold(beacon_s)
+        level = SWING_V - level
+    hold(0.4)
+    # edges + 1 toggles for `edges` periods, because the firmware toggles once before the loop
+    # and once per period inside it. The fixture had `edges` and the test caught it: 64 edges
+    # bound 63 intervals, and the reduction would have been handed one period too few.
+    for _ in range(edges + 1):               # the measurement, 1.1 ms apart
+        hold(period_s)
+        level = SWING_V - level
+    hold(0.4)
+    for _ in range(trailing_edges):          # the resting beacon, 250 ms apart
+        hold(beacon_s)
+        level = SWING_V - level
+    hold(0.3)
+    return out
+
+
 def main() -> int:
     ok = True
+
+    # THE WHOLE RECORDING, AND THE BURST PICKED OUT OF IT. The beacon and the resting beacon
+    # are a quarter of a second apart and the measurement is 1.1 ms apart, so the separation is
+    # by interval and the margin is a factor of 227 either side.
+    whole_rec = beaconed(PERIOD_S, EDGES, FS)
+    all_edges = marker_edges(whole_rec, FS)
+    burst = select_burst(all_edges)
+    ok &= check("every edge in the whole recording is found",
+                len(all_edges) == 8 + (EDGES + 1) + 12, f"found {len(all_edges)}")
+    ok &= check("the burst is the measurement and nothing else",
+                len(burst) == EDGES + 1, f"burst has {len(burst)}, wanted {EDGES + 1}")
+    burst_periods = [b - a for a, b in zip(burst, burst[1:])]
+    ok &= check("every burst interval is a period, none is a beacon gap",
+                all(abs(p - PERIOD_S) <= 2.0 / FS for p in burst_periods))
+
+    # And the whole thing reduces, which is the closure criterion 5 needs from a real capture.
+    counts_w = [int(round(PERIOD_S * 280_000_000))] * EDGES
+    dev = ("instrument wall\nclock_hz 280000000\nwrap_guard ok\n"
+           "a_counts " + " ".join(str(c) for c in counts_w) + "\n")
+    try:
+        agree, _ = reduce_capture(dev + witness_half(whole_rec, meta(), "synthetic-beaconed"))
+        ok &= check("a beaconed recording reduces in agreement", agree)
+    except ReduceRefusal as exc:
+        ok &= check("a beaconed recording reduces in agreement", False, f"refused: {exc}")
+
+    # A recording that caught the beacon and ended before the measurement must be refused, and
+    # refused for the right reason: it is a wire that works and a run that was missed, which is
+    # a different thing to tell somebody than a flat line.
+    beacon_only = beaconed(PERIOD_S, 0, FS, trailing_edges=0)
+    try:
+        witness_half(beacon_only, meta(), "beacon-only")
+        ok &= check("a beacon with no measurement after it is refused", False, "it was accepted")
+    except Refusal as exc:
+        ok &= check("a beacon with no measurement after it is refused",
+                    "no two closer than" in str(exc), f"refused for the wrong reason: {exc}")
 
     # THE ONE ACCEPT CASE THAT MATTERS. A 1.1 ms square wave comes back as 1.1 ms, to within
     # the resolution the witness actually has, from edges found both polarities.
