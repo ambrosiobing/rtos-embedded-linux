@@ -122,6 +122,46 @@ sides and comparing the counts would be the same error criterion 7 exists to pre
 The comparison will therefore be reported **in nanoseconds**, with the ratio check stated beside
 it. That costs nothing and removes a way to be quietly wrong.
 
+## A configuration difference found while reading upstream's `prj.conf`, and closed
+
+**Upstream sets `CONFIG_TIMESLICING=n`. Ours did not set it at all, and it defaults to `y` with
+`CONFIG_TIMESLICE_SIZE` defaulting to 20 ms.** So every figure this project published before
+Friday 9 October 2026 was taken with a 20 ms timeslice compiled in and enabled.
+
+That was never a decision. It was a default nobody read, in a project whose entire subject is what
+kernel primitives cost.
+
+It matters in two separate ways and only one of them changes a number.
+
+**For criterion 2 it is disqualifying while it stands.** The scheduler carries slice bookkeeping
+in the path every bracket here contains. Comparing our figures against a suite that compiles that
+code out would be comparing two kernels configured differently, which is precisely the error the
+design warns about in its opening section: a table reading "Zephyr 180, FreeRTOS 210" comparing
+two sets of defaults and saying almost nothing. So `CONFIG_TIMESLICING=n` is now set in our
+`prj.conf`, matching upstream, and the four rows already in [RESULTS.md](RESULTS.md) are
+re-measured on the matched configuration.
+
+**For our own published minima it changes nothing, and the arithmetic says why rather than the
+hope.** The yield case runs its partner at the measurer's own priority, which is exactly the
+arrangement timeslicing acts on. But sixty-four brackets of about 9 microseconds is under 600
+microseconds in total, against a 20 millisecond slice, so no slice boundary could fall inside any
+run. The distributions bear that out: the yield row reads 2615 in sixty of sixty-four samples with
+no long outlier anywhere. **The code was in the path and the behaviour never fired.**
+
+The figures will still move, because the build changed, and they should move by less than the two
+per cent bound rather than by nothing.
+
+### The settings are now printed by the run
+
+`report_config()` prints `CONFIG_TIMESLICING`, its slice size, `CONFIG_ASSERT` and `CONFIG_POLL`
+beside the cache report. **A Kconfig default read out of the upstream tree is a claim about a
+version; a line printed by the binary is a statement about what is running.** The same reasoning
+that put `report_caches()` in, and the same reasoning that found this: ask the build rather than
+reason about it.
+
+`CONFIG_ASSERT` was already `n` on both sides, which is the one setting that had been thought
+about.
+
 ## The risk that would stop this, named before the attempt
 
 **The suite needs Zephyr's timing API, and whether it is supported on `nucleo_h7a3zi_q` is not

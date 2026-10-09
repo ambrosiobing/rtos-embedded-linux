@@ -399,6 +399,31 @@ static void report_caches(void)
 	       (SCB->CCR & SCB_CCR_DC_Msk) ? "ON" : "OFF");
 }
 
+/* THE SETTINGS THAT BEAR ON THE COMPARISON, ASKED OF THE BUILD RATHER THAN ASSUMED.
+ *
+ * Added Friday 9 October 2026 after a default went unread for the life of the project.
+ * CONFIG_TIMESLICING defaults to y and CONFIG_TIMESLICE_SIZE to 20 ms, so every figure taken
+ * before today carried slice bookkeeping in the scheduler path that Zephyr's own
+ * latency_measure suite does not, because that suite sets CONFIG_TIMESLICING=n.
+ *
+ * The lesson is the one report_caches() already carries: **the build is the authority on what
+ * was built, and a default is a claim nobody has checked.** A Kconfig default read out of the
+ * upstream tree is a claim about a version; this line is a statement about the binary that is
+ * running. Criterion 2 compares two configurations, so each has to state its own.
+ */
+static void report_config(void)
+{
+	printf("# configuration that bears on the comparison with the upstream suite\n");
+	printf("#   CONFIG_TIMESLICING %s", IS_ENABLED(CONFIG_TIMESLICING) ? "y" : "n");
+#ifdef CONFIG_TIMESLICE_SIZE
+	printf(", slice %d ms", (int)CONFIG_TIMESLICE_SIZE);
+#endif
+	printf("\n");
+	printf("#   CONFIG_ASSERT %s, CONFIG_POLL %s, and upstream sets both n and y\n",
+	       IS_ENABLED(CONFIG_ASSERT) ? "y" : "n",
+	       IS_ENABLED(CONFIG_POLL) ? "y" : "n");
+}
+
 int main(void)
 {
 	static uint32_t counts[SAMPLES];
@@ -446,6 +471,7 @@ int main(void)
 	}
 
 	report_caches();
+	report_config();
 	overhead = instrument_cost();
 
 	for (op = 0; op < (int)MEASURE_OP_COUNT; op++) {
