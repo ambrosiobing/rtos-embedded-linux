@@ -69,6 +69,46 @@ uint32_t measure_clock_hz(void)
 #endif
 }
 
+/* CRITERION 3: THE SAME OPERATION WITH A COLD INSTRUCTION CACHE.
+ *
+ * Worth building only because the caches turned out to be on. The run of Thursday 8 October
+ * 2026 asked the control register and both are enabled, so there really are two states here
+ * and the warm-up visible in every operation's first samples has something behind it.
+ *
+ * THE INVALIDATION SITS IMMEDIATELY BEFORE THE BRACKET OPENS, AND WHERE THAT IS DIFFERS BY
+ * OPERATION. This is the correction of Friday 9 October 2026 and it is the whole lesson of
+ * the first attempt, which put the call at the top of every loop and got two sound rows and
+ * two worthless ones.
+ *
+ * Two of the four operations open their bracket on a timestamp taken in the measurer, the
+ * statement after the invalidation, and those two measured 734 and 912 counts of penalty.
+ * The other two open theirs on `t_handoff`, STAMPED IN THE GIVER THREAD, with a complete
+ * semaphore give, a blocking take and the giver's own wake-up running untimed in between.
+ * That run-up walks the same kernel code the bracket is about, so it refilled the cache the
+ * invalidation had just emptied, and those two measured 172 counts and nothing at all.
+ *
+ * So the giver invalidates, on its last statement before it stamps. The measurer's own call
+ * is removed from those two loops rather than left as well: a second invalidation earlier in
+ * the iteration changes nothing and would suggest to a reader that it does.
+ *
+ * Outside the bracket in every case. What is measured is the operation running cold, not the
+ * cost of making it cold, and those are different questions.
+ *
+ * The instruction cache only. Invalidating the data cache without cleaning it first would
+ * discard anything dirty, and this case has no need to touch it: what a cold run is being
+ * asked about is the cost of fetching the kernel's code again.
+ */
+static volatile bool cold_mode;
+
+static void chill(void)
+{
+	if (cold_mode) {
+		SCB_InvalidateICache();
+		__DSB();
+		__ISB();
+	}
+}
+
 /* ---- the partner and giver threads ------------------------------------------------------- */
 
 static void partner_fn(void *a, void *b, void *c)
@@ -90,6 +130,11 @@ static void giver_fn(void *a, void *b, void *c)
 
 	for (;;) {
 		k_sem_take(&go, K_FOREVER);
+		/* CRITERION 3 FOR BOTH BLOCKING ROWS HAPPENS HERE, not in the measurer. The
+		 * bracket opens on the stamp below, so this is the last point at which an
+		 * invalidation still lands outside it and ahead of it. In the warm pass
+		 * cold_mode is false and this is one test of a flag. */
+		chill();
 		/* The last thing before the give, so the bracket holds the wake-up and not the
 		 * giver's own run-up. */
 		t_handoff = measure_now();
@@ -105,31 +150,6 @@ static void work_fn(struct k_work *w)
 }
 
 static K_WORK_DEFINE(work_item, work_fn);
-
-/* CRITERION 3: THE SAME OPERATION WITH A COLD INSTRUCTION CACHE.
- *
- * Worth building only because the caches turned out to be on. The run of Thursday 8 October
- * 2026 asked the control register and both are enabled, so there really are two states here
- * and the warm-up visible in every operation's first samples has something behind it.
- *
- * THE INVALIDATION SITS OUTSIDE THE BRACKET, at the top of each iteration and before the
- * first read of the counter. What is measured is the operation running cold, not the cost of
- * making it cold, and those are different questions.
- *
- * The instruction cache only. Invalidating the data cache without cleaning it first would
- * discard anything dirty, and this case has no need to touch it: what a cold run is being
- * asked about is the cost of fetching the kernel's code again.
- */
-static volatile bool cold_mode;
-
-static void chill(void)
-{
-	if (cold_mode) {
-		SCB_InvalidateICache();
-		__DSB();
-		__ISB();
-	}
-}
 
 /* ---- the operations ---------------------------------------------------------------------- */
 
@@ -169,7 +189,8 @@ static void run_block_one(uint32_t *counts, size_t n)
 	size_t i;
 
 	for (i = 0u; i < n; i++) {
-		chill();
+		/* No chill() here. The giver does it, on its last statement before the stamp
+		 * this bracket opens on. See the criterion 3 comment above the flag. */
 		k_sem_give(&go);
 		k_sem_take(&signalled, K_FOREVER);
 		counts[i] = measure_now() - t_handoff;
@@ -189,7 +210,9 @@ static void run_block_several(uint32_t *counts, size_t n)
 			  &second);
 
 	for (i = 0u; i < n; i++) {
-		chill();
+		/* No chill() here either, for the same reason, and this row is the warning the
+		 * other one is not: it showed 172 counts of penalty, a figure small enough to
+		 * look like a modest real effect rather than like a broken case. */
 		k_sem_give(&go);
 		(void)k_poll(events, (int)ARRAY_SIZE(events), K_FOREVER);
 		counts[i] = measure_now() - t_handoff;
@@ -382,6 +405,7 @@ int main(void)
 	uint32_t overhead = 0u;
 	uint32_t smallest = 0xFFFFFFFFu;
 	uint32_t warm_min[MEASURE_OP_COUNT];
+	uint32_t cold_min_of[4];
 	int op;
 
 	k_thread_create(&partner_thread, partner_stack, STACK_SIZE, partner_fn,
@@ -421,16 +445,17 @@ int main(void)
 		}
 		(void)measure_emit((measure_op_t)op, counts, SAMPLES);
 
+		/* One pass, two minima. These were two nested loops until Friday 9 October
+		 * 2026, running 4096 iterations for 64 samples. A minimum is idempotent so no
+		 * figure was ever wrong, and it is repaired because a misplaced brace that
+		 * happens not to matter is still a misplaced brace. */
 		for (size_t k = 0u; k < SAMPLES; k++) {
 			if (counts[k] < smallest) {
 				smallest = counts[k];
 			}
-
-		for (size_t k = 0u; k < SAMPLES; k++) {
 			if (counts[k] < warm_min[op]) {
 				warm_min[op] = counts[k];
 			}
-		}
 		}
 	}
 
@@ -442,39 +467,72 @@ int main(void)
 	 * microsecond and a warm rest, which is not the comparison the criterion asks for. */
 	cold_mode = true;
 	printf("\n# criterion 3: the same four operations with the instruction cache\n");
-	printf("#   invalidated before every bracket, the invalidation outside it\n");
-	printf("#   minimum of 64, because an operation has a floor and no ceiling\n");
-	printf("#\n");
-	printf("#   operation                                        warm    cold\n");
+	printf("#   invalidated immediately before each bracket opens, outside it\n");
 
+	/* THE DISTRIBUTION, NOT ONLY THE FLOOR, and the reason is a question the first version of
+	 * this pass could not answer. On Friday 9 October 2026 one row came out four counts lower
+	 * cold than warm, and whether 1468 was the floor of a tight distribution or one low sample
+	 * in a scattered one could not be told, because only the minimum was printed. A minimum
+	 * was enough for the instrument's own cost, where the floor is the whole point. It is not
+	 * enough for a comparison.
+	 *
+	 * Printed as a comment rather than through measure_emit(). The capture format has no field
+	 * for the cache state, so a second capture per operation would be indistinguishable from
+	 * the first except by its position in the log, and a number whose conditions cannot be read
+	 * off the record should not be in the record. Adding that field changes the host parser and
+	 * its suite, and it waits until a cold row needs to go through the reduction.
+	 *
+	 * The runs all happen before the table is printed, so that the table arrives in one piece
+	 * with the count dumps above it rather than interleaved through it. */
 	for (op = 0; op < 4; op++) {
-		uint32_t cold_min = 0xFFFFFFFFu;
 		size_t k;
 
+		cold_min_of[op] = 0xFFFFFFFFu;
 		if (measure_run((measure_op_t)op, counts, SAMPLES) != 0) {
 			continue;
 		}
 		for (k = 0u; k < SAMPLES; k++) {
-			if (counts[k] < cold_min) {
-				cold_min = counts[k];
+			if (counts[k] < cold_min_of[op]) {
+				cold_min_of[op] = counts[k];
 			}
 		}
 
-		if (cold_min >= warm_min[op]) {
-			printf("#   %-46s %6u  %6u   cold is %u per cent higher\n",
-			       measure_op_name((measure_op_t)op),
-			       (unsigned int)warm_min[op], (unsigned int)cold_min,
-			       (unsigned int)(((cold_min - warm_min[op]) * 100u) / warm_min[op]));
-		} else {
-			/* NOT AN IMPOSSIBILITY, AND WORTH PRINTING RATHER THAN HIDING. A cold run
-			 * coming out faster would mean the invalidation is not doing what this
-			 * case assumes, and that is the finding rather than a glitch. */
-			printf("#   %-46s %6u  %6u   COLD IS LOWER, which should not happen\n",
-			       measure_op_name((measure_op_t)op),
-			       (unsigned int)warm_min[op], (unsigned int)cold_min);
+		printf("#\n#   cold counts, %s\n#  ", measure_op_name((measure_op_t)op));
+		for (k = 0u; k < SAMPLES; k++) {
+			printf(" %u", (unsigned int)counts[k]);
 		}
+		printf("\n");
 	}
 	cold_mode = false;
+
+	printf("#\n#   minimum of 64, because an operation has a floor and no ceiling\n");
+	printf("#   the penalty in counts is the figure to quote, not the percentage:\n");
+	printf("#   a percentage carries whatever the baseline happens to be\n");
+	printf("#\n");
+	printf("#   operation                                        warm    cold  penalty\n");
+
+	for (op = 0; op < 4; op++) {
+		if (cold_min_of[op] == 0xFFFFFFFFu) {
+			continue;
+		}
+		if (cold_min_of[op] >= warm_min[op]) {
+			printf("#   %-46s %6u  %6u  %7u  cold is %u per cent higher\n",
+			       measure_op_name((measure_op_t)op),
+			       (unsigned int)warm_min[op], (unsigned int)cold_min_of[op],
+			       (unsigned int)(cold_min_of[op] - warm_min[op]),
+			       (unsigned int)(((cold_min_of[op] - warm_min[op]) * 100u)
+					      / warm_min[op]));
+		} else {
+			/* NOT AN IMPOSSIBILITY, AND WORTH PRINTING RATHER THAN HIDING. This fired
+			 * on Friday 9 October 2026 for block-on-one and it was right to: the
+			 * invalidation was in the measurer and that row's bracket opens on a stamp
+			 * taken in the giver, after a give and a block had already rewarmed the
+			 * path. The flag found a defect in the case, which is what it is for. */
+			printf("#   %-46s %6u  %6u        0  COLD IS LOWER, which should not happen\n",
+			       measure_op_name((measure_op_t)op),
+			       (unsigned int)warm_min[op], (unsigned int)cold_min_of[op]);
+		}
+	}
 
 	if (overhead > 0u && smallest != 0xFFFFFFFFu) {
 		printf("# criterion 1: the instrument costs %u counts and the smallest\n",
