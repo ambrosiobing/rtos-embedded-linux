@@ -46,6 +46,19 @@ uint32_t measure_clock_hz(void)
 	return clock_hz;
 }
 
+/* The wall instrument, on a host where neither counter is real. Same advancing stub and the
+ * same rate, so that the only thing the pipeline test can be checking is the format: whether
+ * the emitter labels a period capture `wall` and the parser insists on it. */
+uint32_t measure_now_wall(void)
+{
+	return measure_now();
+}
+
+uint32_t measure_clock_hz_wall(void)
+{
+	return clock_hz;
+}
+
 int main(int argc, char **argv)
 {
 	uint32_t counts[SAMPLES];

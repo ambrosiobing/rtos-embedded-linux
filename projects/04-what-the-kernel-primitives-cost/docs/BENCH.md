@@ -808,11 +808,15 @@ to miss:
 
 1. **A marker output**, toggled at each period boundary, with its pin declared in a devicetree
    overlay so that the source names the pin rather than a comment doing it.
-2. **The period row works again.** It is currently refused: `run_period` returns `-ENOTSUP` under
-   the timing API, because its bracket contains a sleep and that counter stops when the core
-   stops. Criterion 5 *is* the period row, so criterion 5 cannot be reported until `measure_emit`
-   can state a per-operation instrument and rate. One capture carries one `clock_hz` line today,
-   and the period row needs a different counter from the other six.
+2. **The period row works again.** Done the same evening, Friday 9 October 2026, and the shape of
+   the fix is worth more than the fix. The instrument became a property of the *operation*,
+   decided in the core beside the operation names: six brackets contain no idle and use the
+   `core` counter, the one that matches upstream and stops in idle; the period brackets a sleep
+   and uses the `wall` counter, which runs through one. Every capture now carries an `instrument`
+   line and the rate that goes with it from one lookup, and `reduce.py` refuses a period capture
+   labelled `core` outright, so the two halves hold each other to it. That refusal was shown to
+   catch by mutation before it was committed: with the three instrument checks stripped from a
+   copy, exactly the three new cases went red and nothing else did.
 3. **The Pi side**, producing the `b_edges_s` that [reduce.py](../host/reduce.py) already requires
    and [test_reduce.py](../host/test_reduce.py) already tests against. That half has been designed
    and exercised on synthetic input since before any of this; it is the only one of the three that

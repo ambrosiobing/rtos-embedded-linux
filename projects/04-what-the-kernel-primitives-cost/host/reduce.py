@@ -13,6 +13,7 @@ WHAT A CAPTURE LOOKS LIKE. One self-describing text file, because a run that doe
 it is becomes unreadable the week after it is taken:
 
     # anything after a hash is a comment
+    instrument    wall
     clock_hz      280000000
     wrap_guard    ok
     resolution_s  0.00001
@@ -24,7 +25,15 @@ see a single cycle. `b_edges_s` are the times the external witness saw an edge, 
 instrument that cannot see anything shorter than its own resolution. The reduction converts the
 first to seconds using the stated clock, derives periods from the second, and compares.
 
-THE TWO HEADER FIELDS THAT MOST CAPTURE FORMATS LEAVE OUT, and why both are required here:
+THE THREE HEADER FIELDS THAT MOST CAPTURE FORMATS LEAVE OUT, and why all three are required:
+
+  instrument  WHICH on-device counter took the counts, `core` or `wall`. Added Friday 9 October
+              2026 after the core cycle counter, the one that prices every other row and that
+              Zephyr's own benchmark uses, turned out to stop when the core idles. A period
+              brackets a sleep. Across a sleep that counter reads the microseconds the wake-up
+              took, not the millisecond that passed, and reports a plausible small number. So
+              this reduction, which only ever reduces periods, refuses `core` outright: it is
+              not a worse instrument for the job, it is not an instrument for the job.
 
   clock_hz    A count is not a time. A capture whose clock is absent, zero or unconfirmed is
               refused rather than reduced with a guess, because a guessed rate scales every
@@ -55,6 +64,7 @@ class Refusal(Exception):
 
 @dataclass
 class Capture:
+    instrument: str = ""
     clock_hz: int = 0
     wrap_guard: str = ""
     resolution_s: float = 0.0
@@ -81,7 +91,9 @@ def parse(text: str) -> Capture:
         seen.add(key)
 
         try:
-            if key == "clock_hz":
+            if key == "instrument":
+                cap.instrument = values[0]
+            elif key == "clock_hz":
                 cap.clock_hz = int(values[0])
             elif key == "wrap_guard":
                 cap.wrap_guard = values[0]
@@ -101,6 +113,20 @@ def parse(text: str) -> Capture:
 
 def validate(cap: Capture) -> None:
     """Every reason a capture cannot produce a number, checked before it produces one."""
+    if cap.instrument == "":
+        raise Refusal(
+            "instrument is absent. A period measured by a counter that stops when the core "
+            "idles reads as a plausible small number, so the capture has to say which counter "
+            "took it"
+        )
+    if cap.instrument == "core":
+        raise Refusal(
+            "instrument is 'core', which stops when the core idles, and a period brackets a "
+            "sleep. That counter is not an instrument for this job: across a sleep it reads the "
+            "wake-up and not the interval"
+        )
+    if cap.instrument != "wall":
+        raise Refusal(f"instrument is {cap.instrument!r}, and the only one that can bracket a sleep is 'wall'")
     if cap.clock_hz <= 0:
         raise Refusal(
             "clock_hz is absent or zero. A count is not a time, and a guessed rate scales "
@@ -166,6 +192,7 @@ def reduce_capture(text: str) -> tuple[bool, str]:
     agree = difference <= cap.resolution_s
 
     lines = [
+        f"instrument       {cap.instrument}, from the capture",
         f"clock            {cap.clock_hz} Hz, from the capture",
         f"witness can see  {cap.resolution_s * 1e6:.1f} us, from the capture",
         f"samples          {len(cap.a_counts)} counts, {len(cap.b_edges_s) - 1} witness periods",

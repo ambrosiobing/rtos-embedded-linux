@@ -40,14 +40,51 @@ typedef enum {
 /* Character for character the Operation column of docs/RESULTS.md. */
 const char *measure_op_name(measure_op_t op);
 
-/* Provided by the port. A free-running count that wraps, and the rate it advances at. */
+/* TWO INSTRUMENTS, AND WHICH ONE A ROW USES IS A PROPERTY OF ITS BRACKET.
+ *
+ * Established Friday 9 October 2026. The counter that prices a kernel primitive on this part,
+ * and that Zephyr's own benchmark suite uses, counts core cycles and stops when the core stops.
+ * Six of the seven brackets contain no idle at all, so that is the right instrument for them.
+ * The seventh brackets a sleep, and across a sleep that counter reads the microseconds the
+ * wake-up took rather than the millisecond that passed. A counter that stops during a sleep
+ * cannot measure a sleep.
+ *
+ *   core   stops when the core idles. Fine-grained, and what upstream prices with.
+ *   wall   keeps running through idle. Coarser, driven by the system timer, and the only one
+ *          that can bracket a sleep.
+ *
+ * The choice lives HERE, in the core beside the operation names, rather than in each adapter,
+ * because a bracket containing a sleep is a fact about the operation and not about the kernel.
+ * An adapter that picked differently would be measuring a different thing under the same name,
+ * which is the drift the whole contract exists to prevent. */
+typedef enum {
+	MEASURE_INSTRUMENT_CORE = 0,
+	MEASURE_INSTRUMENT_WALL,
+	MEASURE_INSTRUMENT_COUNT
+} measure_instrument_t;
+
+measure_instrument_t measure_op_instrument(measure_op_t op);
+
+/* "core" or "wall", character for character the `instrument` line of a capture. */
+const char *measure_instrument_name(measure_instrument_t instrument);
+
+/* Provided by the port. Free-running counts that wrap, and the rate each advances at.
+ *
+ * measure_now() is the CORE instrument, which every bracket without a sleep uses; the name is
+ * unqualified because that is what it has always meant in the adapters. measure_now_wall() is
+ * the one that survives idle, for the one bracket that needs it. */
 uint32_t measure_now(void);
+uint32_t measure_now_wall(void);
 
 /* THE RATE, OR ZERO. Zero means the clock tree has not been confirmed, and the core then emits
  * `clock_hz 0`, which the reduction refuses. A count is not a time, and a guessed rate scales
  * every figure by an unknown factor while still looking like a measurement, so the refusal
- * travels in the capture rather than being left to whoever reads it. */
+ * travels in the capture rather than being left to whoever reads it.
+ *
+ * ONE RATE PER INSTRUMENT. The two counters on this part happen to run at the same 280 MHz,
+ * and a capture states its own rate anyway, because "they happen to" is not a contract. */
 uint32_t measure_clock_hz(void);
+uint32_t measure_clock_hz_wall(void);
 
 /* Provided by the kernel adapter. Fills n elapsed counts for one operation, returning 0 on
  * success and a negative value if the operation is not available under that kernel. */
@@ -72,7 +109,11 @@ typedef struct {
 
 measure_summary_t measure_summarise(const uint32_t *counts, size_t n);
 
-/* Emit the DEVICE HALF of a capture: clock_hz, wrap_guard and a_counts.
+/* Emit the DEVICE HALF of a capture: instrument, clock_hz, wrap_guard and a_counts.
+ *
+ * The `instrument` line and the `clock_hz` beside it come from measure_op_instrument(), so a
+ * row measured with one counter cannot be labelled with the other's rate. That pairing is the
+ * same discipline docs/RESULTS.md applies to its Instrument column, one level down.
  *
  * It is deliberately half. The device cannot know what the external witness resolves or when it
  * saw an edge, so `resolution_s` and `b_edges_s` are added on the host from the acquisition

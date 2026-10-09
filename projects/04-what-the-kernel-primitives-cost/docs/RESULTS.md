@@ -67,6 +67,13 @@ at 105 per cent is a thin basis for a general claim. The honest statement is the
 703 and 729, a band whose widest is 1.92 times its narrowest. The proportions over the same four
 run from 54 to 105 per cent only because each divides by a different baseline.
 
+**Instrument here means which of two instruments may see the row at all**, the processor's own
+counter or the external witness, and that is criterion 7's axis. It is a different question from
+which *on-device* counter took a reading, which a capture states on its own `instrument` line as
+`core` or `wall`: six rows bracket no idle and use the counter that stops in idle, the period
+brackets a sleep and uses the one that does not. Both axes exist because a number can be wrong
+along either, and the two words are kept apart on purpose.
+
 **Cycles** and **Duration** move together. A cycle count without a duration is not reportable,
 because a count is not a time until a clock rate is stated, and the check enforces that pairing.
 

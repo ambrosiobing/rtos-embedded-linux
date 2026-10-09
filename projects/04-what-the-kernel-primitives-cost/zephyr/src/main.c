@@ -108,6 +108,27 @@ uint32_t measure_clock_hz(void)
 #endif
 }
 
+/* THE WALL INSTRUMENT: the one that keeps running through idle, for the one bracket that
+ * contains a sleep. It is k_cycle_get_32(), driven by the system timer, and it is exactly the
+ * counter this project measured everything with until Friday 9 October 2026 and then stopped
+ * using for six of the seven rows because it was most of every figure. It stays for the
+ * seventh because the seventh is a millisecond, the overhead is a few hundred counts, and the
+ * core instrument cannot see a sleep at all. The right instrument for a row is the one that can
+ * see the row. */
+uint32_t measure_now_wall(void)
+{
+	return k_cycle_get_32();
+}
+
+uint32_t measure_clock_hz_wall(void)
+{
+#if defined(CONFIG_BOARD_NUCLEO_H7A3ZI_Q)
+	return (uint32_t)sys_clock_hw_cycles_per_sec();
+#else
+	return 0u;
+#endif
+}
+
 /* CRITERION 3: THE SAME OPERATION WITH A COLD INSTRUCTION CACHE.
  *
  * Worth building only because the caches turned out to be on. The run of Thursday 8 October
@@ -292,34 +313,29 @@ static void run_hand_to_queue(uint32_t *counts, size_t n)
  * contain no idle at all, so a core cycle counter suits them and is what upstream uses; this row
  * wants the system timer, which keeps running through idle.
  *
- * Refused rather than quietly switched to k_cycle_get_32() behind the emit. The capture carries
- * one `clock_hz` line, so a row measured with one counter and labelled with the other's rate
- * would be exactly the mislabelling criterion 7 exists to catch, one level down. The row waits
- * until the emit can carry its own instrument, and it is criterion 5's business in any case,
- * which needs the witness on the Raspberry Pi that is not connected.
+ * For a few hours on Friday 9 October 2026 this row was refused outright, because the capture
+ * carried one `clock_hz` line and a row measured with one counter and labelled with the other's
+ * rate would be the mislabelling criterion 7 exists to catch, one level down. The emit now
+ * carries an `instrument` line and the rate that goes with it, from one lookup in the core, so
+ * the row is back on the counter that can see it. The reduction refuses a period capture
+ * labelled `core`, so the two halves hold each other to it.
  */
 static int run_period(uint32_t *counts, size_t n)
 {
-#if MEASURE_USE_TIMING_API
-	ARG_UNUSED(counts);
-	ARG_UNUSED(n);
-	return -ENOTSUP;
-#else
 	uint32_t previous;
 	size_t i;
 
 	k_msleep(1);
-	previous = measure_now();
+	previous = measure_now_wall();
 
 	for (i = 0u; i < n; i++) {
 		k_msleep(1);
-		uint32_t now = measure_now();
+		uint32_t now = measure_now_wall();
 
 		counts[i] = now - previous;
 		previous = now;
 	}
 	return 0;
-#endif
 }
 
 int measure_run(measure_op_t op, uint32_t *counts, size_t n)
@@ -423,6 +439,40 @@ static bool clock_rate_agrees(void)
 	return elapsed > (predicted - predicted / 4u) && elapsed < (predicted + predicted / 4u);
 }
 
+/* THE SAME GATE FOR THE WALL INSTRUMENT, AND THIS ONE SLEEPS ON PURPOSE.
+ *
+ * The core gate above spins because its counter stops in idle. The wall instrument exists
+ * precisely because it does not, so the honest window for it is a sleep: if it cannot time a
+ * k_msleep to within a quarter, it cannot time the period row either, and that row is the only
+ * reason it is here. This is the gate the file had until Friday 9 October 2026, back on the
+ * counter it was right for.
+ *
+ * Two gates with two windows is not duplication. Each checks the one property its counter is
+ * relied on for, and a single gate that passed both would have to spin, which would never
+ * discover that the wall counter had stopped counting in idle. */
+static bool wall_clock_rate_agrees(void)
+{
+	uint32_t hz = measure_clock_hz_wall();
+	uint32_t predicted, elapsed, t0;
+
+	if (hz == 0u) {
+		return false;
+	}
+
+	predicted = (hz / 1000u) * CLOCK_CHECK_MS;
+	t0 = measure_now_wall();
+	k_msleep((int32_t)CLOCK_CHECK_MS);
+	elapsed = measure_now_wall() - t0;
+
+	printf("# wall clock check: %u ms of SLEEP advanced the wall counter by %u, and %u Hz\n",
+	       (unsigned int)CLOCK_CHECK_MS, (unsigned int)elapsed, (unsigned int)hz);
+	printf("#   predicts %u, so the count is %u per cent of the prediction\n",
+	       (unsigned int)predicted,
+	       (unsigned int)(((uint64_t)elapsed * 100u) / predicted));
+
+	return elapsed > (predicted - predicted / 4u) && elapsed < (predicted + predicted / 4u);
+}
+
 /* CRITERION 1: THE INSTRUMENT HAS TO BE CHEAPER THAN EVERYTHING IT MEASURES.
  *
  * Two reads of the counter sit inside every bracket in this file, and until now their cost
@@ -520,11 +570,13 @@ static void report_config(void)
 	printf("#   CONFIG_PM %s and CONFIG_FPU_SHARING %s, both expected n on both sides\n",
 	       IS_ENABLED(CONFIG_PM) ? "y" : "n",
 	       IS_ENABLED(CONFIG_FPU_SHARING) ? "y" : "n");
-	/* THE STOPWATCH NAMES ITSELF, for the same reason the application does. Two captures with
-	 * different instruments and no line saying which are two numbers nobody can reconcile. */
-	printf("#   instrument: %s\n",
+	/* THE STOPWATCHES NAME THEMSELVES, for the same reason the application does. Two captures
+	 * with different instruments and no line saying which are two numbers nobody can
+	 * reconcile. Each capture below also carries its own `instrument` line. */
+	printf("#   core instrument, six rows: %s\n",
 	       MEASURE_USE_TIMING_API ? "the timing API, as upstream uses"
 				      : "k_cycle_get_32, as every run before 9 October 2026");
+	printf("#   wall instrument, the period row: k_cycle_get_32, which runs through a sleep\n");
 }
 
 int main(void)
@@ -566,11 +618,11 @@ int main(void)
 	 * the same numbers, and only this line separates them. */
 	printf("# built %s %s, and a stamp older than your last edit means a stale flash\n",
 	       __DATE__, __TIME__);
-	if (measure_clock_hz() == 0u) {
+	if (measure_clock_hz() == 0u || measure_clock_hz_wall() == 0u) {
 		printf("# THE CLOCK IS UNCONFIRMED FOR THIS BUILD. Every capture below carries\n");
 		printf("# clock_hz 0 and the reduction refuses it. That is the point: these\n");
 		printf("# counts are not times and nothing should be able to publish them.\n");
-	} else if (!clock_rate_agrees()) {
+	} else if (!clock_rate_agrees() || !wall_clock_rate_agrees()) {
 		printf("#\n# REFUSED. The counter does not advance at the rate the kernel\n");
 		printf("# declares, so every count below would be scaled by an unknown\n");
 		printf("# factor while looking entirely reasonable. Nothing is emitted.\n");
@@ -601,7 +653,11 @@ int main(void)
 		 * figure was ever wrong, and it is repaired because a misplaced brace that
 		 * happens not to matter is still a misplaced brace. */
 		for (size_t k = 0u; k < SAMPLES; k++) {
-			if (counts[k] < smallest) {
+			/* Criterion 1 prices the CORE instrument against the smallest thing the core
+			 * instrument measured. A wall-instrument row does not enter that minimum:
+			 * it is a different counter, and a millisecond besides. */
+			if (measure_op_instrument((measure_op_t)op) == MEASURE_INSTRUMENT_CORE &&
+			    counts[k] < smallest) {
 				smallest = counts[k];
 			}
 			if (counts[k] < warm_min[op]) {

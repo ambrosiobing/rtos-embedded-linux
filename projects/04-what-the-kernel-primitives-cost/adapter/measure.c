@@ -34,6 +34,40 @@ const char *measure_op_name(measure_op_t op)
 	return NAMES[op];
 }
 
+/* WHICH COUNTER EACH BRACKET NEEDS, decided by whether the bracket contains a sleep. Six do
+ * not and one does. The table is here, beside the names, because it is a fact about the
+ * operation and not about any kernel: see the contract for why. */
+static const measure_instrument_t INSTRUMENTS[MEASURE_OP_COUNT] = {
+	[MEASURE_OP_YIELD_EQUAL] = MEASURE_INSTRUMENT_CORE,
+	[MEASURE_OP_BLOCK_ONE] = MEASURE_INSTRUMENT_CORE,
+	[MEASURE_OP_BLOCK_SEVERAL] = MEASURE_INSTRUMENT_CORE,
+	[MEASURE_OP_HAND_TO_QUEUE] = MEASURE_INSTRUMENT_CORE,
+	[MEASURE_OP_MUTEX_INHERIT_ON] = MEASURE_INSTRUMENT_CORE,
+	[MEASURE_OP_MUTEX_INHERIT_OFF] = MEASURE_INSTRUMENT_CORE,
+	[MEASURE_OP_PERIOD] = MEASURE_INSTRUMENT_WALL,
+};
+
+static const char *const INSTRUMENT_NAMES[MEASURE_INSTRUMENT_COUNT] = {
+	[MEASURE_INSTRUMENT_CORE] = "core",
+	[MEASURE_INSTRUMENT_WALL] = "wall",
+};
+
+measure_instrument_t measure_op_instrument(measure_op_t op)
+{
+	if (op < 0 || op >= MEASURE_OP_COUNT) {
+		return MEASURE_INSTRUMENT_CORE;
+	}
+	return INSTRUMENTS[op];
+}
+
+const char *measure_instrument_name(measure_instrument_t instrument)
+{
+	if (instrument < 0 || instrument >= MEASURE_INSTRUMENT_COUNT) {
+		return "unknown";
+	}
+	return INSTRUMENT_NAMES[instrument];
+}
+
 measure_summary_t measure_summarise(const uint32_t *counts, size_t n)
 {
 	measure_summary_t s = { .wrap_ok = true, .n = n, .min = 0u, .max = 0u };
@@ -75,10 +109,19 @@ size_t measure_emit(measure_op_t op, const uint32_t *counts, size_t n)
 	printf("# p04 device half, %s\n", measure_op_name(op));
 	printf("# the host adds resolution_s and b_edges_s from the witness before reducing\n");
 
-	/* The clock goes in whatever it is, INCLUDING ZERO. An unconfirmed clock tree reports
-	 * zero here and the reduction refuses the capture, which is the outcome we want: the
-	 * refusal travels with the data rather than depending on whoever reads it. */
-	printf("clock_hz %u\n", (unsigned int)measure_clock_hz());
+	/* THE INSTRUMENT AND ITS RATE TRAVEL TOGETHER, from one lookup, so that a row measured
+	 * with one counter cannot be labelled with the other's rate. The clock goes in whatever
+	 * it is, INCLUDING ZERO: an unconfirmed clock tree reports zero here and the reduction
+	 * refuses the capture, which is the outcome we want, because the refusal travels with the
+	 * data rather than depending on whoever reads it. */
+	{
+		measure_instrument_t inst = measure_op_instrument(op);
+		uint32_t hz = (inst == MEASURE_INSTRUMENT_WALL) ? measure_clock_hz_wall()
+							       : measure_clock_hz();
+
+		printf("instrument %s\n", measure_instrument_name(inst));
+		printf("clock_hz %u\n", (unsigned int)hz);
+	}
 	printf("wrap_guard %s\n", s.wrap_ok ? "ok" : "unknown");
 
 	printf("a_counts");
