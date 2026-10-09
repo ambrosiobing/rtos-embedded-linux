@@ -598,3 +598,156 @@ through the fourth cold count dump. The same signature as the 82 byte excess ide
 **Twice in one morning is a property of the button rather than an accident**, so a single press on
 this board should be expected to produce two runs, and the second complete one is the one to read.
 It cost nothing here because the whole capture is 12915 bytes and both runs fitted.
+
+## Friday 9 October 2026 at 09:40: the instrument was most of it, and every figure above is superseded
+
+The timing API in place of `k_cycle_get_32()`, nothing else about the measurement changed. Built
+at 09:39:47 and the banner says so.
+
+**The gate confirmed its own diagnosis.** The busy window read 55790914 against a predicted
+56000000, 99 per cent, where the sleeping window had read 4260. So the counter is a core cycle
+counter that stops when the core stops, exactly as the refusal implied, and over a window where
+the core keeps running it ticks at 280 MHz.
+
+| Operation | With `k_cycle_get_32` | With the timing API | Fell by |
+|---|---|---|---|
+| yield to an equal-priority ready thread | 2590 | **691** | 3.75 times |
+| block on one object, be signalled, return | 1461 | **500** | 2.92 times |
+| block on several objects, be signalled, return | 1800 | **850** | 2.12 times |
+| hand work to a queue rather than do it in place | 1196 | **677** | 1.77 times |
+| contended mutex, priority inheritance on | 11069 | **8381** | 1.32 times |
+| contended mutex, priority inheritance off | 39403 | **36610** | 1.08 times |
+| the instrument itself, an empty bracket | 81 | **23** | 3.52 times |
+
+*Table. Warm minima of sixty-four, both instruments, Friday 9 October 2026. The left column is
+the 08:03 run and the right the 09:40 run.*
+
+**Every figure this project produced before 09:40 on Friday 9 October 2026 was substantially a
+measurement of its own stopwatch.** The cheapest row was 59 per cent instrument; the yield row was
+73 per cent.
+
+### The additive model is refuted, and it was refuted by criterion 3 rather than by argument
+
+The criterion 2 page proposed, four hours earlier, that our figures looked like upstream's plus a
+constant of about 1140 counts, on the strength of two residuals agreeing to 5.6 per cent. It was
+labelled a clue and not a mechanism. **It is now refuted, and the refutation was already available
+in data this project held.**
+
+If the old instrument added a constant to every reading, then warm and cold both carry it and
+**criterion 3's penalties, being differences, would not have changed at all.** They changed by a
+third to a half:
+
+| Operation | Penalty, old instrument | Penalty, timing API | Changed by |
+|---|---|---|---|
+| yield round trip | 725 | 380 | down 48 per cent |
+| block on one object | 843 | 525 | down 38 per cent |
+| block on several objects | 1004 | 729 | down 27 per cent |
+| hand work to a queue | 944 | 703 | down 26 per cent |
+
+So the old instrument's contribution was not a constant. It was not a clean multiple either: the
+warm readings fell by factors of 3.75 to 1.08 and the penalties by 1.9 to 1.34, with no single
+factor fitting both. **What `k_cycle_get_32()` was adding is not characterised here and is not
+pursued**, because the question this project asks is what kernel primitives cost, and the answer
+is to stop measuring with it.
+
+The lesson is narrower and more useful than a model would have been: **two numbers agreeing to 5.6
+per cent were enough to suggest a mechanism and nowhere near enough to support one.** Three points
+would have refused it immediately, and the third point was sitting in the criterion 3 table.
+
+### Criterion 3 re-measured, and its conclusion survives in a weakened form
+
+| Operation | Warm | Cold | Penalty | |
+|---|---|---|---|---|
+| block on several objects, be signalled, return | 850 | 1579 | **729 counts, 2.60 us** | 85 per cent |
+| hand work to a queue rather than do it in place | 677 | 1380 | **703 counts, 2.51 us** | 103 per cent |
+| block on one object, be signalled, return | 500 | 1025 | **525 counts, 1.88 us** | 105 per cent |
+| yield to an equal-priority ready thread | 691 | 1071 | **380 counts, 1.36 us** | 54 per cent |
+
+**Criterion 3 is still met**: warm and cold differ on all four and the chapter can say by how much.
+Two of the earlier readings do not survive intact.
+
+**The band is wider than it looked.** The four penalties now run 380 to 729, a widest-to-narrowest
+ratio of 1.92, where the old instrument gave 725 to 1004 and a ratio of 1.39. The claim that they
+sat in one tight band, offered as evidence that the cold cost is a property of the memory system
+rather than of each primitive, is **weaker than written and is amended here rather than left.** A
+factor of two across four operations is consistent with a per-path cost that happens to be similar
+in magnitude, which is a smaller claim.
+
+**The yield row's reading survives and is now sharper.** It remains the most expensive operation
+with the smallest penalty, 380 counts against 525 for a single wake-up. The explanation was that a
+round trip traverses the switch path twice and pays the refill once, so its penalty should resemble
+a single switch's rather than double it. At 380 against 525 that still holds, and the old figures
+said 725 against 843, a much narrower gap. **The better instrument strengthened the argument it was
+not chosen to test.**
+
+### Criterion 1's doubt is retired, by the only arithmetic that could retire it
+
+An hour earlier criterion 1's verdict was put in doubt: its ratio of 14 had divided our figures by
+our figures, and against upstream's pricing of the same span our 81-count instrument was a ratio of
+3.6, below the order of magnitude the criterion asks for.
+
+    # instrument: an empty bracket costs 23 counts at best, 38 at worst
+    # criterion 1: the instrument costs 23 counts and the smallest
+    #   thing it measured was 500, a ratio of 21
+
+**23 counts against upstream's 290-cycle pricing of the semaphore wake is a ratio of 12.6**, which
+clears ten without reference to our own figures at all. The doubt is retired and criterion 1 is met
+on both arithmetics. The old instrument's 81 counts against the same 290 was 3.6, so **the criterion
+was genuinely failing and reporting itself met**, which is what a self-referential check does.
+
+### Criterion 4 is vindicated, including the prediction that looked slightly wrong
+
+This is the result of the morning that changes least and says most.
+
+| | Old instrument | Timing API | Changed by |
+|---|---|---|---|
+| inheritance on | 11069 | 8381 | 1.32 times |
+| inheritance off | 39403 | 36610 | 1.08 times |
+| **the difference** | **28334 counts, 101.19 us** | **28229 counts, 100.82 us** | **0.4 per cent** |
+| the ratio | 3.55 | **4.37** | up 23 per cent |
+
+**The 101 microseconds survived an instrument change that moved everything else by factors of 1.1
+to 3.8.** It is dominated by the medium thread's actual work rather than by kernel overhead, which
+is precisely why the record already said the chapter should quote the difference and not the ratio.
+That advice was given for the right reason and is now demonstrated rather than argued.
+
+**And the prediction written before the first contended run is now met.** It said inheritance off
+should cost about four or five times inheritance on, from medium being given four times the
+holder's work. The old instrument said 3.55 and the record called the prediction "close and
+slightly high", explaining the gap as fixed overhead diluting the ratio. **The explanation was
+right and the correction is 4.37, inside the predicted four to five.** The dilution was the
+stopwatch.
+
+The residual arithmetic also improves. 28229 counts over medium's 8000 iterations is 3.53 counts
+per iteration, so the holder's 2000 should be about 7059, leaving **1322 counts of the inheriting
+arm that is not spinning**. Three switches at this run's 345 counts per switch would be 1036, which
+is 78 per cent of it. The old figures gave 4010 counts against 1295 per switch, also about three.
+**Both arithmetics land on three and neither closes exactly, so the withdrawal of that explanation
+stands as a withdrawal.** What has changed is that it is no longer absurd: at upstream's 188 counts
+per switch the old 4010 would have been twenty-one switches.
+
+### Every bracketed figure now sits under the witness resolution, so an open decision closes itself
+
+The question left open at 08:03 was what to do about a `Scale` column that predicts per operation
+when the quantity turns out to depend on the cache state too. Two cold figures had crossed the ten
+microsecond witness resolution while their rows said `below`.
+
+| Operation | Warm | Cold | Against the 10 us boundary |
+|---|---|---|---|
+| block on one object | 1.79 us | 3.66 us | both under |
+| hand work to a queue | 2.42 us | 4.93 us | both under |
+| yield round trip | 2.47 us | 3.83 us | both under, where cold was 11.84 |
+| block on several objects | 3.04 us | 5.64 us | both under, where cold was 10.01 |
+
+**All eight figures are under the boundary and the `below` prediction holds for every one.** The
+crossing was an artifact of the instrument, so the decision does not have to be taken, and
+[RESULTS.md](RESULTS.md) gains all eight rows rather than four.
+
+**The same question returns on a different row, and that is worth recording while it is small.** The
+contended mutex figures are 8381 and 36610 counts, which are **29.9 and 130.8 microseconds**, both
+far above the witness's ten. Their rows say `below` and that prediction is falsified, and it was
+falsified from the first contended run rather than by anything to do with the instrument. Those four
+rows stay unmeasured here because the cold pass covers only the first four operations, so nothing
+has to be decided today. But the `Scale` column has now mis-predicted two different ways, which
+strengthens the case for the resolution recommended in [CRITERION2.md](CRITERION2.md) over the
+other two.

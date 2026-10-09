@@ -299,3 +299,87 @@ the next suspect is the configuration, starting with `CONFIG_POLL=y`, which we s
 does not, and which puts poll notification into every semaphore give.
 
 **One variable, and it can fail either way**, which is the only reason it is worth a build.
+
+## The second comparison, Friday 9 October 2026 at 09:40: still failing, from 6.9 to 1.84
+
+The instrument swapped for the one upstream uses, nothing else about the measurement changed.
+
+| Row | Upstream | Ours, old instrument | Ours, timing API | Factor now |
+|---|---|---|---|---|
+| `thread.yield.preemptive.ctx` | 188 cycles | 1295 (6.9 times) | **345.5** | **1.84** |
+| `semaphore.give.wake+ctx` | 290 cycles | 1461 (5.0 times) | **500** | **1.72** |
+
+*Table. Ours halved for the yield, as specified before any comparison. Figures are warm minima of
+sixty-four against upstream's averages.*
+
+**Criterion 2 asked for a factor of 1.5 and the factors are 1.84 and 1.72, so it still fails.**
+That is said first and plainly, because 1.84 is close enough to 1.5 to invite rounding and the
+criterion was stated in `75adb59` before any number existed, which is the only thing that makes it
+worth anything.
+
+**The instrument was most of the gap.** From 6.9 and 5.0 to 1.84 and 1.72, so roughly four fifths
+of the discrepancy was the stopwatch rather than the kernel. Subtracting our instrument's remaining
+23 counts, which upstream subtracts and we do not, gives 1.78 and 1.64. Still outside.
+
+### The residual changed shape, and the direction of that change is the finding
+
+Before, the **differences** agreed: 1107 and 1171 counts, within 5.6 per cent, which suggested a
+cost sitting outside the operation. Now the **ratios** agree better than the differences do:
+
+| | Difference from upstream | Ratio to upstream |
+|---|---|---|
+| one context switch | 157.5 | 1.84 |
+| semaphore wake and return | 210 | 1.72 |
+| agreement between the two | 33 per cent apart | 7 per cent apart |
+
+**A proportional residual on two paths whose only common content is a context switch points at the
+switch.** Neither model fits well enough to be called one, and with two comparable rows it cannot
+be settled by arithmetic. It is named here as the shape of the thing rather than as its cause.
+
+### `CONFIG_POLL` is eliminated, from data already in hand
+
+The previous page named `CONFIG_POLL=y` as the next suspect: we set it for the several-objects row
+and upstream does not, and it puts poll notification into every `k_sem_give`.
+
+**The yield row rules it out as the common cause, and no new run was needed to see it.** The yield
+bracket contains `k_yield` and no semaphore give at all, so poll notification cannot be inside it,
+yet the yield gap of 1.84 is **larger** than the semaphore gap of 1.72. A cost present only in the
+semaphore path cannot explain a larger discrepancy in a path that does not contain it.
+
+It may still contribute to the semaphore row. It is no longer the leading candidate.
+
+### What upstream turns off that we never matched
+
+Reading its `prj.conf` again, with the question "what does it disable that costs something on every
+context switch", gives a better candidate than speculation did:
+
+    CONFIG_TEST_HW_STACK_PROTECTION=n
+    # Disable HW Stack Protection (see #28664)
+    CONFIG_HW_STACK_PROTECTION=n
+
+**Upstream disables hardware stack protection explicitly, with a comment, and we never set it at
+all.** On this part that is an MPU region reprogrammed on every thread switch. It is a per-switch
+cost, it is in the path of every row in our table, and it is present in our build only because a
+default went unread, which is the second time today the same thing has happened.
+
+`CONFIG_PM=n` is the other setting upstream states and we do not.
+
+**This is a better class of candidate than the ones before it, and for a reason worth naming: it
+comes from reading what the other side configured rather than from reasoning about what might
+differ.** Upstream wrote down what it turned off. Matching that list is cheaper and more likely to
+be right than any model of the residual.
+
+### What the next run has to show, stated before it runs
+
+- `CONFIG_HW_STACK_PROTECTION` and `CONFIG_PM` printed by the run, so the configuration is on the
+  record rather than inferred from a default
+- with both matched to upstream, **the factors fall below 1.5 and criterion 2 is met**, if an MPU
+  reprogramming per switch is what the remaining proportional residual is
+- and if they do not fall, the candidate is wrong and the residual is somewhere that reading
+  upstream's configuration cannot find, at which point the honest move is to stop and record
+  criterion 2 as failing with the gap characterised rather than keep hunting
+
+**That last clause is the one that matters.** Three rounds of this have each closed most of a gap,
+and a project can spend an arbitrary number of evenings chasing a factor of 1.7. The criterion was
+written to be answerable, and "fails by 1.7, with the instrument and two configuration settings
+accounted for" is a publishable answer.
