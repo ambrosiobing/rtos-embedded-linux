@@ -34,6 +34,7 @@ $(BUILD):
 check: $(BIN)
 	python3 test_capture_pipeline.py $(BIN)
 	python3 test_reduce.py
+	python3 test_witness.py
 
 clean:
 	rm -rf $(BUILD)

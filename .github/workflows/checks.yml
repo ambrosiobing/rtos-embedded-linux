@@ -80,6 +80,10 @@ jobs:
         run: |
           cd projects/04-what-the-kernel-primitives-cost/host
           python test_reduce.py
+          # The witness half's producer, against a synthetic recording whose edges are known
+          # by construction. Its edge finder duplicates one in the sibling volume on purpose,
+          # and this is where the duplicate is held to its claim.
+          python test_witness.py
 
       # The loop between two descriptions of one format in two languages. adapter/measure.c
       # emits a capture and host/reduce.py parses one, each is right about itself, and neither
