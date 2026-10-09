@@ -791,6 +791,37 @@ pin the second instrument was watching.
 **A moving picture is weaker evidence than a table and stronger evidence than a drawing**, and it
 is worth being exact about where it sits rather than letting it look like documentation.
 
+### The wire is necessary and nothing drives it yet
+
+Written an hour after the section above, having gone looking for the pin in the source rather than
+in the footage. **P04 contains no GPIO code at all.** No marker, no pin, no devicetree alias:
+`grep -rln 'gpio' projects/04-what-the-kernel-primitives-cost/` returns nothing.
+
+So "the witness is wired" is true and is less than it sounds. A lead from a pin that is never
+driven carries nothing, and the MCC 118 would record a flat line and be right to. **The heading
+above describes the bench and not the measurement**, and it is left as it is with this paragraph
+under it rather than softened, because the wire genuinely is fitted and that genuinely was the
+thing blocking.
+
+Three pieces stand between here and a criterion 5 figure, and the second is the one that is easy
+to miss:
+
+1. **A marker output**, toggled at each period boundary, with its pin declared in a devicetree
+   overlay so that the source names the pin rather than a comment doing it.
+2. **The period row works again.** It is currently refused: `run_period` returns `-ENOTSUP` under
+   the timing API, because its bracket contains a sleep and that counter stops when the core
+   stops. Criterion 5 *is* the period row, so criterion 5 cannot be reported until `measure_emit`
+   can state a per-operation instrument and rate. One capture carries one `clock_hz` line today,
+   and the period row needs a different counter from the other six.
+3. **The Pi side**, producing the `b_edges_s` that [reduce.py](../host/reduce.py) already requires
+   and [test_reduce.py](../host/test_reduce.py) already tests against. That half has been designed
+   and exercised on synthetic input since before any of this; it is the only one of the three that
+   is ready.
+
+Item 2 is a consequence of Friday 9 October 2026's instrument change and did not exist as a task
+that morning. **Fixing one measurement broke the only row that needs a second instrument**, which
+is worth recording as the kind of cost an instrument change carries beyond the figures it moves.
+
 ### What it cost, so that the next one is a decision and not a habit
 
 Before this file the largest thing tracked in the repository was 96 KB, an SVG. This is 3.45 MB,
