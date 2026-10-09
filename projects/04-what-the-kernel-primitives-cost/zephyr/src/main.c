@@ -279,9 +279,32 @@ static void run_hand_to_queue(uint32_t *counts, size_t n)
 }
 
 /* THE PERIOD, which is the one row the external witness can also see, and the only row where
- * two instruments are meant to agree. */
-static void run_period(uint32_t *counts, size_t n)
+ * two instruments are meant to agree.
+ *
+ * IT IS ALSO THE ONE ROW WHOSE BRACKET CONTAINS A SLEEP, which makes the two instruments in this
+ * file **not interchangeable here**. Established Friday 9 October 2026: the timing API's counter
+ * counts core cycles and stops when the core stops, so across a k_msleep it reads the handful of
+ * microseconds the wake-up took rather than the millisecond that passed. A counter that stops
+ * during sleep cannot measure a sleep.
+ *
+ * That is not a defect in either counter. It is the instrument being chosen per operation rather
+ * than per build, which is what the other six rows had never needed. The bracketed primitives
+ * contain no idle at all, so a core cycle counter suits them and is what upstream uses; this row
+ * wants the system timer, which keeps running through idle.
+ *
+ * Refused rather than quietly switched to k_cycle_get_32() behind the emit. The capture carries
+ * one `clock_hz` line, so a row measured with one counter and labelled with the other's rate
+ * would be exactly the mislabelling criterion 7 exists to catch, one level down. The row waits
+ * until the emit can carry its own instrument, and it is criterion 5's business in any case,
+ * which needs the witness on the Raspberry Pi that is not connected.
+ */
+static int run_period(uint32_t *counts, size_t n)
 {
+#if MEASURE_USE_TIMING_API
+	ARG_UNUSED(counts);
+	ARG_UNUSED(n);
+	return -ENOTSUP;
+#else
 	uint32_t previous;
 	size_t i;
 
@@ -295,6 +318,8 @@ static void run_period(uint32_t *counts, size_t n)
 		counts[i] = now - previous;
 		previous = now;
 	}
+	return 0;
+#endif
 }
 
 int measure_run(measure_op_t op, uint32_t *counts, size_t n)
@@ -317,8 +342,7 @@ int measure_run(measure_op_t op, uint32_t *counts, size_t n)
 		run_hand_to_queue(counts, n);
 		return 0;
 	case MEASURE_OP_PERIOD:
-		run_period(counts, n);
-		return 0;
+		return run_period(counts, n);
 	case MEASURE_OP_MUTEX_INHERIT_ON:
 		mutex_case_run(true, counts, n);
 		return 0;
@@ -359,8 +383,32 @@ static bool clock_rate_agrees(void)
 	}
 
 	predicted = (hz / 1000u) * CLOCK_CHECK_MS;
+
+	/* A BUSY INTERVAL, NOT A SLEEP, AND THE REASON IS A REFUSAL THIS GATE PRODUCED.
+	 *
+	 * At 09:20 on Friday 9 October 2026 the first run on the timing API refused: 4260 counts
+	 * against a predicted 56000000. 4260 counts at the 280 MHz the instrument reports is 15.2
+	 * microseconds of activity inside a 200 millisecond sleep, and with tickless idle a
+	 * k_msleep(200) is one wake-up and almost nothing else. **The counter counts core cycles
+	 * and stops when the core stops.** Nothing was wrong with it. The gate was asking it to
+	 * time an interval during which it is switched off.
+	 *
+	 * So the window is spun rather than slept, which keeps the core out of WFI, and its length
+	 * is set by k_uptime_get(). That matters: uptime is the kernel's millisecond clock off the
+	 * system timer, so it is **neither of the two cycle counters**. Had the window been set by
+	 * k_cycle_get_32() instead, the check would be self-referential whenever that is also the
+	 * instrument, and a gate that cannot fail has shown nothing.
+	 *
+	 * This also tests its own diagnosis. If the counter is a core cycle counter that merely
+	 * stops in idle, a busy window puts it at 280 MHz and the gate passes. If it does not, the
+	 * explanation above is wrong and the refusal was about something else.
+	 */
+	int64_t up0 = k_uptime_get();
+
 	t0 = measure_now();
-	k_msleep((int32_t)CLOCK_CHECK_MS);
+	while ((k_uptime_get() - up0) < (int64_t)CLOCK_CHECK_MS) {
+		/* Spinning on purpose. An idle core is a stopped instrument. */
+	}
 	elapsed = measure_now() - t0;
 
 	printf("# clock check: %u ms of sleep advanced the counter by %u, and %u Hz\n",
@@ -369,7 +417,9 @@ static bool clock_rate_agrees(void)
 	       (unsigned int)predicted,
 	       (unsigned int)(((uint64_t)elapsed * 100u) / predicted));
 
-	/* Within a quarter, which catches a factor and tolerates a sleep. */
+	/* Within a quarter. Generous because this does not measure the window, it asks whether the
+	 * declared rate and the observed rate are the same order of thing. Being wrong by a factor
+	 * is what it has to catch, and on Friday 9 October 2026 it caught one. */
 	return elapsed > (predicted - predicted / 4u) && elapsed < (predicted + predicted / 4u);
 }
 
@@ -531,7 +581,7 @@ int main(void)
 
 		printf("\n");
 		if (rc != 0) {
-			printf("# %s: not available under this kernel yet, %d\n",
+			printf("# %s: not measured in this build, %d\n",
 			       measure_op_name((measure_op_t)op), rc);
 			continue;
 		}
