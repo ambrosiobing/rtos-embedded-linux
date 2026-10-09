@@ -269,3 +269,148 @@ the table that has a second instrument at all.
 
 So [RESULTS.md](RESULTS.md) still reads `not measured` in every row, and that is correct rather
 than lazy. **A number obtained is not a number earned.**
+
+## Criterion 3, Friday 9 October 2026 at 07:37: measured, and one row of it refuted its own case
+
+The instruction cache invalidated before every bracket, the invalidation outside it, minimum of
+sixty-four in both arms. The board had been powered off and was switched on about a minute
+before the console opened.
+
+| Operation | Warm, counts | Cold, counts | Penalty, counts | Penalty | Cold is higher by |
+|---|---|---|---|---|---|
+| hand work to a queue rather than do it in place | 1201 | 2113 | 912 | **3.26 us** | 75 per cent |
+| yield to an equal-priority ready thread | 2584 | 3318 | 734 | **2.62 us** | 28 per cent |
+| block on several objects, be signalled, return | 1797 | 1969 | 172 | 0.61 us | 9 per cent |
+| block on one object, be signalled, return | 1472 | 1468 | none | none | **COLD IS LOWER** |
+
+*Table. The four operations warm and cold, Friday 9 October 2026. The rows are sorted by
+penalty rather than by cost, because the penalty is what the criterion is about.*
+
+### The fourth row is the one worth reading first, and the flag did its job
+
+The run printed `COLD IS LOWER, which should not happen` for `block on one object`, which is the
+branch written into the case on Thursday 8 October 2026 for exactly this outcome rather than a
+line that hides it. **It is not a glitch and it is not evidence that cold caches are free. It is
+the case reporting that the manipulation does not reach that row's bracket.**
+
+Read the four bracket bodies and the split in the table is exact:
+
+| Operation | Where the bracket opens | Untimed code between the invalidation and the opening | Penalty |
+|---|---|---|---|
+| hand work to a queue | `t0 = measure_now()` in the measurer, the next statement after `chill()` | none | 912 |
+| yield to an equal-priority thread | `t0 = measure_now()` in the measurer, the next statement after `chill()` | none | 734 |
+| block on several objects | `t_handoff`, stamped in the **giver** thread | a whole `k_sem_give`, a `k_poll` that blocks, and the giver's wake-up | 172 |
+| block on one object | `t_handoff`, stamped in the **giver** thread | a whole `k_sem_give`, a `k_sem_take` that blocks, and the giver's wake-up | none |
+
+**The two operations that bracket from their own timestamp, taken immediately after the
+invalidation, show 28 and 75 per cent. The two that bracket from a timestamp taken in another
+thread, after a give and a block have already run untimed, show 9 per cent and nothing.** That
+is not a pattern found by looking at the numbers and then explaining them afterwards. It is what
+the code predicts, and the prediction divides the table along the same line the data does.
+
+The mechanism is ordinary once stated. For the two blocking rows the invalidation happens, and
+then the measurer executes a complete semaphore give and a complete blocking take, and the giver
+runs its own wake-up path, all of it before the bracket opens. **That untimed run-up walks the
+same kernel code the bracket is about, so it re-fills the cache the invalidation just emptied.**
+By the time `t_handoff` is stamped the path is warm again.
+
+### What is still unexplained, and what would settle it
+
+`block on one object` came out four counts **lower** cold than warm, which is 0.3 per cent and
+well inside the two per cent bound this project set for itself. So the first candidate is that it
+is not a difference at all. Two further things are known and neither is sufficient:
+
+**The warm figure for that row is its own first sample.** The warm pass reads 1472, 1488, 1487,
+1491, then 1493 for the remaining sixty. It is the only one of the four operations whose first
+sample is its **lowest**; every other row's first sample is its highest. So `warm_min` for this
+row is a single unrepeated value and the steady warm figure is 1493. Against 1493 the cold
+minimum of 1468 is lower by 1.7 per cent, which is still inside the bound but no longer
+negligible.
+
+**The cold pass prints only its minimum, so there is nothing to inspect.** Whether 1468 is the
+floor of a tight distribution or one low sample in a scattered one cannot be told from this
+output. That is an instrumentation gap in the criterion-3 code rather than a question about the
+kernel, and it is the first thing to repair: **the cold arm should emit its counts exactly as the
+warm arm does.** A minimum without its distribution was enough for the instrument's own cost,
+where the floor is the whole point, and it is not enough for a comparison.
+
+### The penalty in counts is the figure to quote, not the percentage
+
+912 counts and 734 counts, on the two rows where the manipulation reaches the bracket. Those are
+3.26 and 2.62 microseconds, and they are the same order of magnitude, which is what a fixed cost
+of re-fetching a code path should look like. **The percentages differ by a factor of nearly three
+only because the baselines differ**, the queue hand-off being the cheapest operation in the table.
+
+This is the second time in two days the same lesson has come up. Criterion 4's record above says
+the chapter should quote the 101 microsecond difference rather than the 3.55 ratio, for the same
+reason: a ratio carries whatever fixed cost sits in both arms, and a difference does not.
+
+### One figure crossed a boundary the table did not anticipate
+
+**The cold yield round trip is 11.85 microseconds, and the witness on this bench resolves about
+ten.** Every bracketed row in [RESULTS.md](RESULTS.md) carries `Scale` `below`, a prediction
+written when only warm figures were imagined, and
+[check_instruments.py](../../../scripts/check_instruments.py) refuses a `below` row whose measured
+duration reaches the resolution. So that row cannot be entered as the table now stands, and the
+check is right to say so rather than being loosened.
+
+The prediction is falsified for one row of twenty-six, and the falsification is specific: warm
+yield at 9.23 microseconds sits eight per cent under the boundary and cold yield at 11.85 sits
+nineteen per cent over it. **The `Scale` column predicts per operation, and the quantity it
+describes turns out to depend on the cache state as well**, which is a question about the table's
+shape. It is left open here rather than answered by relabelling a row.
+
+Two rows are therefore filled on Friday 9 October 2026 and two are not. `hand work to a queue`
+has both arms sound and both under the boundary, so warm and cold both go in. `yield to an
+equal-priority ready thread` has a sound pair of measurements and nowhere to put the cold one.
+The two blocking rows have a warm figure and a cold figure that measures the wrong thing, so
+neither goes in.
+
+### Four presses of the black RESET button, and the reproducibility they bought
+
+The black RESET button was pressed three times at about fifteen second intervals, and the console
+also delivered the run buffered from the power-on a minute earlier. **Four complete runs, and all
+four are identical byte for byte**: 5153 bytes each, every `a_counts` line matching digit for
+digit, including the first samples.
+
+That is the control this log has been missing. The record above, written Thursday 8 October 2026,
+observed that two builds differing only in code that nothing executes moved every figure by about
+one per cent, and called that the signature of instruction placement rather than of the kernel.
+**It was an inference from two points and it now has its control: within one build, across four
+resets, the counts do not move at all.** The variation between builds is therefore placement and
+not run-to-run noise, and the two per cent bound is a bound on comparing builds rather than on
+repeating a measurement.
+
+The warm figures also reproduce across the build boundary, which is the third time that bound has
+held:
+
+| Operation | Second run | Third run | Fourth run | Widest spread |
+|---|---|---|---|---|
+| hand work to a queue | 1200 | 1201 | 1201 | 0.1 per cent |
+| block on one object | 1460 | 1476 | 1472 | 1.1 per cent |
+| block on several objects | 1803 | 1806 | 1797 | 0.5 per cent |
+| yield round trip | 2600 | 2598 | 2584 | 0.6 per cent |
+
+A fifth boot banner appeared in the log with one line of output after it before the next banner
+arrived, and the byte count identifies it rather than leaving it a mystery: that chunk is exactly
+82 bytes longer than the others, and the banner plus `# p04 under zephyr` with their line endings
+is exactly 82 bytes. **One press of the button produced two resets inside half a second**, so the
+first was cut short before it could print anything further. A contact bounce, visible only
+because the output is self-identifying and the byte counts are printed as the capture runs.
+
+### A defect found while reading the code rather than the output
+
+The warm pass accumulates two minima, and the inner loop sits inside the outer one:
+
+    for (size_t k = 0u; k < SAMPLES; k++) {
+            if (counts[k] < smallest) { ... }
+
+    for (size_t k = 0u; k < SAMPLES; k++) {
+            if (counts[k] < warm_min[op]) { ... }
+    }
+    }
+
+It runs 4096 iterations where 64 are wanted. **The numbers are unaffected**, because a minimum is
+idempotent and the inner loop recomputes the same answer sixty-four times, so nothing above is in
+doubt. It is a brace misplaced when `warm_min` was added, it runs outside every bracket, and it is
+repaired in the next commit rather than left in place because it is harmless.
