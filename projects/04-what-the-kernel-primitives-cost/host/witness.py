@@ -149,12 +149,22 @@ def main(argv: list[str]) -> int:
         print("usage: witness.py <capture.csv> <capture.json>", file=sys.stderr)
         return 2
     csv_path, json_path = Path(argv[0]), Path(argv[1])
+    # A missing file is the commonest way this is run wrong, and on Friday 9 October 2026 it
+    # produced a traceback because the capture had been copied to the other laptop. A refusal
+    # that names the path is what a person at a shell needs; a traceback names pathlib.
+    for p in (csv_path, json_path):
+        if not p.is_file():
+            print(f"REFUSED no such file: {p}. The capture may be on the other machine", file=sys.stderr)
+            return 1
     try:
         samples = load_samples(csv_path)
         meta = load_meta(json_path)
         sys.stdout.write(witness_half(samples, meta, csv_path.name))
     except Refusal as exc:
         print(f"REFUSED {exc}", file=sys.stderr)
+        return 1
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(f"REFUSED {csv_path.name} or {json_path.name} could not be read: {exc}", file=sys.stderr)
         return 1
     return 0
 
