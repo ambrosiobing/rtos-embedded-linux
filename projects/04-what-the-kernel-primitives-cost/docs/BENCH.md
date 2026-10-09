@@ -414,3 +414,187 @@ It runs 4096 iterations where 64 are wanted. **The numbers are unaffected**, bec
 idempotent and the inner loop recomputes the same answer sixty-four times, so nothing above is in
 doubt. It is a brace misplaced when `warm_min` was added, it runs outside every bracket, and it is
 repaired in the next commit rather than left in place because it is harmless.
+
+## Criterion 3 again, Friday 9 October 2026 at 08:03: settled, with the control holding
+
+Built at 08:02:42 and the banner says so, which is the first run in this project able to prove
+it is the code just written. The previous capture at 07:53 was an exact repeat of the one at
+07:37 because a rebuild had been skipped, and the application's own name could not see that.
+
+| Operation | Warm, counts | Cold, counts | Penalty, counts | Penalty | Cold is higher by |
+|---|---|---|---|---|---|
+| block on several objects, be signalled, return | 1800 | 2804 | **1004** | 3.59 us | 55 per cent |
+| hand work to a queue rather than do it in place | 1196 | 2140 | **944** | 3.37 us | 78 per cent |
+| block on one object, be signalled, return | 1461 | 2304 | **843** | 3.01 us | 57 per cent |
+| yield to an equal-priority ready thread | 2590 | 3315 | **725** | 2.59 us | 27 per cent |
+
+*Table. Criterion 3 with the invalidation at each bracket's own opening, Friday 9 October 2026.
+Sorted by penalty. Minimum of sixty-four in both arms.*
+
+**Criterion 3 is met.** Warm and cold differ on all four operations and the chapter can say by
+how much.
+
+### The predictions written before the run, and how they came out
+
+The record of 07:37 above stated three predictions before this build was pushed. They are
+repeated here with the outcome, because a prediction recorded and then not scored is decoration:
+
+| Prediction | Outcome |
+|---|---|
+| `block on one object` cold lands roughly 2200 to 2400 | **2304.** Inside |
+| `block on several objects` cold lands roughly 2500 to 2700 | **2804.** Above, by 104 counts |
+| `yield` and `hand work to a queue` do not move at all, from 3318 and 2113 | **3315 and 2140.** Moved by 3 counts and 27 counts |
+
+**The third is the one that mattered and it is the control.** The giver thread takes no part in
+the yield case or in the work queue case, so a change in those two would have meant the
+giver-side invalidation was reaching somewhere it should not. Three counts is 0.09 per cent and
+twenty-seven is 1.3 per cent, both inside this project's two per cent build bound. The change is
+confined to the two operations it was meant to reach.
+
+The second prediction was low by four per cent, and the reason is identifiable rather than
+mysterious: the range was extrapolated from the two penalties then in hand, 734 and 912, and
+`k_poll` turns out to carry more distinct code than either of those paths.
+
+### All four penalties now sit in one band, which is the result behind the result
+
+725, 843, 944, 1004. Mean 879 counts, and the widest is 1.39 times the narrowest. **That is what
+a fixed cost of re-fetching a code path should look like**, and it is the first evidence in this
+project that the quantity being measured is a property of the memory system rather than of each
+individual primitive.
+
+The percentages, by contrast, run from 27 to 78 per cent and carry no such structure, because
+each divides by a different baseline. **The chapter should quote about 0.9 thousand counts, or
+roughly 3 microseconds, as the cold-start cost of a kernel path on this part**, and give the
+percentages only as a second column.
+
+### The penalty ranks by how much distinct code the bracket contains, not by what it costs
+
+This is the part that would be easy to get backwards. **The yield round trip is the most
+expensive operation in the table and has the smallest cold penalty.**
+
+That is not a defect, and the reason makes it a check rather than a puzzle. The yield bracket
+contains a full round trip: out through an equal-priority partner and back, so **the switch path
+is traversed twice inside one bracket**. The first traversal runs cold and warms the path; the
+second runs warm. A round trip therefore pays the refill once, not twice.
+
+**It is a falsifiable claim and the number decides it.** If yield paid twice, its penalty would
+be about 1500 to 1700. If it pays once, its penalty should be of the same order as a single
+wake-up's, which is `block on one object` at 843. It measured 725. The claim survives.
+
+The ordering of the other three follows the same reading. `k_poll` over two objects is more code
+than `k_sem_take` over one, and it has the largest penalty at 1004. The work queue hand-off
+carries a submit and a dispatch, and sits at 944.
+
+### The choice of statistic turns out not to be load-bearing, and now that can be shown
+
+The cold pass prints its distributions in this build, which the previous one did not, and that
+was the open question left at 07:37: whether a cold minimum was a floor or a single low sample.
+Both can now be read:
+
+| Operation | Cold minimum | Cold steady | Penalty from minima | Penalty from steady |
+|---|---|---|---|---|
+| yield round trip | 3315 | 3338 | 725 | 723 |
+| block on one object | 2304 | 2307 to 2308 | 843 | about 835 |
+| block on several objects | 2804 | 2804, all sixty-four | 1004 | about 997 |
+| hand work to a queue | 2140 | 2146 | 944 | 950 |
+
+**The two statistics agree to about one per cent, so the choice between them does not carry this
+result.** Saying so is worth more than defending the minimum, because the concern raised at 07:37
+was real and this is what retires it.
+
+`block on several objects` reads 2804 in sixty-four samples of sixty-four, which is the most
+degenerate distribution this project has produced.
+
+### An observation not explained, recorded as such
+
+**The first cold sample is the lowest in every one of the four operations**, by 23, 3, 0 and 6
+counts. That is the mirror image of the warm pass, where the first sample is the highest in every
+operation. So in the cold arm the minimum is the first sample, which is exactly the property
+criticised in the warm arm at 07:37.
+
+It changes nothing here, because the table above shows the minima and the steady values agreeing
+to one per cent either way. **No mechanism is offered.** One observation is not a mechanism, the
+effect is between 0 and 0.7 per cent, and a candidate involving the branch predictor or the data
+cache carrying over from the warm pass would need a control this run does not have.
+
+### Two of the four cold figures cross the witness resolution, and one of them by a hair
+
+This is now a question the table has to answer rather than a note. The witness on this bench
+resolves about ten microseconds, and every bracketed row of [RESULTS.md](RESULTS.md) carries
+`Scale` `below`, a prediction written when only warm figures existed:
+
+| Operation | Warm | Cold | Cold against the 10 us boundary |
+|---|---|---|---|
+| yield round trip | 9.25 us | **11.84 us** | over by 18 per cent |
+| block on several objects | 6.43 us | **10.01 us** | over by 0.14 per cent |
+| block on one object | 5.22 us | 8.23 us | under |
+| hand work to a queue | 4.27 us | 7.64 us | under |
+
+**The `below` prediction holds warm for all four and fails cold for two**, and
+[check_instruments.py](../../../scripts/check_instruments.py) refuses both, correctly, under its
+rule that a measured duration must agree with its own `Scale`. `block on several objects` cold at
+10.014 microseconds lands 0.14 per cent over the line, which is the most awkward place available
+and is a useful reminder that a boundary written as a round number is still a boundary.
+
+So two rows go in, `block on one object` and `hand work to a queue`, both arms each, and two
+wait on a decision recorded in the next section rather than on a measurement.
+
+### The decision this leaves, stated rather than taken
+
+The `Scale` column predicts per operation. The quantity it describes turns out to depend on the
+cache state as well, so on this table a single operation can be `below` warm and `above` cold.
+Three resolutions exist and they are not equally good.
+
+**Predict per row rather than per operation.** The table already has one row per cache state, so
+`Scale` could simply differ between them. It needs two changes to the check: an `above` row would
+have to be allowed to state a cache, and the warm-and-cold pairing rule would have to stop being
+keyed on `below`. **Both are loosenings, and loosening a check so that a number fits is the thing
+the check exists to prevent.**
+
+**Say what `Scale` is actually for, which is narrower than what it currently claims.** Criterion 7
+is that no row may claim an instrument that cannot see what it claims, and the cycle counter can
+see everything at this scale. The hazard criterion 7 guards against is one-directional: a row
+claiming the *witness* for something too short. A `below` row measuring 10.01 microseconds **with
+the cycle counter** has falsified its prediction and has not committed the error criterion 7
+exists to catch. On this reading the check should report a falsified prediction distinctly from a
+criterion 7 violation, and the table should record the outcome of the prediction rather than be
+edited until it agrees.
+
+**Leave both rows unfilled and say why.** Costs nothing, settles nothing, and is where they are
+tonight.
+
+The second is the one worth doing, and it is a change to the meaning of a published check rather
+than a repair, so it is written here and left for a decision.
+
+### The warm arm reproduced, and one caveat about comparing it across builds
+
+Fourth confirmation of the two per cent bound:
+
+| Operation | 07:37 build | 08:03 build | Change |
+|---|---|---|---|
+| hand work to a queue | 1201 | 1196 | down 0.4 per cent |
+| block on one object | 1472 | 1461 | down 0.7 per cent |
+| block on several objects | 1797 | 1800 | up 0.2 per cent |
+| yield round trip | 2584 | 2590 | up 0.2 per cent |
+
+**The caveat belongs with the figures rather than after them.** The warm arms of these two builds
+do not run identical code. `chill()` now sits in the giver thread, and in the warm pass it still
+tests a volatile flag on every iteration before returning. The warm-against-cold comparison
+within this build is sound, because both arms run the same code and differ only in the flag. The
+warm-against-warm comparison across the two builds does not have that property, and the 0.7 per
+cent is therefore a bound on the build rather than a reproduction in the strict sense.
+
+The effect is visible in the output. `block on one object` read a dead-flat 1493 for the last
+fifty samples in the old build and now oscillates through 1473, 1468, 1508, 1478, 1474 in a
+repeating pattern. One extra test per iteration, in a bracket of about 1470 counts.
+
+Criterion 1 holds: the instrument costs 81 counts at best, the smallest thing measured is 1196,
+a ratio of 14, and the criterion asks for ten.
+
+### The button bounce, a second time in one morning
+
+One press was asked for and two resets arrived, three seconds apart, the first truncated partway
+through the fourth cold count dump. The same signature as the 82 byte excess identified at 07:37.
+**Twice in one morning is a property of the button rather than an accident**, so a single press on
+this board should be expected to produce two runs, and the second complete one is the one to read.
+It cost nothing here because the whole capture is 12915 bytes and both runs fitted.
