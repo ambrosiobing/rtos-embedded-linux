@@ -836,6 +836,64 @@ Item 2 is a consequence of Friday 9 October 2026's instrument change and did not
 that morning. **Fixing one measurement broke the only row that needs a second instrument**, which
 is worth recording as the kind of cost an instrument change carries beyond the figures it moves.
 
+## Friday 9 October 2026 at 21:56: the period row is back, and the guard-on figures reproduce
+
+Built at 21:55:10. The first run with the instrument chosen per operation, the two clock gates,
+the guard values separated, and the stack guard back on as `7f57915` decided.
+
+**Both gates passed, and the second one is the test the design named for itself.**
+
+    # clock check: 200 ms of sleep advanced the counter by 55790830, and 280000000 Hz
+    #   predicts 56000000, so the count is 99 per cent of the prediction
+    # wall clock check: 200 ms of SLEEP advanced the wall counter by 56027390, and 280000000 Hz
+    #   predicts 56000000, so the count is 100 per cent of the prediction
+
+The core gate spins and reads 99 per cent; the wall gate sleeps and reads 100 per cent. **The
+wall counter runs through idle**, which was the claim the whole per-operation arrangement rests
+on, and this is the run that checked it rather than assumed it.
+
+**The period row emits a capture again**, carrying its own instrument:
+
+    instrument wall
+    clock_hz 280000000
+    wrap_guard ok
+    a_counts 307978 308014 307977 ... 308000 308000 308000
+
+308000 counts at 280 MHz is 1.1000 ms, the same tick-granularity figure as every run since
+Thursday 8 October 2026, now on a counter that can see it. Criterion 5's device half exists.
+`make check` was green in WSL before the build, so the C emitter and the Python parser agree on
+the `instrument` line and on the four guard values.
+
+### The guard-on figures reproduce across a day and two code changes
+
+| Operation | 09:40 | 21:56 | Change |
+|---|---|---|---|
+| yield round trip | 691 | 671 | down 2.9 per cent |
+| block on one object | 500 | 498 | down 0.4 per cent |
+| block on several objects | 850 | 855 | up 0.6 per cent |
+| hand work to a queue | 677 | 676 | down 0.1 per cent |
+| contended mutex, inheritance on | 8381 | 8416 | up 0.4 per cent |
+| contended mutex, inheritance off | 36610 | 36627 | up 0.05 per cent |
+
+*Table. Warm minima of sixty-four, both runs with the stack guard on. Between them sit the
+instrument-per-operation change, the guard-value separation and a full day.*
+
+All six inside three per cent, five inside one. The figures in [RESULTS.md](RESULTS.md) are the
+09:40 ones and this run says a reader rebuilding the tree would get them back. Criterion 1 reads
+26 counts against 498, a ratio of 19.
+
+**The cold arm is the less reproducible one, and that is recorded without a mechanism.** The
+four cold minima came in 4 to 9 per cent below the 09:40 run, where the warm minima moved under
+3 per cent: 1023 against 1071, 955 against 1025, 1513 against 1579, 1257 against 1380. The
+penalties follow, at 352, 457, 658 and 581 against 380, 525, 729 and 703. Two builds with
+different code between them is the obvious candidate, since a cold cost is a cost of fetching
+code and the code moved, but two runs are two points. What can be said is that a cold figure
+from this project is good to about ten per cent across builds where a warm one is good to about
+three, and a chapter quoting either should say which.
+
+The button bounced again, two boots from one press, the first truncated partway through the
+third cold count dump. Third time today.
+
 ### What it cost, so that the next one is a decision and not a habit
 
 Before this file the largest thing tracked in the repository was 96 KB, an SVG. This is 3.45 MB,
