@@ -1,0 +1,29 @@
+/* projects/04-what-the-kernel-primitives-cost/zephyr/app.overlay: the one pin the witness watches.
+ *
+ * THE PIN IS NAMED HERE AND NOWHERE ELSE. The C reads it through GPIO_DT_SPEC_GET, the run
+ * prints the controller and pin it was given, and docs/WIRING.md quotes this file. A pin named
+ * in a comment is a pin that drifts from the code; a pin named in devicetree is the code.
+ *
+ * PB4, which is CN7 pin 19 on the Zio header, the pin ST labels D25. From UM2408 Rev 6, the
+ * manual for the MB1363 board family, Table 18 on page 44, which is this board's own table and
+ * not Table 17 for the H745 and H755 beside it: the two carry the identical row for PB4, so
+ * the wrong table would have given the right answer with the wrong reasoning. Read for the
+ * sibling firmware volume on Tuesday 6 October 2026 and reused here on Friday 9 October 2026,
+ * because the lead to the MCC 118 is already on that pin and a pin chosen to suit the firmware
+ * rather than the bench would have cost a rewiring for nothing.
+ *
+ * Why not an Arduino alias: Zephyr's arduino_r3_connector.dtsi for this board maps D0 to D15
+ * and A0 to A5, and PB4 is on none of them. The Zio header's D16 to D72 have no Zephyr
+ * binding, so the GPIO port and pin are named directly.
+ *
+ * Why zephyr,user: it is the node Zephyr provides for exactly this, an application-owned
+ * property with no driver and no binding to write. The alternative, a gpio-leds node, would
+ * have described the pin as a light.
+ */
+#include <zephyr/dt-bindings/gpio/gpio.h>
+
+/ {
+	zephyr,user {
+		marker-gpios = <&gpiob 4 GPIO_ACTIVE_HIGH>;
+	};
+};

@@ -26,6 +26,7 @@
 #include <cmsis_core.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/timing/timing.h>
+#include <zephyr/drivers/gpio.h>
 
 #include <errno.h>
 #include <stdio.h>
@@ -299,6 +300,29 @@ static void run_hand_to_queue(uint32_t *counts, size_t n)
 	}
 }
 
+/* THE MARKER: the one pin the witness watches, and the only output this application has.
+ *
+ * Named in app.overlay as PB4, CN7 pin 19, and read from there: this file does not know the
+ * port or the pin, only that the overlay promised one. The run prints the controller node and
+ * the pin number it was actually handed, so the capture carries the pin from the build rather
+ * than from a comment, which is the same reason the build stamp exists.
+ *
+ * ONE EDGE PER PERIOD, ALTERNATING, NEVER A PULSE. The MCC 118 samples every 10 microseconds
+ * and a pulse of two consecutive stores is tens of nanoseconds wide; the sibling firmware
+ * volume tried the pulse first and the witness caught fragments of it, up to half a volt, in
+ * 346 samples of 199784. A toggle leaves the level where the boundary put it until the next
+ * boundary, so every crossing in either direction is a period boundary and the interval
+ * between consecutive edges is one period. witness.py counts both polarities.
+ *
+ * THE TOGGLE SITS AT THE STAMP. run_period reads the wall counter and toggles the pin in
+ * consecutive statements, so the instant the processor's instrument records and the instant
+ * the witness sees are the same instant to within a store. A toggle placed anywhere else in
+ * the loop would put a constant offset between the two instruments and criterion 5 would be
+ * measuring that offset.
+ */
+static const struct gpio_dt_spec marker = GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), marker_gpios);
+static bool marker_ready;
+
 /* THE PERIOD, which is the one row the external witness can also see, and the only row where
  * two instruments are meant to agree.
  *
@@ -325,13 +349,28 @@ static int run_period(uint32_t *counts, size_t n)
 	uint32_t previous;
 	size_t i;
 
+	/* NO MARKER, NO ROW. A period without the witness able to see it is a number this
+	 * project already has from Thursday 8 October 2026; what this row exists for today is
+	 * the agreement of two instruments, and a capture the witness could not have seen
+	 * would be reduced against nothing. Refused, with the reason on the console. */
+	if (!marker_ready) {
+		printf("# the marker pin from app.overlay could not be configured, so the\n");
+		printf("# witness has nothing to watch and the period row is withheld\n");
+		return -ENODEV;
+	}
+
 	k_msleep(1);
 	previous = measure_now_wall();
+	(void)gpio_pin_toggle_dt(&marker);
 
 	for (i = 0u; i < n; i++) {
 		k_msleep(1);
 		uint32_t now = measure_now_wall();
 
+		/* The stamp and the edge are consecutive statements on purpose: see the
+		 * marker comment above. n+1 edges for n periods, so the witness's intervals
+		 * line up one to one with a_counts. */
+		(void)gpio_pin_toggle_dt(&marker);
 		counts[i] = now - previous;
 		previous = now;
 	}
@@ -577,6 +616,15 @@ static void report_config(void)
 	       MEASURE_USE_TIMING_API ? "the timing API, as upstream uses"
 				      : "k_cycle_get_32, as every run before 9 October 2026");
 	printf("#   wall instrument, the period row: k_cycle_get_32, which runs through a sleep\n");
+	/* THE PIN, FROM THE BUILD. The controller is printed as its devicetree node, which on this
+	 * part carries the port's register base: gpio@58020400 is GPIOB in RM0455, and the pin is
+	 * the bit. docs/WIRING.md makes that translation once, with the citation; the line below
+	 * is what a reader checks it against. */
+	printf("#   marker for the witness: pin %u on %s, %s\n",
+	       (unsigned int)marker.pin,
+	       DT_NODE_FULL_NAME(DT_GPIO_CTLR(DT_PATH(zephyr_user), marker_gpios)),
+	       marker_ready ? "configured as an output, one toggle per period"
+			    : "NOT CONFIGURED, so the period row will be withheld");
 }
 
 int main(void)
@@ -602,6 +650,12 @@ int main(void)
 	timing_init();
 	timing_start();
 #endif
+
+	/* Before any row runs, so that report_config() can say what it found and run_period()
+	 * can refuse if there is nothing to toggle. Driven low to start, matching the sibling
+	 * volume's marker_init, so the first toggle is the first rising edge. */
+	marker_ready = gpio_is_ready_dt(&marker) &&
+		       gpio_pin_configure_dt(&marker, GPIO_OUTPUT_INACTIVE) == 0;
 
 	printf("# p04 under zephyr\n");
 	/* THE BUILD STAMP, AND IT EXISTS BECAUSE THE NAME ABOVE WAS NOT ENOUGH.
