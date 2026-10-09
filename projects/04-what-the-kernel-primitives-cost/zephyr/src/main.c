@@ -416,6 +416,20 @@ int main(void)
 	k_thread_priority_set(k_current_get(), PRIO_MEASURER);
 
 	printf("# p04 under zephyr\n");
+	/* THE BUILD STAMP, AND IT EXISTS BECAUSE THE NAME ABOVE WAS NOT ENOUGH.
+	 *
+	 * The shared-board rule says each application names itself, so the first line of a run
+	 * tells you whether the right project is on the part. On Friday 9 October 2026 that check
+	 * passed and was still wrong: the line read `p04 under zephyr`, correctly, and the image
+	 * was the previous commit's. A rebuild had been skipped, the name cannot see a commit, and
+	 * the figures that came back were an exact repeat that looked like a reproduction.
+	 *
+	 * So the run states when it was compiled. __DATE__ and __TIME__ are the two macros whose
+	 * whole purpose is to differ between builds, they need nothing from the build system, and
+	 * a stamp older than the last edit is the signal. A reproduction and a stale flash produce
+	 * the same numbers, and only this line separates them. */
+	printf("# built %s %s, and a stamp older than your last edit means a stale flash\n",
+	       __DATE__, __TIME__);
 	if (measure_clock_hz() == 0u) {
 		printf("# THE CLOCK IS UNCONFIRMED FOR THIS BUILD. Every capture below carries\n");
 		printf("# clock_hz 0 and the reduction refuses it. That is the point: these\n");
