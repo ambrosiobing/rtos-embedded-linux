@@ -131,3 +131,69 @@ One smaller fix came with it. **The driver's error landed below this application
 because initialisation happens at boot and the log is flushed asynchronously, so the console read
 as advice first and diagnosis second. The application now waits 200 milliseconds before it prints
 anything, which puts the console back in the order things happened.
+
+## Saturday 17 October 2026, from the vendor's own sources: the run is explained
+
+Three documents answered what the bench could not, and together they close the question the
+11:16 run opened. None of them is a datasheet summary: the quick start guide is ST's own, and the
+library is ST's own Arduino support for this exact shield.
+
+**The part is held unpowered until a pin is driven, and the tree's driver drives no pin.** ST's
+Arduino library for this shield defines `PWREN_PIN 11` and `LPN_PIN A3`, and its simplest example
+drives the supply enable high and waits ten milliseconds **before** the sensor object is
+constructed:
+
+```
+#define LPN_PIN A3
+#define PWREN_PIN 11
+...
+pinMode(PWREN_PIN, OUTPUT);
+digitalWrite(PWREN_PIN, HIGH);
+delay(10);
+```
+
+**So the cheap attempt is answered, and the answer is no.** The in-tree driver for the previous
+generation cannot bring this part up on this shield at any address, because the part is not
+powered when the driver first speaks to it and nothing in that driver can power it. The project
+wrote three candidate causes down before the run and this is the third of them, which is the one
+that was described in advance as "the clearest possible argument for the binding this project
+writes". It has turned out to be exactly that.
+
+**The address was never the question.** It may still be wrong and the scan will say so, but a
+scan taken with the supply enable low will find nothing whatever the address is, which is why the
+scan now has a row for "nothing answered" that points at power rather than at addressing.
+
+**The interface is three jumpers and no soldering iron.** ST's library README: to use the shield
+in the four-wire mode, J7, J8 and J9 must be moved to SPI. So the two-wire mode is the delivered
+position and the chapter's stated gap, that the bus selection might need an iron this bench does
+not have, does not exist. That sentence in the chapter is wrong and will be corrected with this
+as the source.
+
+### The cover glass is an accessory, and it stays off
+
+ST's quick start guide lists among the parts on the board: **0.25, 0.5 and 1 mm spacers to
+simulate air gaps, with the cover glasses**, and its photograph labels the spacers and the cover
+glass as separate items beside the board rather than as something fitted over the sensor. So it
+is not a protective film to be peeled off before use. **It is a deliberate optical configuration
+for asking what happens when the part sits behind a product's window**, and the air gap is varied
+with the spacers.
+
+It stays off for every run in this project until a run is specifically about it, and the record
+says so, because an optical path is part of a measurement setup exactly as a wire is. Two things
+make that the right default rather than the lazy one. The vendor's own evaluation software
+carries a `CoverGlass On` setting, which is unticked in the guide's own screenshot, so a cover
+glass is a mode rather than a neutral addition. And the vendor library in the workspace carries a
+crosstalk calibration plugin, which is there because a window reflects some of the light straight
+back into the receiver and that has to be calibrated out before any figure means anything.
+
+**So "with a cover glass, calibrated" is a variant worth building and a poor default**, and it is
+the kind of variant this volume writes down rather than performs by accident.
+
+### One more fact that renames the part
+
+The guide's key products line reads that the board carries a **noncommercial VL53L8CA
+super-sensor used for evaluation only**, and that the board supports the CX and CH behaviours. So
+the part on this bench is an evaluation superset rather than the catalogue part, and the chapter
+should name it that way. It does not change the premise, since the tree has no driver for any
+member of this generation, and it does change what a reader should expect to reproduce with a
+different shield.
