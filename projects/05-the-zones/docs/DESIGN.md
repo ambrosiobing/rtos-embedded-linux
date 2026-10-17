@@ -41,6 +41,38 @@ the same thing: a driver for a single-point part in the same family is not a dri
 sixty-four zone one, and the difference has to be read in the binding rather than inferred from
 the name.
 
+### What that command returned, Saturday 17 October 2026, and why the premise narrows
+
+**The paragraph above was written before the command was run.** It is kept exactly as it was,
+because the answer landed between writing it and reading it, and because it turned out to have
+anticipated the wrong half of the question.
+
+**The tree carries bindings for `st,vl53l0x`, `st,vl53l1x` and `st,vl53l5cx`, and none for the
+VL53L8CX.** So the chapter's assertion is true of this exact part and **misleading as written**.
+The VL53L5CX is not a distant relative and not the single-point neighbour the paragraph above
+guarded against: it is the previous generation of the same multizone family, with the same eight
+by eight grid. "A part the tree does not know" invites a reader to picture a family the tree has
+never heard of, and that is not the situation.
+
+The narrower and more useful statement, which is what this project is now about: **the tree knows
+the previous generation of this part and not this one, and the interesting question is what
+differs between them.** That is a better chapter than the one written, because the gap is
+specific and a reader can check it.
+
+Two things follow and both are open until the next command runs. **First, the in-tree driver for
+the previous generation may already drive this part**, or come close enough that the work is a
+binding and a compatible string rather than a driver. That has to be established and not
+dismissed, because a cheap route left unexplored is the kind of thing a reader of a portfolio
+notices. **Second, if the in-tree driver pulls the vendor's own library in as a module**, then
+the module arrangement this chapter sets out to design already has a worked precedent inside the
+tree, and the chapter should follow it rather than invent a second one.
+
+One method note, because it nearly became a wrong conclusion. **`ls drivers/sensor` matched
+nothing for this family**, and on its own that reads as the absence the chapter claimed. The
+bindings are what proved the drivers exist, so the drivers are not flat names in that directory
+in this revision. An empty listing is not an absence until you know you looked in the right
+place.
+
 ## The hardware is here, and fitting it costs something
 
 **The shield is on the bench.** X-NUCLEO-53L8A1, carrying the VL53L8CX, eight by eight
