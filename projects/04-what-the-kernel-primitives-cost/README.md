@@ -1,7 +1,18 @@
 # P04. What the kernel primitives cost, by the cycle counter
 
-Status on Thursday 8 October 2026: **the design page exists and no code does.** No number
-here has been measured and every row of the eventual table reads `not measured`.
+Status on Saturday 17 October 2026: **twenty-two of the table's twenty-six rows are measured,
+under two kernels, and criterion 5 holds under both.** All seven criteria were met under Zephyr
+on Friday 9 October 2026. Under FreeRTOS, criteria 1, 3, 4 and 5 are met from the board, 6 and 7
+are the host's and hold for any kernel, and criterion 2 cannot be posed, because the FreeRTOS
+kernel ships no benchmark suite to agree with; [docs/DESIGN.md](docs/DESIGN.md) says so. The
+four unmeasured rows are the cold figures of the contended mutex, which the campaign's cold pass
+does not take. The figures are in [docs/RESULTS.md](docs/RESULTS.md), the record of every run in
+[docs/BENCH.md](docs/BENCH.md), and the second kernel in [freertos/README.md](freertos/README.md).
+
+On Thursday 8 October 2026 this line read: the design page exists and no code does. The sections
+below are in the order they were written, and the two that carry figures from the first evening
+say so, because every figure taken before 09:40 on Friday 9 October 2026 was substantially a
+measurement of its own stopwatch and was superseded that morning.
 
 [docs/DESIGN.md](docs/DESIGN.md) sorts the chapter's seven acceptance criteria by what each
 costs, and **two of them need no hardware at all**: that the reduction can report a
@@ -13,7 +24,7 @@ primitives will be priced under **two kernels**, so that a ratio between primiti
 shown to survive a change of kernel rather than being a property of one.
 
 The written specification is [chapter 04](../../chapters/04-what-the-kernel-primitives-cost.md),
-which is complete. What is absent is the code.
+which is complete.
 
 | | |
 |---|---|
@@ -66,7 +77,14 @@ division, so the suite ended in a traceback rather than a named failure. It was 
 what the mutation asked for, and it named nothing. Every case now reports an unexpected
 exception as a failure of that case, because the matrix above is read by a person.
 
-## The first run on the board, Thursday 8 October 2026
+## The first run on the board, Thursday 8 October 2026, superseded the next morning
+
+**Every figure in this section was taken with `k_cycle_get_32()` as the stopwatch, and that call
+was most of each figure.** The instrument was replaced by Zephyr's timing API at 09:40 on Friday
+9 October 2026 and the readings fell by factors of 1.1 to 3.8; [docs/BENCH.md](docs/BENCH.md)
+has the before and after. The section stays because the two findings at its end were real and
+because the relative column, which is the product, survived the change in direction if not in
+magnitude. Nothing below is in the table.
 
 Five operations, no wiring at all, and **two resets producing identical output**.
 [docs/BENCH.md](docs/BENCH.md) has the figures and, more importantly, the four reasons no row of
@@ -94,6 +112,13 @@ and means any chapter describing a 1 kHz release on this configuration would be 
 cheapest one, which is criterion 3's warm-against-cold effect turning up uninvited.
 
 ## Criterion 4: what priority inversion costs on this board
+
+The figures below are from the first evening and the old instrument, kept for the arithmetic
+that follows them. With the timing API, from the run of 09:40 on Friday 9 October 2026 that the
+table carries, the Zephyr arms are **29.9 and 130.8 microseconds**, a difference of 100.8; under
+FreeRTOS on Saturday 17 October 2026 they are **57.4 and 249.6**, a difference of 192.3. Both
+kernels inherit, and the ratio of 4.3 in both is mostly the four-to-one ratio of the two spins
+doing arithmetic.
 
 | Arm | Steady, counts | Steady |
 |---|---|---|
@@ -147,9 +172,9 @@ the second test and not the first.
 
 ## Criterion 7, which is a rule about the table rather than about a run
 
-[docs/RESULTS.md](docs/RESULTS.md) is twenty-six rows and **not one of them is measured**. The
-column says `not measured` rather than being left blank, because a blank invites somebody to
-fill it in and a refusal does not.
+[docs/RESULTS.md](docs/RESULTS.md) is twenty-six rows, and on the day this section was written
+not one of them was measured; twenty-two are now. The column says `not measured` rather than
+being left blank, because a blank invites somebody to fill it in and a refusal does not.
 
 [scripts/check_instruments.py](../../scripts/check_instruments.py) runs on every push. Criterion
 7 is its first rule: **a row predicted to be below the witness's resolution may not name the
@@ -160,18 +185,29 @@ The `Scale` column is a **prediction made before any number exists**, and that i
 checkable. A measured duration that contradicts its own Scale fails, so a row cannot be quietly
 moved to the other side of the boundary when the number comes out awkwardly.
 
-**Shown to reject seven bad tables before it was committed.** The mutations are applied to the
+**The check refused six measured figures on Saturday 17 October 2026, and it was right each
+time about the rule as written.** The rule was then refined in a commit that entered nothing:
+the prediction is held against the warm figure, the operation's floor, since the column never
+predicted the cache penalty; and the cache state follows the instrument rather than the label.
+Nine mutations of the table were shown to behave before that commit. The next commit entered
+the six and relabelled the contended mutex operations `above`, with the reason beside the
+table and the figures visibly in prose for eight days before the label moved. A relabel is
+allowed loudly or not at all, and the history is what makes this one loud.
+
+**Shown to reject seven bad tables before it was committed, and nine before it was refined.** The mutations are applied to the
 table rather than to the checker, because a check is proven by the inputs it rejects:
 
 | What the table was made to say | The check |
 |---|---|
 | a below-resolution row citing the witness | refused, criterion 7 itself |
-| a below row measured at 40 us, contradicting its own prediction | refused |
+| a below row whose warm figure is 40 us, contradicting its own prediction | refused |
 | an above row measured at 2 us, which the witness could not have seen | refused |
 | a cycle count published with no duration beside it | refused, a count is not a time |
 | the cold half of a warm and cold pair deleted | refused, one alone reports an accident of ordering |
 | an instrument this bench does not have | refused |
-| an above row given a cache it has no use for | refused |
+| a witness row given a cache it cannot see | refused |
+| a cycle-counter row with no cache stated | refused |
+| a below row whose cold figure is 11 us | admitted, the floor plus a penalty |
 
 ## What it would deliver
 
