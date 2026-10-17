@@ -71,3 +71,52 @@ distinguishable, which is the reason for writing them down first:
 address is one digit in a file. The jumper is one look at the board. The control line is the
 binding this project exists to write, and if that is the answer then the run has earned the
 chapter.
+
+## Saturday 17 October 2026 at 11:16: the first run, which is not interpretable yet
+
+Built 11:09:43, flashed, one press. The console:
+
+```
+p05 the zones, identification run
+# built Oct 17 2026 11:09:43, and a stamp older than your last edit means a stale flash
+NOT READY vl53l5cx@29
+[00:00:02.131,000] <err> vl53l5cx: Failed to initialize the sensor (255)
+```
+
+**The bench state is not confirmed, so this result is not read as a measurement of anything.**
+The hand-over asked for P04's two leads to come off before the shield was fitted, and they did
+not come off. One of them sits in CN7 pin 19, which is a socket on the same header the shield
+seats into: **a flying lead in a socket means a shield pin cannot enter it**, so the shield is
+either not seated flat, seated with that one position empty, or resting on the lead. None of
+those is a configuration this page can reason from, and `bench state is not the record` is a rule
+this bench has needed before.
+
+So the honest reading is that there is no reading. What the run does establish is about the
+software and not the hardware: the image boots, the application runs, the driver binds, the
+driver's own initialisation is reached and fails, and **the failure code is the vendor library's
+generic error, 255**, which distinguishes none of the three causes written down in advance.
+
+### The generic error is the finding, and it changed the application
+
+A part at a different address, a part held in its low-power state, and a part whose interface
+jumper selects the four-wire bus **all fail identically** from inside a driver that only ever
+talks to one address. The project had written those three causes down before the run and the run
+could not tell them apart, which is a defect in the experiment rather than in the part.
+
+**A bus scan separates them in one run**, so the application now scans before it asks, and the
+scan is built to report its own failure: a probe is a zero-length write, a controller that does
+not implement one can answer for every address, and a scan that could not notice that would hand
+back a list of 112 devices and look authoritative. Four outcomes, each pointing somewhere
+different:
+
+| The scan says | What it means |
+|---|---|
+| nothing answered | the part is not on this bus. Power, the low-power line, or the jumper. No address is wrong, because none is right |
+| the address the overlay names | the overlay is right and initialisation failed, which points at the firmware image or at a real difference between the generations |
+| some other address | the overlay is wrong and the scan has printed the right answer |
+| almost everything | the scan is void on this controller, and it says so rather than reporting sensors |
+
+One smaller fix came with it. **The driver's error landed below this application's advice**,
+because initialisation happens at boot and the log is flushed asynchronously, so the console read
+as advice first and diagnosis second. The application now waits 200 milliseconds before it prints
+anything, which puts the console back in the order things happened.
