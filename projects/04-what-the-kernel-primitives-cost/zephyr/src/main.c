@@ -22,6 +22,7 @@
 #include "../../adapter/campaign.h"
 #include "../../adapter/measure.h"
 #include "mutex_case.h"
+#include "port.h"
 
 #include <zephyr/kernel.h>
 #include <cmsis_core.h>
@@ -162,7 +163,7 @@ uint32_t measure_clock_hz_wall(void)
  */
 static volatile bool cold_mode;
 
-static void chill(void)
+void measure_port_chill(void)
 {
 	if (cold_mode) {
 		SCB_InvalidateICache();
@@ -205,7 +206,7 @@ static void giver_fn(void *a, void *b, void *c)
 		 * bracket opens on the stamp below, so this is the last point at which an
 		 * invalidation still lands outside it and ahead of it. In the warm pass
 		 * cold_mode is false and this is one test of a flag. */
-		chill();
+		measure_port_chill();
 		/* The last thing before the give, so the bracket holds the wake-up and not the
 		 * giver's own run-up. */
 		t_handoff = measure_now();
@@ -242,7 +243,7 @@ static void run_yield(uint32_t *counts, size_t n)
 	k_thread_resume(&partner_thread);
 
 	for (i = 0u; i < n; i++) {
-		chill();
+		measure_port_chill();
 		uint32_t t0 = measure_now();
 
 		k_yield();
@@ -260,7 +261,7 @@ static void run_block_one(uint32_t *counts, size_t n)
 	size_t i;
 
 	for (i = 0u; i < n; i++) {
-		/* No chill() here. The giver does it, on its last statement before the stamp
+		/* No measure_port_chill() here. The giver does it, on its last statement before the stamp
 		 * this bracket opens on. See the criterion 3 comment above the flag. */
 		k_sem_give(&go);
 		k_sem_take(&signalled, K_FOREVER);
@@ -301,7 +302,7 @@ static void run_hand_to_queue(uint32_t *counts, size_t n)
 	size_t i;
 
 	for (i = 0u; i < n; i++) {
-		chill();
+		measure_port_chill();
 		uint32_t t0 = measure_now();
 
 		(void)k_work_submit(&work_item);

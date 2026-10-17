@@ -1345,3 +1345,56 @@ every count has its rate. It cannot see whether a relabel was loud; that is the 
 history, and the two commits are the evidence. Twenty-two of twenty-six rows are measured. The
 four that are not are the cold mutex figures, which the campaign's cold pass does not take,
 and that is a gap in the campaign to close rather than a refusal to respect.
+
+## Saturday 17 October 2026, later: the cold pass reaches the contended rows, and the prediction is here
+
+**Written before the run, which is the only thing that makes the paragraph worth reading.** No
+figure below exists yet. The four cold mutex cells of [RESULTS.md](RESULTS.md) are the last
+unmeasured rows in the table, and the reason they were unmeasured was a decision taken before
+either row had been measured at all: the campaign's cold pass covered four operations, and the
+comment in [adapter/campaign.c](../adapter/campaign.c) said the contended rows "take long enough
+that a cache state would be lost inside them".
+
+**That argument is withdrawn, and not because it was wrong about the dilution.** It is right
+about the dilution: the arms are 29.9 and 130.8 microseconds under Zephyr, 57.4 and 249.6 under
+FreeRTOS, and a bracket that long does not stay cold. It is wrong about what to do with that.
+**The dilution is itself the figure**, and declining to measure it leaves a prediction in a
+comment where nobody can check it, which is the one thing this project exists not to publish.
+
+**A second thing was wrong and it was a defect rather than a judgement.** Raising the count
+alone would have compared warm against warm: the contended case never called the invalidation.
+It brackets a lock attempt in the measurer and nothing in that translation unit had ever touched
+the cache, so a cold pass over those two rows would have printed two figures equal to their warm
+ones, and the honest-looking conclusion from that would have been that the cache costs nothing
+on a contended lock. **A cold pass over a row that never invalidates is a measurement of
+nothing that reads as a null result**, and the only reason it was found is that the change was
+read into before it was made.
+
+So the invalidation now stands immediately before the bracket opens and outside it, in the
+measurer, at the statement before its stamp, which is where Friday 9 October 2026 established
+it has to be after the block-on-one row was found rewarming its own path. The call is named
+`measure_port_chill()` in both kernels, so the line inside each contended case is character for
+character the same; the Zephyr tree gained a `port.h` for the declaration, the FreeRTOS tree
+already had one.
+
+### The prediction, and what would refute it
+
+The spins inside those brackets run thousands of iterations through a few instructions, so they
+go cold once and are warm for the rest. So:
+
+- the penalty should be **a one-time refill of the code path**, of the same order as the short
+  rows' penalties: a few hundred counts under Zephyr, one to two thousand under FreeRTOS
+- it should be **about the same in both arms**, because what separates the arms is spin
+  iterations and not code
+- as a percentage it should therefore read small and unequal: roughly 4 to 11 per cent on the
+  inheriting arm, 1 to 3 per cent on the other, against 59 to 175 per cent on the short rows
+
+**Refuted if** the non-inheriting arm's penalty is much larger than the inheriting arm's, since
+the extra span is spin and a one-time refill cannot scale with it; that would mean the cache
+state is lost and re-lost inside the bracket and the withdrawn comment was right for a reason it
+never stated. **Also refuted if** both penalties come out near zero, which would mean the
+invalidation is not reaching the path, the same defect as the block-on-one row and the same
+tell.
+
+Either outcome is reportable. The cold figures go into the table whichever way it falls, because
+the table's gap was never about the size of the number.

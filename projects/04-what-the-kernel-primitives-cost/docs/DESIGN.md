@@ -111,6 +111,13 @@ criterion 4's refutation exercised with no board. Criterion 3 does not exist on 
 there is no instruction cache to invalidate; the board adapter carries it. **No number from the
 host build goes near [RESULTS.md](RESULTS.md).**
 
+**Criterion 3 covers six of the seven operations, since Saturday 17 October 2026 and four
+before it.** Only the period row is left out, because it brackets a sleep of a millisecond and a
+cold measurement of that is a cold first microsecond and a warm rest. The two contended mutex
+rows were excluded on the same ground and the exclusion is withdrawn: those brackets do dilute a
+cache state, and the dilution is the figure rather than a reason to publish no figure. The
+prediction made before that run is in [BENCH.md](BENCH.md), with what would refute it.
+
 ## The seven criteria, sorted by what each actually needs
 
 This is the part worth settling before any code, because it decides what can be finished when.

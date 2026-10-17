@@ -39,6 +39,7 @@
 #include "mutex_case.h"
 
 #include "../adapter/measure.h"
+#include "port.h"
 
 #include "FreeRTOS.h"
 #include "semphr.h"
@@ -181,6 +182,21 @@ void mutex_case_run(bool with_inheritance, uint32_t *counts, size_t n)
 		/* Medium becomes runnable now, after the lock is held and before it is wanted.
 		 * It is lower priority than this task, so it does not run yet. */
 		(void)xSemaphoreGive(start_medium);
+
+		/* CRITERION 3 FOR THIS ROW, and the placement is the lesson of Friday 9
+		 * October 2026 rather than a guess. The bracket opens on the next statement,
+		 * in this task, so the invalidation goes immediately before it and outside
+		 * it. Everything the bracket then contains starts cold: this task's path into
+		 * the lock, the holder's remaining work, the switches, and in the
+		 * non-inheriting arm the whole of medium's work.
+		 *
+		 * WHAT THAT MAKES THE COLD FIGURE, said here because the figure invites a
+		 * misreading. The spins inside the bracket run thousands of iterations
+		 * through a handful of instructions, so they are cold for one iteration and
+		 * warm for the rest. The penalty is therefore a one-time refill of the code
+		 * path and not a proportional cost, which is why it will read as a few per
+		 * cent here and as more than a hundred on the short rows. */
+		measure_port_chill();
 
 		counts[i] = measure_now();
 		lock_take();

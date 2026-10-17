@@ -51,11 +51,36 @@ static uint32_t instrument_cost(void)
 	return best;
 }
 
-/* The four operations criterion 3 repeats cold. The period row is a sleep and the mutex rows
- * take long enough that a cache state would be lost inside them, so neither is repeated: a
- * cold measurement of a millisecond would be a cold first microsecond and a warm rest, which
- * is not the comparison the criterion asks for. */
-#define COLD_OPS 4
+/* THE SIX OPERATIONS CRITERION 3 REPEATS COLD, six since Saturday 17 October 2026 and four
+ * before it. The period row is the only one left out, and for the reason that excluded three:
+ * it brackets a sleep of a millisecond, so a cold measurement of it would be a cold first
+ * microsecond and a warm rest, which is not the comparison the criterion asks for.
+ *
+ * THE SAME ARGUMENT WAS APPLIED TO THE TWO CONTENDED MUTEX ROWS AND IS WITHDRAWN. It was
+ * written before either had been measured and it reads, in the version this comment replaces,
+ * that those rows "take long enough that a cache state would be lost inside them". They take
+ * 29.9 and 130.8 microseconds under Zephyr and 57.4 and 249.6 under FreeRTOS, so the argument
+ * is not wrong about the dilution. It is wrong about what to do: the dilution is itself the
+ * figure, and refusing to measure it leaves four cells of the table empty and the claim
+ * untested. A prediction nobody can check is the thing this project exists not to publish.
+ *
+ * THE PREDICTION, WRITTEN BEFORE THE RUN, as every prediction in this project is. The spins
+ * inside those brackets run thousands of iterations through a few instructions, so they go cold
+ * once and warm thereafter. The penalty should therefore be a ONE-TIME REFILL OF THE CODE
+ * PATH, of the same order as the short rows' penalties, and it should be ABOUT THE SAME IN
+ * BOTH ARMS, because what separates the arms is spin iterations and not code. On the figures
+ * already in hand that means a few hundred counts under Zephyr and one to two thousand under
+ * FreeRTOS, reading as roughly 4 to 11 per cent on the inheriting arm and 1 to 3 per cent on
+ * the other.
+ *
+ * WHAT WOULD REFUTE IT. A penalty on the non-inheriting arm much larger than on the
+ * inheriting one cannot be a one-time refill, since the extra span is spin; it would mean the
+ * cache state is being lost and re-lost inside the bracket, and the comment this one replaces
+ * would have been right for a reason it did not state. A penalty near zero on both would mean
+ * the invalidation is not reaching the path, which is how the block-on-one row was found to be
+ * rewarming itself on Friday 9 October 2026. Either outcome is reportable and neither is a
+ * figure to quietly drop. */
+#define COLD_OPS 6
 
 static void cold_pass(const measure_campaign_t *c, uint32_t *counts,
 		      const uint32_t *warm_min)
@@ -64,7 +89,7 @@ static void cold_pass(const measure_campaign_t *c, uint32_t *counts,
 	int op;
 
 	c->set_cold(true);
-	printf("\n# criterion 3: the same four operations with the instruction cache\n");
+	printf("\n# criterion 3: the same six operations with the instruction cache\n");
 	printf("#   invalidated immediately before each bracket opens, outside it\n");
 
 	/* THE DISTRIBUTION, NOT ONLY THE FLOOR, and the reason is a question the first version
