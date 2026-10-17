@@ -1,28 +1,22 @@
-/* projects/04-what-the-kernel-primitives-cost/freertos/host_main.c: what only FreeRTOS needs,
- * plus the verdicts a host run can honestly give.
+/* projects/04-what-the-kernel-primitives-cost/freertos/host_main.c: what only a FreeRTOS host
+ * build needs.
  *
- * Three things a FreeRTOS host build has to supply and no other kernel does: the memory its own
- * idle and timer tasks need, somewhere a failed kernel assertion can be seen, and a task to
- * run the seven operations on. The operations themselves are in measure_adapter.c and
- * mutex_case.c; the capture format is in ../adapter/measure.c, which knows no kernel.
+ * Three things, and no measurement: the memory the kernel's own idle and timer tasks need,
+ * somewhere a failed kernel assertion can be seen, and a task to run the campaign on. The
+ * campaign is in ../adapter/campaign.c and is the same one the boards run; the hooks it is
+ * handed here are mostly NULL, which it reports as capabilities this build lacks.
  *
- * WHAT THIS RUN CAN SAY, AND WHAT IT CANNOT. Every capture it emits carries `clock_hz 0` and the
- * reduction refuses it, so no figure here is a measurement and none goes near RESULTS.md. The
- * verdicts at the end are about behaviour under a real kernel: that every operation completed,
- * that no bracket read zero or wrapped, and that the inheriting arm of the contended case waited
- * for less than the other arm did. The last one is criterion 4's refutation with no board, and
- * it is the one that could fail if the mutex did not inherit.
+ * Every capture this build emits carries `clock_hz 0` and the reduction refuses it, so no
+ * figure here is a measurement and none goes near RESULTS.md. The verdicts are about behaviour
+ * under a real kernel, and the one that could fail is criterion 4's refutation.
  */
-#include "../adapter/measure.h"
-#include "mutex_case.h"
+#include "../adapter/campaign.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
 
 #include <stdio.h>
 #include <stdlib.h>
-
-#define SAMPLES 64u
 
 bool measure_adapter_init(void);
 
@@ -61,22 +55,8 @@ void vApplicationGetTimerTaskMemory(StaticTask_t **ppxTimerTCB, StackType_t **pp
 
 /* ---------------------------------------------------------------------- the run */
 
-static void measurer_fn(void *arg)
+static void report(void)
 {
-	static uint32_t counts[SAMPLES];
-	uint32_t mins[MEASURE_OP_COUNT];
-	bool completed[MEASURE_OP_COUNT];
-	bool sound[MEASURE_OP_COUNT];
-	int failures = 0;
-	int op;
-
-	(void)arg;
-
-	printf("# p04 under freertos, on a host\n");
-	printf("# built %s %s\n", __DATE__, __TIME__);
-	printf("# THE CLOCK IS UNCONFIRMED FOR THIS BUILD. Every capture below carries\n");
-	printf("# clock_hz 0 and the reduction refuses it. That is the point: these\n");
-	printf("# counts are not times and nothing should be able to publish them.\n");
 	printf("# configuration that bears on the brackets\n");
 	printf("#   configUSE_PREEMPTION %d, configUSE_TIME_SLICING %d, configUSE_MUTEXES %d\n",
 	       configUSE_PREEMPTION, configUSE_TIME_SLICING, configUSE_MUTEXES);
@@ -84,71 +64,26 @@ static void measurer_fn(void *arg)
 	       (unsigned long)configTICK_RATE_HZ, (int)configTIMER_TASK_PRIORITY,
 	       (int)(tskIDLE_PRIORITY + 3));
 	printf("#   instrument: the monotonic clock in hundreds of nanoseconds, rate reported 0\n");
+}
 
-	for (op = 0; op < (int)MEASURE_OP_COUNT; op++) {
-		measure_summary_t s;
-		int rc = measure_run((measure_op_t)op, counts, SAMPLES);
+static void measurer_fn(void *arg)
+{
+	static const measure_campaign_t campaign = {
+		.kernel = "freertos, on a host",
+		.built = __DATE__ " " __TIME__,
+		.report = report,
+		/* No gates: the port declares no clock. No cold pass: no cache. No marker: no
+		 * pin and no witness. The campaign says each of those rather than pretending. */
+		.core_clock_agrees = NULL,
+		.wall_clock_agrees = NULL,
+		.set_cold = NULL,
+		.marker_beacon = NULL,
+		.marker_rest = NULL,
+	};
 
-		printf("\n");
-		completed[op] = (rc == 0);
-		if (rc != 0) {
-			printf("# %s: not measured in this build, %d\n",
-			       measure_op_name((measure_op_t)op), rc);
-			sound[op] = false;
-			mins[op] = 0u;
-			continue;
-		}
-		(void)measure_emit((measure_op_t)op, counts, SAMPLES);
-		s = measure_summarise(counts, SAMPLES);
-		sound[op] = s.wrap_ok && s.nonzero;
-		mins[op] = s.min;
-	}
-
-	printf("\n# %d operations attempted\n", (int)MEASURE_OP_COUNT);
-	printf("\n# host verdicts, about behaviour and not about figures\n");
-
-	for (op = 0; op < (int)MEASURE_OP_COUNT; op++) {
-		const char *name = measure_op_name((measure_op_t)op);
-
-		if (!completed[op]) {
-			printf("#   FAIL %s did not complete\n", name);
-			failures++;
-		} else if (!sound[op]) {
-			printf("#   FAIL %s returned a zero or wrapped count\n", name);
-			failures++;
-		} else {
-			printf("#   ok   %s completed, every count nonzero and unwrapped\n", name);
-		}
-	}
-
-	/* CRITERION 4'S REFUTATION, WITH NO BOARD. With inheritance the measurer waits for the
-	 * holder's remaining work; without it, for the medium task's whole spin as well, and
-	 * the medium spin is four times the holder's. A mutex that did not inherit would put
-	 * both arms at the larger figure and the ratio near one. Two is the threshold: well
-	 * below the four to five the work predicts, well above the one a broken protocol gives,
-	 * and the host's switching cost dilutes the ratio by an amount this file cannot
-	 * know. */
-	if (completed[MEASURE_OP_MUTEX_INHERIT_ON] && completed[MEASURE_OP_MUTEX_INHERIT_OFF] &&
-	    mins[MEASURE_OP_MUTEX_INHERIT_ON] > 0u) {
-		uint32_t on = mins[MEASURE_OP_MUTEX_INHERIT_ON];
-		uint32_t off = mins[MEASURE_OP_MUTEX_INHERIT_OFF];
-
-		if (off > 2u * on) {
-			printf("#   ok   inheritance off waited %u counts against %u with it on,"
-			       " a ratio of %u.%u, so the mutex inherits\n",
-			       (unsigned int)off, (unsigned int)on, (unsigned int)(off / on),
-			       (unsigned int)((off % on) * 10u / on));
-		} else {
-			printf("#   FAIL inheritance off waited %u counts against %u with it on,"
-			       " which is not the inversion the protocol predicts\n",
-			       (unsigned int)off, (unsigned int)on);
-			failures++;
-		}
-	}
-
-	printf("# %s\n", failures == 0 ? "every verdict behaved" : "at least one verdict failed");
+	(void)arg;
 	fflush(stdout);
-	exit(failures == 0 ? 0 : 1);
+	exit(measure_campaign_run(&campaign));
 }
 
 static StaticTask_t measurer_control;

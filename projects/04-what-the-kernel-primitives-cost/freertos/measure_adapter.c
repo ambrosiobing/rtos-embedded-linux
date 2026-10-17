@@ -1,32 +1,23 @@
-/* projects/04-what-the-kernel-primitives-cost/freertos/measure_adapter.c: the FreeRTOS port and
- * adapter.
+/* projects/04-what-the-kernel-primitives-cost/freertos/measure_adapter.c: the FreeRTOS adapter.
  *
- * This file and mutex_case.c are the only ones in the project that know FreeRTOS exists. The
- * core next door, ../adapter/measure.c, knows no kernel, and the Zephyr adapter in
+ * This file, mutex_case.c and the two ports are the only ones in the project that know FreeRTOS
+ * exists. The core next door, ../adapter/, knows no kernel, and the Zephyr adapter in
  * ../zephyr/src/ knows only Zephyr. Each row below names the operation by what happens, and the
  * map from that to this kernel's objects is in docs/DESIGN.md, written before this file.
  *
- * TWO HALVES OF THE CONTRACT LIVE HERE, as in the Zephyr adapter:
- *
- *   the port     measure_now(), measure_now_wall() and the two rates
- *   the adapter  measure_run(), which performs one operation n times
- *
- * THE PORT REPORTS NO CONFIRMED CLOCK, AND THAT IS THE WHOLE POINT OF A HOST BUILD. The POSIX
- * port has no cycle counter. measure_now() reads the monotonic clock in units of a hundred
- * nanoseconds so that brackets come back nonzero and in order, and measure_clock_hz() returns
- * zero, so every capture this build emits carries `clock_hz 0` and the reduction refuses it.
- * A number that cannot be a measurement should not be publishable by accident, and this build
- * cannot publish one.
- *
- * What it can show, which is why it exists: that seven operations complete under a real kernel
- * without deadlock, that no bracket returns zero or wraps, and that the inheriting arm of
- * criterion 4 does not wait for the medium task while the other arm does.
+ * THE PORT IS NOT HERE. The two counters and their rates are the contract in measure.h, and the
+ * cache and the marker are the four hooks in port.h; host_port.c and board_port.c each supply
+ * all of them, and this file cannot tell which it was linked with. That is what lets one adapter
+ * prove its sequencing on a host with every capture refused, and then price the same brackets
+ * on the board with the same code.
  *
  * EVERYTHING IS STATIC. configSUPPORT_DYNAMIC_ALLOCATION is 0, so an allocating create does
  * not fail at run time, it fails to link, and the Makefile checks the binary afterwards.
  */
+#include "../adapter/campaign.h"
 #include "../adapter/measure.h"
 #include "mutex_case.h"
+#include "port.h"
 
 #include "FreeRTOS.h"
 #include "event_groups.h"
@@ -36,7 +27,6 @@
 
 #include <errno.h>
 #include <stdio.h>
-#include <time.h>
 
 /* Higher numbers are higher priority. The measurer sits above its partner's helpers so that a
  * give returns before the other side runs, which is what makes the bracket contain the wake-up
@@ -46,44 +36,6 @@
 #define PRIO_GIVER    (tskIDLE_PRIORITY + 1)
 
 #define STACK_WORDS configMINIMAL_STACK_SIZE
-
-/* ---- the port ---------------------------------------------------------------------------- */
-
-/* A HUNDRED NANOSECONDS PER COUNT, and the unit is chosen for the wrap guard rather than for
- * resolution. Nanoseconds would wrap a 32-bit count every 4.3 seconds, inside one run of this
- * application; a hundred nanoseconds wraps every 429 seconds, outside it. Microseconds would
- * risk a zero count on the fastest bracket, which the core would then refuse for the wrong
- * reason. None of this makes the counts times: the rate below is zero. */
-static uint32_t monotonic_100ns(void)
-{
-	struct timespec ts;
-
-	(void)clock_gettime(CLOCK_MONOTONIC, &ts);
-	return (uint32_t)((uint64_t)ts.tv_sec * 10000000u + (uint64_t)ts.tv_nsec / 100u);
-}
-
-uint32_t measure_now(void)
-{
-	return monotonic_100ns();
-}
-
-uint32_t measure_now_wall(void)
-{
-	return monotonic_100ns();
-}
-
-/* ZERO, ON PURPOSE, FOR BOTH. A host clock is confirmed against nothing this project trusts,
- * so the capture says so and the reduction refuses it. Returning the true rate of the monotonic
- * clock would be easy and would produce a table of host figures that nobody should publish. */
-uint32_t measure_clock_hz(void)
-{
-	return 0u;
-}
-
-uint32_t measure_clock_hz_wall(void)
-{
-	return 0u;
-}
 
 /* ---- static objects ---------------------------------------------------------------------- */
 
@@ -129,9 +81,16 @@ static void giver_fn(void *arg)
 
 	for (;;) {
 		(void)xSemaphoreTake(go, portMAX_DELAY);
+		/* CRITERION 3 FOR BOTH BLOCKING ROWS HAPPENS HERE, not in the measurer. The
+		 * bracket opens on the stamp below, so this is the last point at which an
+		 * invalidation still lands outside it and ahead of it. The Zephyr adapter
+		 * learned this on Friday 9 October 2026 at the cost of a run: a call at the top
+		 * of the measurer's loop was followed by a give, a blocking take and this
+		 * task's own wake-up, all untimed, which refilled the cache before the bracket
+		 * opened. In the warm pass this is one test of a flag. */
+		measure_port_chill();
 		/* The last thing before the give, so the bracket holds the wake-up and not the
-		 * giver's own run-up. No cache invalidation here: a host has no instruction
-		 * cache to invalidate, and criterion 3 belongs to the board adapter. */
+		 * giver's own run-up. */
 		t_handoff = measure_now();
 		if (give_mode == GIVE_SEMAPHORE) {
 			(void)xSemaphoreGive(signalled);
@@ -165,6 +124,7 @@ static void run_yield(uint32_t *counts, size_t n)
 	vTaskResume(partner_task);
 
 	for (i = 0u; i < n; i++) {
+		measure_port_chill();
 		uint32_t t0 = measure_now();
 
 		taskYIELD();
@@ -176,7 +136,8 @@ static void run_yield(uint32_t *counts, size_t n)
 
 /* FROM THE GIVE TO THE RESUMPTION. The giver is lower priority, so releasing it does not run
  * it; the measurer then blocks, the giver runs, stamps and gives, and the measurer preempts it
- * immediately. The bracket therefore contains the wake-up and not the hand-off. */
+ * immediately. The bracket therefore contains the wake-up and not the hand-off. No chill here:
+ * the giver does it, on its last statement before the stamp this bracket opens on. */
 static void run_block_one(uint32_t *counts, size_t n)
 {
 	size_t i;
@@ -217,6 +178,7 @@ static void run_hand_to_queue(uint32_t *counts, size_t n)
 	size_t i;
 
 	for (i = 0u; i < n; i++) {
+		measure_port_chill();
 		uint32_t t0 = measure_now();
 
 		/* A zero wait: the daemon queue holds ten and never more than one is in flight,
@@ -227,24 +189,33 @@ static void run_hand_to_queue(uint32_t *counts, size_t n)
 	}
 }
 
-/* THE PERIOD, on the wall instrument because its bracket contains a sleep. On this host both
- * instruments are the same clock, which is fine: the point of the split is that the core
- * cycle counter on the board stops in idle, and the capture states which counter it used so
- * the reduction can refuse the wrong one. The tick decides the figure, and a 1 ms request on
- * a 1 kHz tick is one to two ticks. Not comparable with Zephyr's 1.1 ms and never meant to
- * be. */
+/* THE PERIOD, on the wall instrument because its bracket contains a sleep, and with the marker
+ * toggled beside each stamp so the witness's intervals line up one to one with a_counts. The
+ * tick decides the figure, and a 1 ms request on a 1 kHz tick is one tick, which is 1.000 ms
+ * against Zephyr's 1.1 on its 100 us tick. Not comparable across kernels and never meant to
+ * be; the row exists for criterion 5, two instruments agreeing on one kernel's period. */
 static int run_period(uint32_t *counts, size_t n)
 {
 	uint32_t previous;
 	size_t i;
 
+	/* NO MARKER, NO ROW. What this row exists for is the agreement of two instruments, and
+	 * a capture the witness could not have seen would be reduced against nothing. */
+	if (!measure_port_marker_ready()) {
+		printf("# the marker pin could not be configured, so the witness has\n");
+		printf("# nothing to watch and the period row is withheld\n");
+		return -ENODEV;
+	}
+
 	vTaskDelay(pdMS_TO_TICKS(1));
 	previous = measure_now_wall();
+	measure_port_marker_toggle();
 
 	for (i = 0u; i < n; i++) {
 		vTaskDelay(pdMS_TO_TICKS(1));
 		uint32_t now = measure_now_wall();
 
+		measure_port_marker_toggle();
 		counts[i] = now - previous;
 		previous = now;
 	}
@@ -296,7 +267,10 @@ bool measure_adapter_init(void)
 	}
 
 	/* Created, then suspended before the scheduler has started, so that it has never run
-	 * when the first row that is not the yield row needs the giver to be schedulable. */
+	 * when the first row that is not the yield row needs the giver to be schedulable. The
+	 * kernel resets its notion of the current task when the task it pointed at is suspended
+	 * before the scheduler runs, and the first host build on Friday 17 October 2026 showed
+	 * it does so without complaint. */
 	partner_task = xTaskCreateStatic(partner_fn, "partner", STACK_WORDS, NULL, PRIO_PARTNER,
 					 partner_stack, &partner_control);
 	if (partner_task == NULL) {
@@ -308,6 +282,8 @@ bool measure_adapter_init(void)
 			      &giver_control) == NULL) {
 		return false;
 	}
+
+	measure_port_marker_init();
 
 	return mutex_case_init();
 }

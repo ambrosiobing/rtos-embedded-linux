@@ -439,6 +439,33 @@ jobs:
       - name: Seven operations complete, criterion 4 refutes, and the reduction refuses
         run: make check
 
+  # THE BOARD IMAGE, COMPILED AND NOT RUN. No board is attached to a runner, so what this proves
+  # is that the Cortex-M7 port, the sibling volume's board support at its pinned commit, and
+  # the adapter link into one image with no allocator in it. The figures come from the bench,
+  # under the same reflash-first rule as every capture since Thursday 8 October 2026.
+  freertos_board:
+    runs-on: ubuntu-latest
+    name: FreeRTOS, the board image for the NUCLEO-H7A3ZI-Q, linked and allocator-free
+    defaults:
+      run:
+        working-directory: projects/04-what-the-kernel-primitives-cost/freertos
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The Cortex-M toolchain, newlib and all
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-arm-none-eabi
+
+      - name: The kernel, at the tag this claim is made against
+        run: make fetch
+
+      - name: The board support, at the commit this claim is made against
+        run: make fetch-bsp
+
+      - name: Link the image and refuse one containing an allocator
+        run: make board
+
   freertos_claim:
     runs-on: ubuntu-latest
     name: FreeRTOS, the claim cascade on a host

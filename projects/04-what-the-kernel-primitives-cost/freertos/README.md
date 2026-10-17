@@ -73,8 +73,33 @@ runs on every build.
 
 ## The board
 
-Not yet. The sibling firmware volume carries a startup file and a linker script for this part
-and no FreeRTOS build, so the board half is new work: the ARM Cortex-M7 port, a second
-`FreeRTOSConfig.h` with the real tick and stack sizes, the data watchpoint cycle counter as the
-core instrument and the system tick as the wall one, and the marker on PB4 for the witness.
-That is where the FreeRTOS rows of the table come from, and nothing before it produces one.
+**Written Friday 17 October 2026 and not yet built anywhere.** `make fetch-bsp && make board`
+produces an `.elf` and a `.bin` for the NUCLEO-H7A3ZI-Q from the Cortex-M7 port at the same
+V11.1.0, a second `FreeRTOSConfig.h` in `board/` with the real clock, tick and stack sizes and
+stack-overflow checking on, and the sibling firmware volume's board support at a pinned commit:
+its vector table, linker script, gated climb to 280 MHz, cycle counter, instruction cache and
+console. None of that is copied. It is cloned, as the kernel is.
+
+**The campaign is the same one.** On Friday 17 October 2026 the gates, the instrument's own
+cost, the warm and cold passes, criterion 1 and the verdicts moved out of the Zephyr main into
+[../adapter/campaign.c](../adapter/campaign.c), which knows no kernel, and both board builds and
+the host build run it with hooks for the few things that differ: how to spin and sleep, what
+the hardware reports, how to drive the marker. One orchestration against each kernel, which is
+P02's `phases.c` arriving here. **The proof that the lift changed nothing is the Zephyr board:
+its figures after must sit within two per cent of its figures before.**
+
+The board port chooses its two counters exactly as the Zephyr port does, because the choice is
+the part's: the data watchpoint cycle counter for the six brackets that contain no idle, and a
+count derived from the system tick, which runs through idle, for the one that does. The marker
+is PB4, the same pin the Zephyr overlay names as `gpio@58020400` pin 4, so the lead already on
+CN7 pin 19 needs no change.
+
+**The main refuses to start the scheduler if the part is not at 280 MHz.** The kernel is
+configured for that rate, the climb is the sibling's gated one, the registers are decoded
+afterwards, and a decode that disagrees with the configuration halts with the step that failed
+printed. A tick configured for one rate on a part running at another would make every wall
+figure wrong by a factor while the console looked fine.
+
+The toolchain is `arm-none-eabi-gcc` with newlib, which the sibling's `retarget.c` implements
+the hooks for. In WSL that is one `sudo apt install gcc-arm-none-eabi`. CI links the image on
+every push and never runs it; the figures come from the bench.
