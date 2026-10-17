@@ -173,6 +173,30 @@ single-point generation, and none for the multizone shields of either generation
 is written here rather than inherited, which also means the reset pin and the data-ready line
 have nowhere else to come from; see the two criteria above.
 
+**That overlay settles the convention even though it does not give the number.** Its two bus
+expanders sit at 0x42 and 0x43, which are seven-bit addresses, so `reg` in this family is written
+seven-bit. Its three sensors are at 0x30, 0x31 and 0x32, which are not any part's default: a
+shield with three identical sensors on one bus has to reassign two of them, and it does that by
+holding each in reset through an expander while it talks to the others. **So the real shield
+overlay in the tree is a description of a three-sensor arrangement and not of a default address**,
+which is why it corroborates the convention and not the value.
+
+**The shield here has the same three positions.** The vendor's own board support for it defines
+LEFT, CENTER and RIGHT, with the centre sensor soldered and the other two as satellite
+connectors, so a shield as delivered is one part on the bus and the overlay describes one part.
+The vendor's constant is 0x52 for this part and for the previous generation, and the arithmetic
+to 0x29 is definitional while the eight-bit convention is the assumed part. **So the overlay says
+0x29 and says that 0x52 is the one other thing to try**, which is an experiment with two outcomes
+rather than a guess with one, and the first run is cheaper than any further reading.
+
+**One of the chapter's stated gaps may not exist.** It says the shield's bus selection is
+unsettled on this bench and that there is no soldering iron. The user manual for this shield is
+reported to select the interface with a jumper, which would need no iron at all. **That is
+reported and not confirmed**: it comes from a summary of the manual rather than from the manual
+or from the board, and the right confirmation is one look at the shield with the manual's figure
+beside it. If it holds, the four-wire variant stops being described-and-not-run for a reason
+this bench cannot fix and becomes a second build.
+
 ### So the deliverable is not the one the chapter wrote
 
 The chapter's deliverable reads: a binding, a driver and a module that let the sixty-four zone

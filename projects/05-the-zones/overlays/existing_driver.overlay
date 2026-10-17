@@ -1,0 +1,73 @@
+/* projects/05-the-zones/overlays/existing_driver.overlay: the cheap attempt.
+ *
+ * THIS FILE POINTS THE PART ON THIS BENCH AT THE DRIVER THE TREE ALREADY CARRIES for the
+ * generation before it. It is the step a reader asks about first and it costs one build. If the
+ * device comes up, the question becomes how far that goes and what the two generations actually
+ * differ in; if it does not, the driver's own log says why. Either is a paragraph. Writing a
+ * driver without trying this would have skipped the question.
+ *
+ * ONE NODE, NOT THREE. The vendor's own board support for this shield defines three device
+ * positions, LEFT, CENTER and RIGHT, exactly as the shield for the single-point generation does:
+ * one sensor soldered at the centre and two satellite connectors. Only the centre one is
+ * populated on a shield as delivered, so this file describes one part. If satellites are ever
+ * fitted they need distinct addresses and a control line each, which is the arrangement the
+ * tree's x_nucleo_53l0a1 overlay shows, and that is a different file.
+ *
+ * THE BUS IS THE ONE P03 PROVED ON THIS BOARD. The shield-idiomatic way to write this is
+ * &arduino_i2c, which is how the tree's own shield overlays do it, and it would be the right
+ * choice in a file meant to serve several boards. This file serves one board, and i2c1 with
+ * these two pin groups is the arrangement that has built and run here, from the board manual and
+ * RM0455 by way of ../../03-one-sensor/overlays/i2c.overlay. Taking the proven one is not
+ * laziness: an overlay that fails leaves a reader unable to tell a wrong bus from a wrong part.
+ */
+#include <zephyr/dt-bindings/i2c/i2c.h>
+
+&i2c1 {
+	status = "okay";
+	pinctrl-0 = <&i2c1_scl_pb8 &i2c1_sda_pb9>;
+	pinctrl-names = "default";
+	clock-frequency = <I2C_BITRATE_FAST>;
+
+	/* THE ADDRESS IS 0x29 AND IT IS DERIVED RATHER THAN READ, which is stated here because
+	 * the first run is what settles it and because the alternative is one digit away.
+	 *
+	 * The vendor's library defines the default address as 0x52, for this part and for the
+	 * generation before it. A devicetree's `reg` carries a SEVEN-BIT address: the tree's own
+	 * x_nucleo_53l0a1 overlay proves that convention for this family, since the two bus
+	 * expanders on that shield sit at 0x42 and 0x43, which are seven-bit addresses for the
+	 * part they name. 0x52 is a legal seven-bit address AND the eight-bit form of 0x29, so the
+	 * vendor's constant alone does not say which it is, and this family's parts are published
+	 * in the eight-bit form by convention.
+	 *
+	 * So: 0x29, and **if the part does not answer, 0x52 is the one other thing to try**, by
+	 * editing this line and rebuilding. That is cheaper than any further reading and it is an
+	 * experiment with two outcomes rather than a guess with one.
+	 */
+	zones: vl53l5cx@29 {
+		compatible = "st,vl53l5cx";
+		reg = <0x29>;
+		status = "okay";
+
+		/* NO CONTROL LINE IS DECLARED HERE, and the omission is the in-tree binding's
+		 * rather than this file's: that binding is eleven lines and accepts no GPIO
+		 * property at all. The part has a low-power enable and a supply enable, named in
+		 * the vendor's documentation for this shield, and the tree's driver for this
+		 * family drives neither, because nobody wired one to it.
+		 *
+		 * THAT IS THE THIRD CANDIDATE CAUSE IF THE PART DOES NOT ANSWER, after the
+		 * address and the firmware image: a part held in its low-power state cannot
+		 * reply, and no driver in the tree can release it. If that is what the run shows,
+		 * it is the clearest possible argument for the binding this project writes, and
+		 * the run will have earned it.
+		 */
+	};
+};
+
+/ {
+	aliases {
+		/* The whole of the application's knowledge of the hardware. It names no bus, no
+		 * address and no pin, which is P03's claim arriving here rather than being
+		 * restated. */
+		zones = &zones;
+	};
+};
