@@ -1,0 +1,52 @@
+/* projects/05-the-zones/overlays/own_driver_nopins.overlay: the control for the cold start.
+ *
+ * ONE VARIABLE, AND IT IS THE ONE IN DOUBT. This file is `own_driver.overlay` with the two
+ * control-pin properties removed and nothing else changed: same compatible, same controller,
+ * same address, same alias. The binding declares both pins optional and says a driver that finds
+ * them absent drives nothing, so this description produces a driver that touches no pin at all.
+ *
+ * WHY IT EXISTS. From a processor reset on a board that had been powered for hours, the part
+ * answers. From a cold start, cable out and back in, it never answers: not in ten milliseconds,
+ * not in five hundred, not in five seconds. So the part is not slow, and something done from
+ * cold is wrong.
+ *
+ * **The thing most in doubt is this project's own pin driving**, for a reason recorded in
+ * docs/BENCH.md rather than hidden here: the conclusion that two pins woke the part was drawn
+ * from a pair of runs between which two things changed, the pins and the confirmation that the
+ * shield was seated. It was credited to the pins. If the part answers from cold with no pin
+ * driven, that conclusion was wrong and this file is how we find out.
+ *
+ * THE TWO OUTCOMES, WRITTEN BEFORE THE RUN:
+ *
+ *   it answers      driving those pins is what stops it, so the level, the order or the meaning
+ *                   of one of them is wrong, and the earlier conclusion was an artefact of a
+ *                   control that moved two things
+ *   it stays silent the pins are not the difference either way, and the cold start fails for a
+ *                   reason this project has not yet looked at: the interface jumpers, a
+ *                   current-measurement link on the shield, or something in its own power path
+ *
+ * Both are worth one build. Neither can be reasoned out from here.
+ */
+#include <zephyr/dt-bindings/i2c/i2c.h>
+
+&i2c1 {
+	status = "okay";
+	pinctrl-0 = <&i2c1_scl_pb8 &i2c1_sda_pb9>;
+	pinctrl-names = "default";
+	clock-frequency = <I2C_BITRATE_FAST>;
+
+	zones: vl53l8cx@29 {
+		compatible = "st,vl53l8cx";
+		reg = <0x29>;
+		status = "okay";
+
+		/* No pwren-gpios and no lpn-gpios, which is the whole of the difference from
+		 * overlays/own_driver.overlay. */
+	};
+};
+
+/ {
+	aliases {
+		zones = &zones;
+	};
+};

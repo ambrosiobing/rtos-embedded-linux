@@ -877,3 +877,41 @@ shield that this project has not read would be.
 **What is deliberately not done yet.** No pin is inverted, no order is swapped and no second
 delay is inserted, because each would be a guess and two guesses at once would be worse. The
 run decides which question to ask.
+
+## Saturday 17 October 2026 at 15:56: five seconds and nothing, so the part is not slow
+
+```
+<err> vl53l8cx: no answer at 0x29 after 5003 ms
+```
+
+Ten milliseconds, five hundred, five thousand: from a cold start this part never answers. **The
+bound was not the thing to change**, which the previous entry said would be the reading if this
+came back at five seconds, so that is what it is read as.
+
+### A defect in the build stamp, found because the stamp disagreed with the code
+
+The console of that run says it was built at 15:42:20 and the message it printed, with its five
+thousand millisecond bound, exists only in code written at 15:55. Both are true: **the stamp is
+`__DATE__` and `__TIME__` compiled into `main.c`**, so it records when that one file was last
+compiled, and the change was in the driver. A run whose application is unchanged carries an old
+stamp in a new image.
+
+That is worth fixing and is not fixed here. The stamp was introduced in P04 to tell a stale flash
+from a reproduction, and it does that job only for changes that touch the file it lives in. **A
+stamp that can be older than the image it is in is a weaker guard than it looks**, and the honest
+version comes from the build rather than from a translation unit.
+
+### The control that is one build away
+
+`overlays/own_driver_nopins.overlay` is `own_driver.overlay` with the two control-pin properties
+removed and nothing else changed. The binding declares both optional and says a driver that finds
+them absent drives nothing, so that description produces a driver which touches no pin.
+
+**The thing most in doubt is this project's own pin driving.** The conclusion that two pins woke
+the part came from a pair of runs between which two things changed, the pins and the
+confirmation that the shield was seated, and it was credited to the pins.
+
+| The control says | What follows |
+|---|---|
+| the part answers with no pin driven | driving those pins is what stops it: a level, an order or a meaning is wrong, and the earlier conclusion was an artefact of a control that moved two things |
+| it stays silent | the pins are not the difference either way, and the cold start fails for a reason not yet looked at: the interface jumpers, a current-measurement link on the shield, or its own power path |
