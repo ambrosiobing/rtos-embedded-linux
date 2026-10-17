@@ -24,6 +24,30 @@
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/types.h>
 
+/* HOW MANY TARGETS EACH ZONE REPORTS, and this is a decision rather than a default that was
+ * copied. The vendor's own porting header sets it to one and says what it costs: the value tunes
+ * the size of a bus transaction and the memory the result occupies, and a lower number means
+ * less of both.
+ *
+ * One is right for this project and not merely cheapest. A zone that reports several targets is
+ * reporting a surface and whatever is behind it, which matters to a reader measuring a shelf
+ * through a window. What P01 asks of this part is how much of a room is occupied and roughly
+ * where, so the nearest surface in each of sixty-four directions is the whole of the question,
+ * and the further returns would be sixty-four more numbers nothing consumes.
+ *
+ * **The number is in the capture when this project takes one**, because a grid read with one
+ * target per zone and a grid read with four are not the same measurement, and a figure that
+ * does not say which it is cannot be compared with anybody else's. */
+#ifndef VL53L8CX_NB_TARGET_PER_ZONE
+#define VL53L8CX_NB_TARGET_PER_ZONE (1U)
+#endif
+
+/* The vendor's header also offers a raw data format and nine switches that each drop one field
+ * from the result to shorten the transaction. **None is used here and that is deliberate for
+ * now**: dropping a field is an optimisation, this project has measured nothing yet, and an
+ * optimisation chosen before a measurement is a guess that is hard to take back. The fields are
+ * listed in the vendor's porting header for whoever reaches that point with a figure in hand. */
+
 typedef struct {
 	/* Controller and address in one, from the devicetree, so the porting layer cannot
 	 * disagree with the description about where the part is. */

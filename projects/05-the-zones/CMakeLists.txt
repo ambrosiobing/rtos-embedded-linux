@@ -70,7 +70,12 @@ target_sources(app PRIVATE src/main.c src/shield_power.c src/identify.c src/vl53
 # rather than part of the history.
 #
 #   git clone https://github.com/STMicroelectronics/x-cube-tof1.git ~/src/x-cube-tof1
-#   git -C ~/src/x-cube-tof1 checkout <the pin below>
+#   git -C ~/src/x-cube-tof1 checkout c12709c3ac802d91dd2a215178f53cb94c024709
+#
+# THE PIN IS WHAT WAS BUILT AGAINST and not what was intended, which is P04's lesson about a
+# pin arriving the hard way. The clone on the demo laptop landed on c12709c, dated Thursday 3
+# April 2025, and every figure this project takes comes from that revision until the line is
+# changed deliberately and the change is dated.
 #
 # Override VL53L8CX_ULD to point somewhere else.
 set(VL53L8CX_ULD "$ENV{HOME}/src/x-cube-tof1/Drivers/BSP/Components/vl53l8cx/modules"
