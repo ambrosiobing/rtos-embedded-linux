@@ -59,13 +59,21 @@ the previous generation of this part and not this one, and the interesting quest
 differs between them.** That is a better chapter than the one written, because the gap is
 specific and a reader can check it.
 
-Two things follow and both are open until the next command runs. **First, the in-tree driver for
-the previous generation may already drive this part**, or come close enough that the work is a
-binding and a compatible string rather than a driver. That has to be established and not
-dismissed, because a cheap route left unexplored is the kind of thing a reader of a portfolio
-notices. **Second, if the in-tree driver pulls the vendor's own library in as a module**, then
-the module arrangement this chapter sets out to design already has a worked precedent inside the
-tree, and the chapter should follow it rather than invent a second one.
+Two things followed from that and both were open when this paragraph was written. **Both were
+settled on the bench the same afternoon**, and the answers are summarised here with the runs that
+produced them in [BENCH.md](BENCH.md).
+
+**The in-tree driver for the previous generation does not drive this part**, and that was
+established by trying it rather than by argument. The part is powered, answers at the address
+this project derived, and names itself as the same device family at a different revision, 0xF0
+and 0x0C against 0xF0 and 0x02. The older driver uploads its firmware image to it and times out
+after about six seconds. A control at a quarter of the bus rate failed the same way, so the bus
+speed is not the cause. **The cheap route was explored and it is closed**, which is worth more
+than having assumed it closed.
+
+**The vendor's library for the previous generation is already in the tree as a module**, so the
+module arrangement this chapter set out to design has a worked precedent and follows it. What
+this project adds is this generation's interface, which is not there.
 
 One method note, because it nearly became a wrong conclusion. **`ls drivers/sensor` matched
 nothing for this family**, and on its own that reads as the absence the chapter claimed. The
@@ -221,6 +229,27 @@ build, and see what happens on the wire. It may work, it may fail at the first i
 read, and either outcome is a paragraph worth more than a page of reasoning. A chapter that wrote
 a driver without trying the existing one would have skipped the step a reader would ask about
 first.
+
+### What the eight runs established, in the order they were made
+
+Each line below is a command and its output rather than a reading of source, which is the
+difference between this page now and this page at nine in the morning.
+
+| | What was established | How |
+|---|---|---|
+| 1 | the tree carries no driver for this part and a complete one for its predecessor | the bindings and the driver directory |
+| 2 | the vendor's library for the predecessor is in the tree as a module, with its firmware image fetched separately | the module's own README, and `west blobs fetch hal_st` |
+| 3 | the predecessor's driver drives no pin at all | a build containing it could not resolve a pin controller, because none was in the image |
+| 4 | the shield holds the part unpowered until a supply-enable pin is driven | the part was silent, then answered, and the only change was two pins |
+| 5 | the address derived from the vendor's constant is right | a bus scan found it and exactly one device |
+| 6 | the part is the same device family at a different revision | its own identification registers, read before anything else spoke to it |
+| 7 | the predecessor's driver uploads an image this part cannot boot | a timeout after about 1.8 seconds of bus traffic and about 4 seconds of waiting |
+| 8 | the bus speed is not the cause | the same timeout at a quarter of the rate |
+
+**One observation about the tree's driver came with them and is not a figure**: it never calls
+the vendor library's own identification check, so a part of the right family and the wrong
+revision is sent a firmware image instead of being refused in four transactions. That is written
+down with its evidence; whether to offer it upstream is not this page's decision.
 
 ## The hardware is here, and fitting it costs something
 
