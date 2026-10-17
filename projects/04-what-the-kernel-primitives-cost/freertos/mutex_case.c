@@ -31,7 +31,7 @@
  * Zephyr adapter's, so a board build of this file prices the same work. The POSIX port switches
  * tasks through signals and condition variables, which costs tens of microseconds per switch,
  * and against that the Zephyr spin counts are a few microseconds of work: the inversion would
- * be lost in the switching. The host Makefile passes counts twenty-five times larger, keeping
+ * be lost in the switching. The host Makefile passes counts two hundred and fifty times larger, keeping
  * the ratio of four to one that makes the prediction checkable. **The host figures are not
  * comparable with the board's and are refused by the reduction in any case**; what the host
  * run shows is the direction.

@@ -1127,3 +1127,25 @@ was the apparatus: the stopwatch, two Kconfig defaults nobody had read, a counte
 the core idles, a flag carrying two faults, a build directory configured before a file existed,
 and a seventy millisecond event in a thirty second window. The kernel figures were right within
 two per cent from the second run onwards.
+## Friday 17 October 2026: the second kernel, on a host, and the one number it was built to produce
+
+The FreeRTOS adapter built green in WSL on its first attempt, with no board and nothing wired:
+no allocator in the binary, all seven operations completing under a real kernel, every count
+nonzero and unwrapped, and the period capture refused by the reduction for its clock and for
+nothing else, which `make check` now proves rather than claims.
+
+    #   ok   inheritance off waited 1212 counts against 538 with it on, a ratio of 2.2, so the mutex inherits
+
+**That line is criterion 4's refutation exercised with no board.** A FreeRTOS mutex that did not
+inherit would have put both arms at the larger figure and the verdict would have failed. The
+counts are hundreds of nanoseconds of host monotonic clock and are not figures: 121 and 54
+microseconds on a laptop say nothing about the part. The direction says something about the
+protocol.
+
+The ratio was thin against its threshold of two, and the arithmetic says why rather than
+leaving it as luck. The work predicts five. The POSIX port switches tasks through signals at
+tens of microseconds, and that cost sits in both arms: at about 15 us of holder spin against
+about 39 us of switching, (5 times 15 plus 39) over (15 plus 39) is 2.1, which is what came out.
+The host spin counts were raised tenfold, which predicts about 4.2, a pass by two rather than
+by a fifth. **No figure from this directory goes near the table, by the contract's own
+refusal.**

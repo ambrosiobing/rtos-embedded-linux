@@ -56,7 +56,7 @@ bracket did not ask for.
 **Criterion 3 does not exist here.** A host has no instruction cache to invalidate. The board
 adapter carries it.
 
-**The contended case's spin counts are twenty-five times the board's**, passed from the
+**The contended case's spin counts are two hundred and fifty times the board's**, passed from the
 Makefile, because the POSIX port switches tasks through signals at tens of microseconds and the
 board's few microseconds of spin would be lost in the switching. The four-to-one ratio is kept,
 and the figures are refused by the reduction regardless.

@@ -44,7 +44,13 @@ INCLUDES := -I. -I../adapter -I$(FREERTOS_KERNEL)/include -I$(PORT_DIR) -I$(PORT
 
 WALL := -Wall -Wextra -Werror -Wpedantic -Wconversion
 
-HOST_SPIN := -DHOLD_SPIN=50000u -DMEDIUM_SPIN=200000u
+# Two hundred and fifty times the board's counts, not twenty-five. The first run at twenty-five
+# passed with a ratio of 2.2 against a threshold of 2, and the dilution arithmetic explains the
+# thinness: the ratio the work predicts is five, the port's switching cost sits in both arms,
+# and at a 15 us spin against 39 us of switching, (5 x 15 + 39) / (15 + 39) is 2.1. Ten times
+# the spin predicts about 4.2, which is a pass by two rather than by a fifth. The contended arm
+# then takes about fifty milliseconds for its sixty-four samples, which is nothing.
+HOST_SPIN := -DHOLD_SPIN=500000u -DMEDIUM_SPIN=2000000u
 
 ADAPTER_CFLAGS := -std=gnu11 -D_GNU_SOURCE -O2 -g $(WALL) $(INCLUDES) $(HOST_SPIN)
 CORE_CFLAGS    := -std=c11 -O2 -g $(WALL) $(INCLUDES)
