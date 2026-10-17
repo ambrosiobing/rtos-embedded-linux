@@ -197,3 +197,28 @@ the part on this bench is an evaluation superset rather than the catalogue part,
 should name it that way. It does not change the premise, since the tree has no driver for any
 member of this generation, and it does change what a reader should expect to reproduce with a
 different shield.
+
+## Saturday 17 October 2026 at 12:10: the linker agrees with the chapter
+
+The first build carrying the shield's power initialisation did not link:
+
+```
+app/libapp.a(shield_power.c.obj): in function `shield_power_init':
+  undefined reference to `__device_dts_ord_42'
+  undefined reference to `__device_dts_ord_43'
+```
+
+Those two ordinals are the pin controllers the supply-enable and low-power pins sit on, and they
+were missing because **nothing in the build had asked for a pin controller**. The configuration
+names a sensor and a log and nothing else, and the driver for this family pulls in no
+general-purpose output of its own, so none was built.
+
+**That is the chapter's claim restated by the linker.** The project had argued, from reading the
+driver's source and its eleven-line binding, that the tree's driver for this family drives no
+pin. A reader can doubt a reading of source. It is harder to doubt a build that contains that
+driver and cannot resolve a pin controller, because there is none in it. The fix is one line of
+configuration, and the line is worth its comment for that reason rather than for what it does.
+
+**This was the cheapest of the four outcomes written down before the run**, which said that a
+build failure means the description is wrong and is cheaper to find than either answer from the
+hardware. It cost one build.
