@@ -125,13 +125,33 @@ part that was always the point: *refuted if the count scales with the number of 
 the criterion is restated to what it was for, and the figure to record is the transaction count
 per ranging period together with the chunk size that fixes it.
 
-**One thing is open and it is a reason to read rather than to ask again.** The vendor library in
-the workspace contains a directory named `dummy_blob`. If that is what the name suggests, the
-real firmware image this part uploads at initialisation is not redistributable and the module
-ships a placeholder, which would mean the in-tree driver cannot range without a blob supplied
-from elsewhere. **That would change what the cheap attempt proves**, and it is read from the
-module's own README rather than guessed, because a guess here would send a bench evening after
-the wrong fault.
+### The part needs a firmware image, and the tree does not ship it
+
+**The guess about `dummy_blob` was right in substance and the module's README gives the remedy
+in one line.** The vendor library is ST's official interface at version 3.4.2 under BSD-3-Clause,
+extracted without modification, and the buffer header carrying the **binary firmware the part
+uploads at initialisation has been removed from the tree**, because the operating system's rules
+do not admit a binary blob in its source. It is fetched instead:
+
+    west blobs fetch hal_st
+
+**That is a prerequisite step and it belongs in the design rather than in a bench surprise.**
+Without it the part cannot range at all, under the in-tree driver or under one written here, and
+the failure arrives at initialisation where it would be easy to read as a wiring fault or a wrong
+address. Every bench step in this project names it, and the first run is expected to need it.
+
+**It is also a fact worth a paragraph of the chapter in its own right.** A part whose driver is
+open and whose firmware is not is a common shape and it has consequences a product has to carry:
+the image is fetched rather than vendored, the fetch is a build step somebody has to remember,
+and a repository that published the blob would be redistributing something it has no licence to
+redistribute. This volume's own rule that nothing is vendored turns out to agree with the
+operating system's rule here, for a different reason.
+
+**The default bus address is 0x52 in the vendor's eight-bit form**, from
+`VL53L5CX_DEFAULT_I2C_ADDRESS` in the library's own header. The devicetree's `reg` property takes
+a seven-bit address, so the two numbers differ by a shift and **which one goes in the overlay is
+not a thing to reason out in prose**: the tree is asked, either from a shield definition if one
+exists for this family or from how the driver passes the address to the library.
 
 ### So the deliverable is not the one the chapter wrote
 
