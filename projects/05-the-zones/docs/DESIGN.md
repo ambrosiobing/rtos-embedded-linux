@@ -1,4 +1,4 @@
-# P05 design: a part the tree does not know, made into a device
+# P05 design: the next generation of a part the tree already drives
 
 Written on Saturday 17 October 2026, **before any code in this project exists**, which is the
 requirement every project in this volume starts with and the reason the git history is the
@@ -12,12 +12,12 @@ a person from a chair. The part on this bench that does that resolves an eight b
 distances, and the question it answers is not how far away something is but how much of a room
 is occupied and roughly where.
 
-The chapter exists because the operating system's tree does not carry a driver for it. The
-vendor publishes one in C, written against no particular operating system, and the work here is
-to make the part a first-class device: **a binding that describes the hardware, a wrapper that
-maps the vendor's interface onto the sensor interface every other chapter uses, and a module
-arrangement that pulls the vendor's source in at a pinned revision rather than copying it into
-this repository.**
+The chapter exists because the operating system's tree does not carry a driver for this part. It
+carries one for the generation before it, which is the finding that reshaped this page and is
+recorded below with the command that produced it. So the work is not to introduce a family the
+tree has never met. It is **to bring the next generation of a part into a tree that already
+drives the previous one**, which is the situation an engineer actually meets and the harder of
+the two to do well.
 
 The value of that is not the part. It is that the application above it cannot tell this device
 from any other: [P01](../../01-presence/) keeps its state machine and only its range source
@@ -70,8 +70,59 @@ tree, and the chapter should follow it rather than invent a second one.
 One method note, because it nearly became a wrong conclusion. **`ls drivers/sensor` matched
 nothing for this family**, and on its own that reads as the absence the chapter claimed. The
 bindings are what proved the drivers exist, so the drivers are not flat names in that directory
-in this revision. An empty listing is not an absence until you know you looked in the right
-place.
+in this revision: they sit under `drivers/sensor/st/`. An empty listing is not an absence until
+you know you looked in the right place.
+
+### What the second command returned, and the deliverable changes
+
+Three things are now established and one is not.
+
+**Nothing anywhere names the VL53L8CX.** A case-insensitive search of the whole operating system
+tree and of every module beside it returns no file. So for this exact part the chapter's premise
+is exactly right: there is no binding, no driver, and no vendor library already in the workspace.
+
+**The driver for the previous generation is substantial and modern.** Nine files under
+`drivers/sensor/st/vl53l5cx/`, including a decoder and, in `vl53l5cx_rtio.c`, support for the
+read-and-decode interface rather than only the older fetch-and-get one. **That is the shape this
+project has to match**, and matching it is more work than vendoring a driver and more useful:
+a part whose driver ignores the interface the tree has moved to is a part that will be rewritten
+by somebody else within a year.
+
+**The in-tree binding declares neither a reset pin nor a data-ready line.** It is eleven lines:
+a compatible string and `include: [sensor-device.yaml, i2c-device.yaml]`, with no GPIO property
+of its own. **That matters for criterion 4**, which asks that the application never polls and
+needs the trigger connected. So the binding this project writes is not a copy of the in-tree one
+with a name changed: it declares two facts about the wiring that the in-tree description leaves
+out, and the chapter has to say why it is right to add them rather than follow the neighbour.
+
+**Not established: whether the vendor's own library for the previous generation is already in the
+workspace** as part of the hardware abstraction module. The search above was for the L8 and found
+nothing, which says nothing about the L5. It decides where this project's vendor source comes
+from, so it is the last check before code.
+
+### So the deliverable is not the one the chapter wrote
+
+The chapter's deliverable reads: a binding, a driver and a module that let the sixty-four zone
+sensor be used through the same interface as a three-axis accelerometer, with the vendor's code
+vendored rather than rewritten. **The second half of that is now the wrong instinct.** Vendoring
+a parallel copy of a vendor driver into a repository whose operating system already drives the
+previous generation of the same part, in-tree, against a newer interface, would be building a
+second way to do something the tree already does one way.
+
+The revised deliverable, and the reason it is a better chapter:
+
+| | What |
+|---|---|
+| The comparison | What differs between the two generations, read from the vendor's own library for each and not from marketing material. This is the chapter's real content and it did not exist in the original plan |
+| The binding | For this part, declaring the reset pin and the data-ready line that the in-tree neighbour omits, with the omission named rather than silently corrected |
+| The driver | Beside the tree's, sharing its shape, including the read-and-decode interface, because a driver that ignores the interface the tree has moved to has a short life |
+| The honest alternative | Whether the in-tree driver already drives this part, tried before a line is written, and reported either way |
+
+**The thing to try first is still the cheap thing.** Point this part's node at `st,vl53l5cx`,
+build, and see what happens on the wire. It may work, it may fail at the first identification
+read, and either outcome is a paragraph worth more than a page of reasoning. A chapter that wrote
+a driver without trying the existing one would have skipped the step a reader would ask about
+first.
 
 ## The hardware is here, and fitting it costs something
 

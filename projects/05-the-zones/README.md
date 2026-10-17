@@ -8,9 +8,16 @@ costs, and **two of them need no hardware at all**: that P01's application objec
 byte what it was with only its range source changed, and that the vendor's licence travels with
 the vendored source at a pinned commit. Those two come first.
 
-It also names the one thing to do before any code is written, which is a check rather than a
-line: **the chapter asserts that the tree carries no driver for this part, and an absence is
-checkable in one command.** If a driver is there, the chapter is shorter and says so.
+**That check has run, and it reshaped the project.** The tree carries no driver for this part and
+a complete one for the generation before it, nine files under `drivers/sensor/st/vl53l5cx/`,
+written against the read-and-decode interface the tree has moved to. So this is not a family the
+tree has never met: the work is to bring the next generation into a tree that already drives the
+previous one, which is the harder job and the one an engineer actually meets. The chapter's
+instinct to vendor a parallel vendor driver is withdrawn on the page rather than quietly dropped.
+
+The cheap thing is still tried first: point this part's node at the existing compatible string,
+build, and see what happens on the wire. A chapter that wrote a driver without trying the
+existing one would have skipped the step a reader asks about first.
 
 The shield is on the bench. Fitting it takes the other leads off the board, which costs nothing
 now that P04's bench work is finished, and it is a bench action rather than something this page
