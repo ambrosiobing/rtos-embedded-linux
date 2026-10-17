@@ -84,7 +84,7 @@ refutation: **with priority inheritance on, the high-priority thread's wait shou
 the medium thread's work, and with it off it should.** Two configurations, one program, and a
 difference that is predicted before it is measured.
 
-### The map to each kernel's names, written Friday 17 October 2026 before the FreeRTOS adapter
+### The map to each kernel's names, written Saturday 17 October 2026 before the FreeRTOS adapter
 
 Written after the Zephyr adapter had run every row and before a line of the FreeRTOS one
 existed, which is the only order in which a map can constrain anything. Each row says what
@@ -138,7 +138,7 @@ the harness cross built for the target, then the bench. That is not the order th
 them in, and the chapter is not wrong: the criteria are listed by what they mean and this table
 sorts them by what they cost.
 
-## The orchestration is in the core, since Friday 17 October 2026
+## The orchestration is in the core, since Saturday 17 October 2026
 
 The gates, the instrument's own cost, the warm and cold passes, criterion 1 and the verdicts
 lived in the Zephyr main for nine days. A FreeRTOS board main would have carried a second copy

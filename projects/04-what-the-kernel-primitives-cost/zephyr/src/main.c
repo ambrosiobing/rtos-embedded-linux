@@ -632,7 +632,7 @@ static bool wall_clock_rate_agrees(void)
 	return elapsed > (predicted - predicted / 4u) && elapsed < (predicted + predicted / 4u);
 }
 
-/* Criterion 1's empty-bracket measurement moved into the core on Friday 17 October 2026, in
+/* Criterion 1's empty-bracket measurement moved into the core on Saturday 17 October 2026, in
  * ../../adapter/campaign.c, because it uses only measure_now() and belongs to every kernel. */
 
 /* ARE THE CACHES ON? The question behind every figure this project has produced.
@@ -722,7 +722,7 @@ static void report(void)
 int main(void)
 {
 	/* THE HOOKS ARE A CONST TABLE, which makes what this kernel supplies readable in one
-	 * place. The orchestration itself moved to ../../adapter/campaign.c on Friday 17 October
+	 * place. The orchestration itself moved to ../../adapter/campaign.c on Saturday 17 October
 	 * 2026, so that FreeRTOS on the board runs the same gates, the same passes and the same
 	 * verdicts rather than a second copy of them. The proof the move changed nothing is the
 	 * board: these figures must sit within two per cent of the run of 23:16 on Friday 9

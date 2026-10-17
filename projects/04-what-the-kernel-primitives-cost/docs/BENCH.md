@@ -1127,7 +1127,7 @@ was the apparatus: the stopwatch, two Kconfig defaults nobody had read, a counte
 the core idles, a flag carrying two faults, a build directory configured before a file existed,
 and a seventy millisecond event in a thirty second window. The kernel figures were right within
 two per cent from the second run onwards.
-## Friday 17 October 2026: the second kernel, on a host, and the one number it was built to produce
+## Saturday 17 October 2026: the second kernel, on a host, and the one number it was built to produce
 
 The FreeRTOS adapter built green in WSL on its first attempt, with no board and nothing wired:
 no allocator in the binary, all seven operations completing under a real kernel, every count
@@ -1150,7 +1150,7 @@ The host spin counts were raised tenfold, which predicts about 4.2, a pass by tw
 by a fifth. **No figure from this directory goes near the table, by the contract's own
 refusal.**
 
-## Friday 17 October 2026 at 08:20: the campaign lift checked on the board, and the bound it missed
+## Saturday 17 October 2026 at 08:20: the campaign lift checked on the board, and the bound it missed
 
 The orchestration moved out of the Zephyr main into the core that morning, and the test written
 before the move was that the board's figures afterwards would sit within the two per cent build

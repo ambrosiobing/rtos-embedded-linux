@@ -1,6 +1,6 @@
 /* projects/04-what-the-kernel-primitives-cost/adapter/campaign.c: the run, which knows no kernel.
  *
- * Lifted from the Zephyr main on Friday 17 October 2026, line for line where the lines were
+ * Lifted from the Zephyr main on Saturday 17 October 2026, line for line where the lines were
  * kernel-free, and every comment that explained a decision came with them. Where a comment
  * below names a date, that is the date the decision was made in the file this came from.
  *
@@ -230,7 +230,7 @@ int measure_campaign_run(const measure_campaign_t *c)
 
 	/* THE VERDICTS, ABOUT BEHAVIOUR AND NOT ABOUT FIGURES, and they run on every build
 	 * including the ones whose captures are refused. Written first for the FreeRTOS host
-	 * build on Friday 17 October 2026, and then it was obvious the board had never checked
+	 * build on Saturday 17 October 2026, and then it was obvious the board had never checked
 	 * these either: that every row completed, that no bracket read zero or wrapped, and the
 	 * one with a built-in refutation. */
 	printf("\n# verdicts, about behaviour and not about figures\n");

@@ -1,7 +1,7 @@
 /* projects/04-what-the-kernel-primitives-cost/adapter/campaign.h: one run, against any kernel.
  *
  * WHY THIS EXISTS. The gates, the instrument's own cost, the warm pass, the cold pass,
- * criterion 1 and the verdicts lived in the Zephyr main until Friday 17 October 2026, and a
+ * criterion 1 and the verdicts lived in the Zephyr main until Saturday 17 October 2026, and a
  * FreeRTOS board main would have carried a second copy of three hundred lines whose only
  * kernel-specific content was how to sleep and which pin to toggle. Two copies of one
  * orchestration are two chances to orchestrate two different measurements under one name,

@@ -29,7 +29,7 @@ static const char *const NAMES[MEASURE_OP_COUNT] = {
 /* THE RANGE CHECKS CAST TO UNSIGNED, and the reason is the first cross-build of this file. On
  * the host compiler an enum is a signed int and `op < 0` means something; under the ARM EABI an
  * enum with no negative member is unsigned, so the same test is always false and -Wextra said
- * so on Friday 17 October 2026, three times, the first time this core met arm-none-eabi-gcc.
+ * so on Saturday 17 October 2026, three times, the first time this core met arm-none-eabi-gcc.
  * Comparing as unsigned does the right thing on both: a negative value wraps to something
  * enormous and fails the upper bound, and nothing is always false anywhere. A core that claims
  * to need nothing beyond C11 has to compile under more than one ABI to have earned the claim. */

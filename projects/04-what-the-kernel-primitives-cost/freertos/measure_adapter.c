@@ -269,7 +269,7 @@ bool measure_adapter_init(void)
 	/* Created, then suspended before the scheduler has started, so that it has never run
 	 * when the first row that is not the yield row needs the giver to be schedulable. The
 	 * kernel resets its notion of the current task when the task it pointed at is suspended
-	 * before the scheduler runs, and the first host build on Friday 17 October 2026 showed
+	 * before the scheduler runs, and the first host build on Saturday 17 October 2026 showed
 	 * it does so without complaint. */
 	partner_task = xTaskCreateStatic(partner_fn, "partner", STACK_WORDS, NULL, PRIO_PARTNER,
 					 partner_stack, &partner_control);

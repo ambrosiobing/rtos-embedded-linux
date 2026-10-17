@@ -1,6 +1,6 @@
 # The seven operations under FreeRTOS, on a host
 
-**Status: green in WSL on the demo laptop, Friday 17 October 2026, first build.** No
+**Status: green in WSL on the demo laptop, Saturday 17 October 2026, first build.** No
 allocator in the binary, all seven verdicts passed, and the reduction refused the period
 capture for its clock and for nothing else. No board was involved and none is wired for this:
 the POSIX port runs the kernel as a host process.
@@ -73,14 +73,14 @@ runs on every build.
 
 ## The board
 
-**Written Friday 17 October 2026 and not yet built anywhere.** `make fetch-bsp && make board`
+**Written Saturday 17 October 2026 and not yet built anywhere.** `make fetch-bsp && make board`
 produces an `.elf` and a `.bin` for the NUCLEO-H7A3ZI-Q from the Cortex-M7 port at the same
 V11.1.0, a second `FreeRTOSConfig.h` in `board/` with the real clock, tick and stack sizes and
 stack-overflow checking on, and the sibling firmware volume's board support at a pinned commit:
 its vector table, linker script, gated climb to 280 MHz, cycle counter, instruction cache and
 console. None of that is copied. It is cloned, as the kernel is.
 
-**The campaign is the same one.** On Friday 17 October 2026 the gates, the instrument's own
+**The campaign is the same one.** On Saturday 17 October 2026 the gates, the instrument's own
 cost, the warm and cold passes, criterion 1 and the verdicts moved out of the Zephyr main into
 [../adapter/campaign.c](../adapter/campaign.c), which knows no kernel, and both board builds and
 the host build run it with hooks for the few things that differ: how to spin and sleep, what
