@@ -1,10 +1,22 @@
 # P05. The zones: an out-of-tree driver
 
-Status: not started. Nothing in this directory has been built, and no
-number here has been measured.
+Status on Saturday 17 October 2026: **the design page exists and no code does.** Nothing in
+this directory has been built and no number here has been measured.
 
-The written design is [chapter 05](../../chapters/05-the-zones.md), which is
-complete. What is absent is the code.
+[docs/DESIGN.md](docs/DESIGN.md) sorts the chapter's seven acceptance criteria by what each
+costs, and **two of them need no hardware at all**: that P01's application object is byte for
+byte what it was with only its range source changed, and that the vendor's licence travels with
+the vendored source at a pinned commit. Those two come first.
+
+It also names the one thing to do before any code is written, which is a check rather than a
+line: **the chapter asserts that the tree carries no driver for this part, and an absence is
+checkable in one command.** If a driver is there, the chapter is shorter and says so.
+
+The shield is on the bench. Fitting it takes the other leads off the board, which costs nothing
+now that P04's bench work is finished, and it is a bench action rather than something this page
+can assume.
+
+The written specification is [chapter 05](../../chapters/05-the-zones.md), which is complete.
 
 | | |
 |---|---|
