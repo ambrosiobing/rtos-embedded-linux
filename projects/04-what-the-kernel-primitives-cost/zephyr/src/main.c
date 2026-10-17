@@ -19,6 +19,7 @@
  * carries no sign of being about the wrong thing. "A context switch" is not a measurement until
  * somebody says whether it includes the trip back.
  */
+#include "../../adapter/campaign.h"
 #include "../../adapter/measure.h"
 #include "mutex_case.h"
 
@@ -169,6 +170,15 @@ static void chill(void)
 		__ISB();
 	}
 }
+
+/* The campaign's hook for criterion 3. The flag stays here, beside the function that reads
+ * it, so the core never learns what a cache is. */
+static void set_cold(bool cold)
+{
+	cold_mode = cold;
+}
+
+BUILD_ASSERT(SAMPLES == MEASURE_SAMPLES, "the marker loop and the campaign disagree on 64");
 
 /* ---- the partner and giver threads ------------------------------------------------------- */
 
@@ -622,44 +632,8 @@ static bool wall_clock_rate_agrees(void)
 	return elapsed > (predicted - predicted / 4u) && elapsed < (predicted + predicted / 4u);
 }
 
-/* CRITERION 1: THE INSTRUMENT HAS TO BE CHEAPER THAN EVERYTHING IT MEASURES.
- *
- * Two reads of the counter sit inside every bracket in this file, and until now their cost
- * had never been measured. The criterion asks for at least an order of magnitude between
- * the instrument and the smallest thing it reports, because below that the table is partly
- * measuring the measurement.
- *
- * This is an empty bracket: two reads and nothing between them. It is reported beside the
- * clock check rather than as a row of the results table, because it is a property of the
- * instrument and not of the kernel, and a table row would invite somebody to compare it
- * with a primitive as though they were the same kind of thing.
- *
- * The MINIMUM is the figure that matters here, not the median. An empty bracket has a
- * floor and no ceiling: anything above the floor is interference, and the floor is what
- * the instrument actually costs.
- */
-static uint32_t instrument_cost(void)
-{
-	uint32_t best = 0xFFFFFFFFu;
-	uint32_t worst = 0u;
-	unsigned int i;
-
-	for (i = 0u; i < 256u; i++) {
-		uint32_t t0 = measure_now();
-		uint32_t d = measure_now() - t0;
-
-		if (d < best) {
-			best = d;
-		}
-		if (d > worst) {
-			worst = d;
-		}
-	}
-
-	printf("# instrument: an empty bracket costs %u counts at best, %u at worst\n",
-	       (unsigned int)best, (unsigned int)worst);
-	return best;
-}
+/* Criterion 1's empty-bracket measurement moved into the core on Friday 17 October 2026, in
+ * ../../adapter/campaign.c, because it uses only measure_now() and belongs to every kernel. */
 
 /* ARE THE CACHES ON? The question behind every figure this project has produced.
  *
@@ -737,14 +711,34 @@ static void report_config(void)
 			    : "NOT CONFIGURED, so the period row will be withheld");
 }
 
+/* What the campaign cannot know and this kernel can: which caches the hardware says are on,
+ * which configuration the build asked for, and which pin the marker drives. */
+static void report(void)
+{
+	report_caches();
+	report_config();
+}
+
 int main(void)
 {
-	static uint32_t counts[SAMPLES];
-	uint32_t overhead = 0u;
-	uint32_t smallest = 0xFFFFFFFFu;
-	uint32_t warm_min[MEASURE_OP_COUNT];
-	uint32_t cold_min_of[4];
-	int op;
+	/* THE HOOKS ARE A CONST TABLE, which makes what this kernel supplies readable in one
+	 * place. The orchestration itself moved to ../../adapter/campaign.c on Friday 17 October
+	 * 2026, so that FreeRTOS on the board runs the same gates, the same passes and the same
+	 * verdicts rather than a second copy of them. The proof the move changed nothing is the
+	 * board: these figures must sit within two per cent of the run of 23:16 on Friday 9
+	 * October 2026, which is the build bound this project set for itself. */
+	static const measure_campaign_t campaign = {
+		.kernel = "zephyr",
+		/* Evaluated HERE, in the file that changes, so a cached object for the
+		 * campaign cannot freeze the stamp. */
+		.built = __DATE__ " " __TIME__,
+		.report = report,
+		.core_clock_agrees = clock_rate_agrees,
+		.wall_clock_agrees = wall_clock_rate_agrees,
+		.set_cold = set_cold,
+		.marker_beacon = marker_beacon,
+		.marker_rest = marker_rest,
+	};
 
 	k_thread_create(&partner_thread, partner_stack, STACK_SIZE, partner_fn,
 			NULL, NULL, NULL, PRIO_PARTNER, 0, K_NO_WAIT);
@@ -755,8 +749,8 @@ int main(void)
 
 #if MEASURE_USE_TIMING_API
 	/* Before anything asks the instrument for a rate or a count. timing_freq_get() has nothing
-	 * to report until this has run, and a zero rate would be refused by the gate below, which
-	 * is the right failure but an uninformative one. */
+	 * to report until this has run, and a zero rate would be refused by the gate, which is
+	 * the right failure but an uninformative one. */
 	timing_init();
 	timing_start();
 #endif
@@ -767,156 +761,5 @@ int main(void)
 	marker_ready = gpio_is_ready_dt(&marker) &&
 		       gpio_pin_configure_dt(&marker, GPIO_OUTPUT_INACTIVE) == 0;
 
-	printf("# p04 under zephyr\n");
-	/* THE BUILD STAMP, AND IT EXISTS BECAUSE THE NAME ABOVE WAS NOT ENOUGH.
-	 *
-	 * The shared-board rule says each application names itself, so the first line of a run
-	 * tells you whether the right project is on the part. On Friday 9 October 2026 that check
-	 * passed and was still wrong: the line read `p04 under zephyr`, correctly, and the image
-	 * was the previous commit's. A rebuild had been skipped, the name cannot see a commit, and
-	 * the figures that came back were an exact repeat that looked like a reproduction.
-	 *
-	 * So the run states when it was compiled. __DATE__ and __TIME__ are the two macros whose
-	 * whole purpose is to differ between builds, they need nothing from the build system, and
-	 * a stamp older than the last edit is the signal. A reproduction and a stale flash produce
-	 * the same numbers, and only this line separates them. */
-	printf("# built %s %s, and a stamp older than your last edit means a stale flash\n",
-	       __DATE__, __TIME__);
-	if (measure_clock_hz() == 0u || measure_clock_hz_wall() == 0u) {
-		printf("# THE CLOCK IS UNCONFIRMED FOR THIS BUILD. Every capture below carries\n");
-		printf("# clock_hz 0 and the reduction refuses it. That is the point: these\n");
-		printf("# counts are not times and nothing should be able to publish them.\n");
-	} else if (!clock_rate_agrees() || !wall_clock_rate_agrees()) {
-		printf("#\n# REFUSED. The counter does not advance at the rate the kernel\n");
-		printf("# declares, so every count below would be scaled by an unknown\n");
-		printf("# factor while looking entirely reasonable. Nothing is emitted.\n");
-		return 1;
-	}
-
-	for (op = 0; op < (int)MEASURE_OP_COUNT; op++) {
-		warm_min[op] = 0xFFFFFFFFu;
-	}
-
-	report_caches();
-	report_config();
-	marker_beacon();
-	overhead = instrument_cost();
-
-	for (op = 0; op < (int)MEASURE_OP_COUNT; op++) {
-		int rc = measure_run((measure_op_t)op, counts, SAMPLES);
-
-		printf("\n");
-		if (rc != 0) {
-			printf("# %s: not measured in this build, %d\n",
-			       measure_op_name((measure_op_t)op), rc);
-			continue;
-		}
-		(void)measure_emit((measure_op_t)op, counts, SAMPLES);
-
-		/* One pass, two minima. These were two nested loops until Friday 9 October
-		 * 2026, running 4096 iterations for 64 samples. A minimum is idempotent so no
-		 * figure was ever wrong, and it is repaired because a misplaced brace that
-		 * happens not to matter is still a misplaced brace. */
-		for (size_t k = 0u; k < SAMPLES; k++) {
-			/* Criterion 1 prices the CORE instrument against the smallest thing the core
-			 * instrument measured. A wall-instrument row does not enter that minimum:
-			 * it is a different counter, and a millisecond besides. */
-			if (measure_op_instrument((measure_op_t)op) == MEASURE_INSTRUMENT_CORE &&
-			    counts[k] < smallest) {
-				smallest = counts[k];
-			}
-			if (counts[k] < warm_min[op]) {
-				warm_min[op] = counts[k];
-			}
-		}
-	}
-
-	printf("\n# %d operations attempted\n", (int)MEASURE_OP_COUNT);
-
-	/* CRITERION 3. The first four operations again, cold. The period row is a sleep and
-	 * the mutex rows take long enough that a cache state would be lost inside them, so
-	 * neither is repeated: a cold measurement of a millisecond would be a cold first
-	 * microsecond and a warm rest, which is not the comparison the criterion asks for. */
-	cold_mode = true;
-	printf("\n# criterion 3: the same four operations with the instruction cache\n");
-	printf("#   invalidated immediately before each bracket opens, outside it\n");
-
-	/* THE DISTRIBUTION, NOT ONLY THE FLOOR, and the reason is a question the first version of
-	 * this pass could not answer. On Friday 9 October 2026 one row came out four counts lower
-	 * cold than warm, and whether 1468 was the floor of a tight distribution or one low sample
-	 * in a scattered one could not be told, because only the minimum was printed. A minimum
-	 * was enough for the instrument's own cost, where the floor is the whole point. It is not
-	 * enough for a comparison.
-	 *
-	 * Printed as a comment rather than through measure_emit(). The capture format has no field
-	 * for the cache state, so a second capture per operation would be indistinguishable from
-	 * the first except by its position in the log, and a number whose conditions cannot be read
-	 * off the record should not be in the record. Adding that field changes the host parser and
-	 * its suite, and it waits until a cold row needs to go through the reduction.
-	 *
-	 * The runs all happen before the table is printed, so that the table arrives in one piece
-	 * with the count dumps above it rather than interleaved through it. */
-	for (op = 0; op < 4; op++) {
-		size_t k;
-
-		cold_min_of[op] = 0xFFFFFFFFu;
-		if (measure_run((measure_op_t)op, counts, SAMPLES) != 0) {
-			continue;
-		}
-		for (k = 0u; k < SAMPLES; k++) {
-			if (counts[k] < cold_min_of[op]) {
-				cold_min_of[op] = counts[k];
-			}
-		}
-
-		printf("#\n#   cold counts, %s\n#  ", measure_op_name((measure_op_t)op));
-		for (k = 0u; k < SAMPLES; k++) {
-			printf(" %u", (unsigned int)counts[k]);
-		}
-		printf("\n");
-	}
-	cold_mode = false;
-
-	printf("#\n#   minimum of 64, because an operation has a floor and no ceiling\n");
-	printf("#   the penalty in counts is the figure to quote, not the percentage:\n");
-	printf("#   a percentage carries whatever the baseline happens to be\n");
-	printf("#\n");
-	printf("#   operation                                        warm    cold  penalty\n");
-
-	for (op = 0; op < 4; op++) {
-		if (cold_min_of[op] == 0xFFFFFFFFu) {
-			continue;
-		}
-		if (cold_min_of[op] >= warm_min[op]) {
-			printf("#   %-46s %6u  %6u  %7u  cold is %u per cent higher\n",
-			       measure_op_name((measure_op_t)op),
-			       (unsigned int)warm_min[op], (unsigned int)cold_min_of[op],
-			       (unsigned int)(cold_min_of[op] - warm_min[op]),
-			       (unsigned int)(((cold_min_of[op] - warm_min[op]) * 100u)
-					      / warm_min[op]));
-		} else {
-			/* NOT AN IMPOSSIBILITY, AND WORTH PRINTING RATHER THAN HIDING. This fired
-			 * on Friday 9 October 2026 for block-on-one and it was right to: the
-			 * invalidation was in the measurer and that row's bracket opens on a stamp
-			 * taken in the giver, after a give and a block had already rewarmed the
-			 * path. The flag found a defect in the case, which is what it is for. */
-			printf("#   %-46s %6u  %6u        0  COLD IS LOWER, which should not happen\n",
-			       measure_op_name((measure_op_t)op),
-			       (unsigned int)warm_min[op], (unsigned int)cold_min_of[op]);
-		}
-	}
-
-	if (overhead > 0u && smallest != 0xFFFFFFFFu) {
-		printf("# criterion 1: the instrument costs %u counts and the smallest\n",
-		       (unsigned int)overhead);
-		printf("#   thing it measured was %u, a ratio of %u. The criterion asks\n",
-		       (unsigned int)smallest, (unsigned int)(smallest / overhead));
-		printf("#   for at least ten, so this run %s\n",
-		       (smallest / overhead) >= 10u ? "meets it" : "does not");
-	}
-
-	/* Everything above is printed before this is reached, so a console capture is complete
-	 * whether or not anybody is watching the pin. This does not return. */
-	marker_rest();
-	return 0;
+	return measure_campaign_run(&campaign);
 }

@@ -138,6 +138,25 @@ the harness cross built for the target, then the bench. That is not the order th
 them in, and the chapter is not wrong: the criteria are listed by what they mean and this table
 sorts them by what they cost.
 
+## The orchestration is in the core, since Friday 17 October 2026
+
+The gates, the instrument's own cost, the warm and cold passes, criterion 1 and the verdicts
+lived in the Zephyr main for nine days. A FreeRTOS board main would have carried a second copy
+of three hundred lines whose only kernel-specific content was how to sleep and which pin to
+toggle, and two copies of one orchestration are two chances to orchestrate two different
+measurements under one name. [P02](../../02-the-claim/docs/DESIGN.md) met the same shape with
+`phases.c`: one test passes against each kernel, rather than each kernel passing a test of its
+own.
+
+So [adapter/campaign.c](../adapter/campaign.c) runs the campaign and knows no kernel. What a
+kernel supplies is a table of hooks: its name and build stamp, a report of what the hardware
+and the build say, the two clock gates with their two windows, a way to make the cache cold,
+and the marker. A hook left NULL is a capability the build does not have, and the campaign says
+so. **The proof that the lift changed nothing is the Zephyr board**, whose figures after it
+must sit within the two per cent build bound of the figures before; a refactor of a harness
+that cannot be checked against the measurement it produces is a rewrite wearing a smaller
+name.
+
 ## The trap this project is most likely to produce
 
 **The counter wraps.** At this processor's clock it wraps in about fifteen seconds. A case that
