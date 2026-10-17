@@ -14,7 +14,11 @@ in 1.971 seconds where the previous generation's image left it timing out after 
 board, same shield, same bus, same address, same pins: the difference is which vendor interface
 the image came from, and that is the chapter's claim proven in both directions.
 
-What is left is reading the grid. No number here has been measured.
+**The grid is read.** At 15:35 the part returned sixty-four distances between 2540 and 2640
+millimetres, flat across the rows and rising 52 millimetres across the columns, which is a flat
+surface at about two and a half metres seen at a slight angle. No number is in the table yet: an
+orientation has not been established, the status values have not been read from a source, and the
+first grid after a cold start was ten negative millimetres with the same status as the good one.
 
 [docs/BENCH.md](docs/BENCH.md) records that run and, written before the hardware is powered, the
 four outcomes the identification run can return and what each one changes.

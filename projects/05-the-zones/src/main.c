@@ -114,33 +114,58 @@ static int scan_bus(void)
  * THE ORIENTATION IS UNESTABLISHED AND IS SAID TO BE. The grid is printed in the order the part
  * returns it, and which physical corner the first zone is has not been shown. That is the fifth
  * acceptance criterion and it needs a hand over one quadrant, not a reading of this file. */
-static void print_grid(void)
+/* HOW LONG TO WAIT FOR ONE RESULT BEFORE SAYING SO. Generous, because the ranging rate is the
+ * vendor's default and this project has not read what that is; a bound that is too tight would
+ * turn a slow part into a broken one on the console. */
+#define FRAME_WAIT_MS 2000
+
+static void print_grid(int frame)
 {
 	struct zones_grid grid;
+	int64_t began = k_uptime_get();
+	int64_t ready_at;
 	int rc;
 	int row;
 	int col;
 
-	rc = sensor_sample_fetch(zones);
+	/* POLLING, NOT A FIXED DELAY, and the time it took is printed. The run of 15:35 showed
+	 * why one frame is not enough: the first grid after a cold start was seven millimetres
+	 * of noise with ten zones reading negative, and the next was a coherent surface at two
+	 * and a half metres. Taking several frames in one run shows the settling instead of
+	 * leaving it to be inferred from two boots. The interval between frames is also the
+	 * ranging period, measured rather than assumed. */
+	do {
+		rc = sensor_sample_fetch(zones);
+		if (rc == -EAGAIN) {
+			k_msleep(5);
+		}
+	} while (rc == -EAGAIN && (k_uptime_get() - began) < FRAME_WAIT_MS);
+
+	ready_at = k_uptime_get();
+
 	if (rc == -EAGAIN) {
-		printf("# no result ready yet; the part ranges at its own rate\n");
+		printf("\n# frame %d: no result in %d ms, so none is printed\n", frame,
+		       FRAME_WAIT_MS);
 		return;
 	}
 	if (rc != 0) {
-		printf("# the fetch failed: %d. No grid is printed, because a value that might\n", rc);
-		printf("# not be a measurement is not printed as one\n");
+		printf("\n# frame %d: the fetch failed: %d. No grid is printed, because a value\n",
+		       frame, rc);
+		printf("# that might not be a measurement is not printed as one\n");
 		return;
 	}
 
 	rc = zones_read(zones, &grid);
 	if (rc != 0) {
-		printf("# the grid could not be read: %d\n", rc);
+		printf("\n# frame %d: the grid could not be read: %d\n", frame, rc);
 		return;
 	}
 
-	printf("\n# the grid as the part returns it: distance in millimetres, then the vendor's\n");
-	printf("# status. The status is a number because what each value means has not been read\n");
-	printf("# from a source yet, and the orientation has not been established\n");
+	printf("\n# frame %d, ready after %d ms of waiting, at %d ms since boot\n", frame,
+	       (int)(ready_at - began), (int)ready_at);
+	printf("# distance in millimetres, then the vendor's status. The status is a number\n");
+	printf("# because what each value means has not been read from a source yet, and the\n");
+	printf("# orientation has not been established\n");
 	printf("# silicon temperature %d C\n", grid.silicon_temp_degc);
 
 	for (row = 0; row < ZONES_ACROSS; row++) {
@@ -221,7 +246,13 @@ int main(void)
 	printf("# generations differ in is read from the grid, which follows.\n");
 
 #if READS_THE_GRID
-	print_grid();
+	/* FOUR FRAMES AND NOT ONE. A processor reset does not reset this part: it keeps
+	 * ranging across one, which is why the two boots of 15:35 from a single button press
+	 * showed noise and then a surface. Several frames in one run make the settling visible
+	 * rather than something a reader has to infer from two logs. */
+	for (int frame = 1; frame <= 4; frame++) {
+		print_grid(frame);
+	}
 #else
 	printf("# This description uses the tree's driver, which does not bring this part up,\n");
 	printf("# so there is no grid to read and none is invented.\n");

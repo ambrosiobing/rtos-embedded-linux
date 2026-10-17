@@ -748,3 +748,51 @@ Every one has been closed by a run rather than by argument: the address was righ
 powered by two pins the tree's binding has no property for, the bus speed is not the cause, and
 the part is a different member of the same family that accepts its own generation's image. The
 only thing this driver has not done is read the grid.
+
+## Saturday 17 October 2026 at 15:35: a grid, and the two boots disagree usefully
+
+The first data this project has produced. One button press gives two boots, and they are not the
+same thing at all.
+
+**The second boot is a measurement.** Sixty-four distances between 2540 and 2640 millimetres,
+every zone reporting one target, every status 6. It is coherent in a way noise is not: the eight
+row means run 2596, 2582, 2577, 2576, 2577, 2570, 2569, 2578, which is flat, while the eight
+column means run 2557, 2557, 2565, 2570, 2582, 2584, 2602, 2609, which rises by 52 millimetres
+from one side to the other. **That is what a flat surface at about two and a half metres looks
+like when the sensor is turned a few degrees about its vertical axis**, and nothing else in this
+project could have produced it.
+
+**The first boot is not a measurement.** The same sixty-four zones read between -2 and +5
+millimetres, with **ten of them negative**, every zone still claiming one target and every status
+still 6.
+
+| | First boot | Second boot |
+|---|---|---|
+| range of the grid | -2 to 5 mm | 2540 to 2640 mm |
+| zones reading negative | 10 of 64 | none |
+| targets per zone | 1 everywhere | 1 everywhere |
+| status | 6 everywhere | 6 everywhere |
+
+### Two things follow and the second is uncomfortable
+
+**A processor reset does not reset this part.** The two boots come from one press, the second
+within seconds of the first, and the part keeps ranging across a reset because nothing in the
+reset reaches its supply. So the first boot asked a part that had just been told to start, and
+the second asked one that had been ranging for seconds. That is the candidate mechanism, it is
+not proven, and the test is a full power cycle with the cable out rather than a button press.
+This bench has met the shape before: the programmer's buffer survives a flash, and a stale image
+reads as a reproduction.
+
+**The status did not distinguish them, and the second acceptance criterion is about exactly
+that.** Six on a coherent surface at two and a half metres, and six on ten negative millimetres.
+Whatever 6 means, it does not mean "this number is a measurement", and a consumer that filtered
+on status alone would have taken the first grid as real. **No mapping is written here**, because
+what the values mean comes from the vendor's documentation and this is an observation about one
+value in one run, not a reading of their meaning.
+
+### What changed in the application because of it
+
+It now takes **four frames in one run** rather than one, polls for each with a stated bound, and
+prints how long each took and when it arrived. One run then shows the settling instead of leaving
+a reader to infer it from two logs, and the interval between frames is the ranging period
+measured rather than assumed, which is the figure the driver deliberately did not set.
