@@ -95,10 +95,43 @@ needs the trigger connected. So the binding this project writes is not a copy of
 with a name changed: it declares two facts about the wiring that the in-tree description leaves
 out, and the chapter has to say why it is right to add them rather than follow the neighbour.
 
-**Not established: whether the vendor's own library for the previous generation is already in the
-workspace** as part of the hardware abstraction module. The search above was for the L8 and found
-nothing, which says nothing about the L5. It decides where this project's vendor source comes
-from, so it is the last check before code.
+**The vendor's own library for the previous generation is already in the workspace**, under
+`modules/hal/st/sensor/vl53l5cx/`, with its licence beside it, and the driver's Kconfig depends
+on that module and selects the vendor library rather than carrying a copy. **So the module
+arrangement this chapter set out to design exists, is upstream, and is the one to follow.** The
+chapter's own words for the deliverable, "the vendor's code vendored rather than rewritten",
+turn out to describe what the operating system already does for this family; what this project
+adds is a part, not a pattern.
+
+### Two more findings, and each puts one of the chapter's criteria in tension
+
+**The in-tree driver uses no general-purpose pin at all.** A search for `gpio` across its source
+returns nothing, which agrees with the eleven-line binding, and its asynchronous path is
+`RTIO_WORKQ`, a work queue. **So the tree's way of reading this family is to poll it.** Criterion
+4 asks that the application never poll and that the thread's run count equal the ranging
+frequency with the trigger connected. The existing driver cannot meet that, and not because it is
+poor: nobody wired an interrupt to it. **That makes criterion 4 this project's actual
+contribution** rather than a box to tick, and it is why the binding here declares a data-ready
+line the neighbour omits. The chapter should say that the interrupt-driven path does not exist
+for this family in the tree, because that is a reason for the work rather than a complaint about
+the neighbour.
+
+**One ranging fetch is not one bus transaction, by the driver's own construction.** Its Kconfig
+carries `VL53L5CX_MAX_I2C_CHUNK_SIZE`, default 1024, which exists to break a large read into
+pieces. Criterion 3 as the chapter words it, "a single transfer per ranging period, confirmed by
+counting bus transactions", is therefore **wrong as written** for any driver of this family,
+including one written here. The criterion's refutation is the part that survives and it is the
+part that was always the point: *refuted if the count scales with the number of zones read*. So
+the criterion is restated to what it was for, and the figure to record is the transaction count
+per ranging period together with the chunk size that fixes it.
+
+**One thing is open and it is a reason to read rather than to ask again.** The vendor library in
+the workspace contains a directory named `dummy_blob`. If that is what the name suggests, the
+real firmware image this part uploads at initialisation is not redistributable and the module
+ships a placeholder, which would mean the in-tree driver cannot range without a blob supplied
+from elsewhere. **That would change what the cheap attempt proves**, and it is read from the
+module's own README rather than guessed, because a guess here would send a bench evening after
+the wrong fault.
 
 ### So the deliverable is not the one the chapter wrote
 
@@ -117,6 +150,7 @@ The revised deliverable, and the reason it is a better chapter:
 | The binding | For this part, declaring the reset pin and the data-ready line that the in-tree neighbour omits, with the omission named rather than silently corrected |
 | The driver | Beside the tree's, sharing its shape, including the read-and-decode interface, because a driver that ignores the interface the tree has moved to has a short life |
 | The honest alternative | Whether the in-tree driver already drives this part, tried before a line is written, and reported either way |
+| The interrupt | A data-ready path, which the tree does not have for this family in any generation. This is the part of the work that is not a port |
 
 **The thing to try first is still the cheap thing.** Point this part's node at `st,vl53l5cx`,
 build, and see what happens on the wire. It may work, it may fail at the first identification
@@ -175,8 +209,8 @@ The chapter lists seven and they do not cost the same.
 |---|---|---|
 | 1 | the device comes up, and failure is reported as failure | the board, the shield, and one run with the shield deliberately absent |
 | 2 | nothing and far are different facts | the board, the shield, and two scenes: an empty room and a wall at about two metres |
-| 3 | one fetch serves sixty-four zones | the board, the shield, and a count of bus transactions |
-| 4 | the application never polls | the board, the shield, and the data-ready line connected |
+| 3 | the transaction count does not scale with the zones read | the board, the shield, and a count of bus transactions, **restated**: see above, since one ranging fetch is several transactions by the driver's construction |
+| 4 | the application never polls | the board, the shield, and the data-ready line connected. **The tree has no interrupt-driven path for this family at all**, so this criterion is the project's contribution rather than a check on existing work |
 | 5 | the grid is the right way up | the board, the shield, and something opaque over one quadrant |
 | 6 | P01 is unchanged | **a host only** |
 | 7 | the licence travels with the code | **a host only** |
