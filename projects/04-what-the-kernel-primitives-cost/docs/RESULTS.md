@@ -133,7 +133,17 @@ processor's own cycle counter may measure it. `above` means it is long enough fo
 witness. **A measured value that contradicts its own Scale column fails the check**, so a row
 cannot be quietly relabelled to suit a number that came out wrong.
 
-**Cache** is warm or cold, and every `below` row exists twice. A number taken with the
+Two refinements on Saturday 17 October 2026, after the table had refused six measured figures
+and the refusals had been read. **The prediction is held against the warm figure**, the
+operation's floor: the column predicted which instrument could see the operation and never
+predicted the cache penalty, so a cold figure that crosses ten microseconds is the floor plus a
+penalty rather than a prediction that failed. And **a prediction that was wrong is changed
+loudly or not at all**: the new label, the date and the reason go beside the table, and the git
+history shows the figures standing in prose before the label moved. The check cannot read the
+prose; it can see that no `below` row carries a warm figure the witness could have resolved.
+
+**Cache** is warm or cold, and every row the cycle counter measures exists twice; a witness row
+states `n/a`, since the witness cannot see a cache. A number taken with the
 instruction cache warm and one taken cold differ by enough that a table reporting one of them
 alone would be reporting an accident of ordering.
 
@@ -203,7 +213,7 @@ decisions.*
 
 ## What a filled row will have to survive
 
-- the Scale prediction, against the measured duration
+- the Scale prediction, against the measured warm duration
 - the pairing of a cycle count with a duration, so that no count is published without its rate
-- the warm and cold pair existing, so that neither is reported alone
+- the warm and cold pair existing for every cycle-counter row, so that neither is reported alone
 - criterion 7 itself: a `below` row naming the witness is refused outright

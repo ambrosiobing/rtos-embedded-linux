@@ -17,8 +17,26 @@ a table that can be relabelled to suit a number is not a check:
      relabelled when a number comes out the other side of the boundary
   3. a cycle count and a duration appear together or not at all, because a count is not a time
      until a rate is stated
-  4. every below-resolution operation has both a warm and a cold row, because reporting one of
-     them alone reports an accident of ordering
+  4. every operation the cycle counter measures has both a warm and a cold row, because
+     reporting one of them alone reports an accident of ordering
+
+Two of those were refined on Saturday 17 October 2026, after the table had refused six measured
+figures and the refusals had been read rather than worked around:
+
+  - the Scale prediction is checked against the WARM figure, the operation's floor, and not
+    against the cold one. The column predicted which instrument could see the operation; it
+    never predicted the cache penalty, and a cold figure that crosses ten microseconds is the
+    floor plus a penalty, not a different operation. The first instance was the hand-to-queue
+    row under FreeRTOS, warm 4.08 us and cold 11.23.
+  - a row states a cache when the cycle counter measured it and `n/a` when the witness did,
+    whichever side of the boundary it sits. The earlier rule tied the cache to the Scale
+    column, which conflated the prediction with the instrument: a contended mutex wait of 30
+    microseconds is above the witness's resolution and still has a warm and a cold figure.
+
+A row whose prediction was wrong is still relabelled loudly or not at all: changing `below` to
+`above` is allowed only with the reason beside the table, dated, and the git history shows the
+figures sat in prose before the label moved. The check cannot see the prose; it can see that no
+`below` row carries a warm figure the witness could have resolved.
 
 Run with no arguments. Exit status 0 when the table is sound, 1 otherwise, naming every row that
 is not.
@@ -119,8 +137,10 @@ def check(rows: list[dict[str, str]]) -> list[str]:
                 "duration is not reportable, because it is not a time until a rate is stated"
             )
 
-        # 2. The prediction has to survive the measurement.
-        if duration is not None:
+        # 2. The prediction has to survive the measurement. The prediction is about the
+        # operation's floor, so it is the warm figure that is held to it; a cold figure is
+        # that floor plus a penalty the column never claimed to predict.
+        if duration is not None and row["Cache"] != "cold":
             if row["Scale"] == "below" and duration >= WITNESS_RESOLUTION_US:
                 problems.append(
                     f"{where}: predicted below {WITNESS_RESOLUTION_US} us and measured "
@@ -132,10 +152,14 @@ def check(rows: list[dict[str, str]]) -> list[str]:
                     f"{duration} us, which the witness could not have seen"
                 )
 
-        if row["Scale"] == "below":
+        # The cache state belongs to the instrument, not to the prediction: the cycle counter
+        # sees a cache, the witness does not.
+        if row["Instrument"] == CYCLE_COUNTER:
+            if row["Cache"] == "n/a":
+                problems.append(f"{where}: measured by the cycle counter and states no cache")
             warm_cold.setdefault((row["Operation"], row["Kernel"]), set()).add(row["Cache"])
         elif row["Cache"] != "n/a":
-            problems.append(f"{where}: an above-resolution row states a cache, which it has no use for")
+            problems.append(f"{where}: a witness row states a cache, which it cannot see")
 
     # 4. Neither half of the warm and cold pair is reported alone.
     for (operation, kernel), caches in sorted(warm_cold.items()):
