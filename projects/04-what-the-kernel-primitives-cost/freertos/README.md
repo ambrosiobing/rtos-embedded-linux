@@ -1,6 +1,10 @@
-# The seven operations under FreeRTOS, on a host
+# The seven operations under FreeRTOS, on a host and on the board
 
-**Status: green in WSL on the demo laptop, Saturday 17 October 2026, first build.** No
+**Status: on the board, Saturday 17 October 2026 at 08:48, first flash, every verdict ok.** Six
+rows entered in [../docs/RESULTS.md](../docs/RESULTS.md), the record of the run in
+[../docs/BENCH.md](../docs/BENCH.md), the witness recording of the period still to take.
+
+**The host half, earlier the same morning: green in WSL on the demo laptop, first build.** No
 allocator in the binary, all seven verdicts passed, and the reduction refused the period
 capture for its clock and for nothing else. No board was involved and none is wired for this:
 the POSIX port runs the kernel as a host process.
@@ -73,7 +77,9 @@ runs on every build.
 
 ## The board
 
-**Written Saturday 17 October 2026 and not yet built anywhere.** `make fetch-bsp && make board`
+**Built, flashed and run on Saturday 17 October 2026.** The first cross-build refused three
+range checks in the core that the host compiler had accepted for eight days, because the ARM
+EABI makes an enum unsigned; the fix and the reason are in `adapter/measure.c`. `make fetch-bsp && make board`
 produces an `.elf` and a `.bin` for the NUCLEO-H7A3ZI-Q from the Cortex-M7 port at the same
 V11.1.0, a second `FreeRTOSConfig.h` in `board/` with the real clock, tick and stack sizes and
 stack-overflow checking on, and the sibling firmware volume's board support at a pinned commit:

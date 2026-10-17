@@ -1,9 +1,10 @@
 # P04 results
 
-**Nine rows of twenty-six are measured, and the other seventeen read `not measured`.** The method
-is written and the refutations are written; most of the runs have not happened. A reader should
-still treat this mainly as a protocol, which is why the column exists and is filled in with a
-refusal rather than left blank.
+**Fifteen rows of twenty-six are measured, and the other eleven read `not measured`.** Nine are
+Zephyr's, from Friday 9 October 2026; six are FreeRTOS's, from Saturday 17 October 2026. Of the
+eleven unmeasured, six have been measured and are refused by this table's own rules, which is
+explained below rather than worked around, and the column is filled in with a refusal rather
+than left blank for the same reason it always was.
 
 ## The ninth row, and the only one two instruments watched
 
@@ -38,6 +39,45 @@ for as long as it is powered so that no recording has to be landed on a 70 milli
 The comparison is therefore of one periodic process seen twice rather than of the same 64
 events, and it is sound only if the process is stationary. That is not assumed: `witness.py`
 found seven bursts in this recording and their median periods span 0.69 microseconds.
+
+## The six FreeRTOS rows, and the four the table refuses
+
+The FreeRTOS board image ran for the first time on **Saturday 17 October 2026 at 08:48**, built
+08:47:14, from the console log `p04f-20261017-084804.log`. The same campaign as the Zephyr
+rows, since both now run [adapter/campaign.c](../adapter/campaign.c): the same two clock gates,
+both at 99 per cent, the same instrument cost line at 22 counts, the same cold pass over the
+first four operations, and the same warm figure, **the minimum of 64**. The six rows entered are
+the yield, the block on one object and the block on several, warm and cold.
+
+**The hand-to-queue pair is measured and not entered.** Its warm figure is 1142 counts,
+4.08 microseconds, and its cold figure is **3144 counts, 11.23
+microseconds**, which is on the far side of the witness's ten. The row's `Scale` says `below`, and
+the check refuses a `below` row whose duration is not. The two ways round it are both forbidden:
+relabelling the row `above` would claim a scale the warm half contradicts, and entering the warm
+half alone is what the warm-and-cold rule exists to prevent. So the pair stays `not measured` in
+the table with its figures here, and the `Scale` question that the Zephyr mutex rows first raised
+now has a second instance from a different operation under a different kernel. It has to be
+answered, and the answer is not a quiet relabel; it is recorded in [BENCH.md](BENCH.md) as open.
+
+The contended mutex rows under FreeRTOS are 16060 and 69890 counts,
+**57.4 and 249.6 microseconds**, inheritance on and off, and stay
+unmeasured for the reason the Zephyr pair does. The period row's device half is
+280000 counts at a 1 kHz tick, **1000.00 microseconds**, with the board
+left repeating its burst; the witness has not recorded it yet, and a row that names the witness
+is not entered on the device's word alone.
+
+**What the two kernels say about each other, which is only ratios.** Within FreeRTOS the block
+on one object costs 1.34 of the yield round trip, the block on several
+1.17 of the block on one, and the hand to a queue 1.82
+of the yield. Within Zephyr, from the run of 08:20 the same morning, the same three ratios are
+0.75, 1.76 and 0.97. **They do not agree, and they
+were never expected to:** a Zephyr semaphore wake is one switch and cheaper than a yield round
+trip of two, while under FreeRTOS the giver's path through the port makes the wake the dearer of
+the two. The one ratio that does agree, inheritance off against on, is 4.35 here
+and 4.36 under Zephyr, and that agreement is mostly arithmetic rather than evidence
+about either kernel: the medium task's work is four times the holder's by construction, so a
+ratio near five minus the overhead's share is what the design predicts for any kernel that
+inherits. What it does show is that both inherit, which is criterion 4 twice.
 
 ## The other eight
 
@@ -117,16 +157,16 @@ because a count is not a time until a clock rate is stated, and the check enforc
 |---|---|---|---|---|---|---|
 | yield to an equal-priority ready thread | zephyr | below | cycle counter | warm | 691 | 2.47 |
 | yield to an equal-priority ready thread | zephyr | below | cycle counter | cold | 1071 | 3.83 |
-| yield to an equal-priority ready thread | freertos | below | cycle counter | warm | not measured | not measured |
-| yield to an equal-priority ready thread | freertos | below | cycle counter | cold | not measured | not measured |
+| yield to an equal-priority ready thread | freertos | below | cycle counter | warm | 626 | 2.24 |
+| yield to an equal-priority ready thread | freertos | below | cycle counter | cold | 1000 | 3.57 |
 | block on one object, be signalled, return | zephyr | below | cycle counter | warm | 500 | 1.79 |
 | block on one object, be signalled, return | zephyr | below | cycle counter | cold | 1025 | 3.66 |
-| block on one object, be signalled, return | freertos | below | cycle counter | warm | not measured | not measured |
-| block on one object, be signalled, return | freertos | below | cycle counter | cold | not measured | not measured |
+| block on one object, be signalled, return | freertos | below | cycle counter | warm | 840 | 3.00 |
+| block on one object, be signalled, return | freertos | below | cycle counter | cold | 2144 | 7.66 |
 | block on several objects, be signalled, return | zephyr | below | cycle counter | warm | 850 | 3.04 |
 | block on several objects, be signalled, return | zephyr | below | cycle counter | cold | 1579 | 5.64 |
-| block on several objects, be signalled, return | freertos | below | cycle counter | warm | not measured | not measured |
-| block on several objects, be signalled, return | freertos | below | cycle counter | cold | not measured | not measured |
+| block on several objects, be signalled, return | freertos | below | cycle counter | warm | 986 | 3.52 |
+| block on several objects, be signalled, return | freertos | below | cycle counter | cold | 2316 | 8.27 |
 | hand work to a queue rather than do it in place | zephyr | below | cycle counter | warm | 677 | 2.42 |
 | hand work to a queue rather than do it in place | zephyr | below | cycle counter | cold | 1380 | 4.93 |
 | hand work to a queue rather than do it in place | freertos | below | cycle counter | warm | not measured | not measured |
@@ -142,8 +182,9 @@ because a count is not a time until a clock rate is stated, and the check enforc
 | periodic thread period | zephyr | above | witness | n/a | 308000 | 1100.00 |
 | periodic thread period | freertos | above | witness | n/a | not measured | not measured |
 
-*Table. Twenty-six rows, eight of them measured, all from the run of Friday 9 October 2026 at
-09:40 and all with the timing API as the instrument. The two kernels are priced against each
+*Table. Twenty-six rows, fifteen of them measured: the Zephyr rows from Friday 9 October 2026,
+eight at 09:40 and the period at 23:16, and the FreeRTOS rows from Saturday 17 October 2026 at
+08:48, every bracketed row with the processor's cycle counter as the instrument. The two kernels are priced against each
 other only in the sense that a ratio between primitives within a kernel can be compared with the
 same ratio in the other. No row here licenses a claim that one kernel is faster than the other: that
 would be comparing two configurations, two sets of defaults and two compilers' inlining

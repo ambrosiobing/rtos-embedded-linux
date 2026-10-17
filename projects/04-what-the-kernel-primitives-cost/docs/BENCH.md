@@ -1187,3 +1187,72 @@ a dated run and is not rewritten by a later one that agrees with it. The verdict
 board as well as on the host, and the board had never checked completion or the inheritance
 direction before: 4.3 on the board, 3.9 on the host the same morning, both saying the mutex
 inherits.
+
+## Saturday 17 October 2026 at 08:48: FreeRTOS on the board, first flash, every verdict ok
+
+The image that would not link at 08:30 linked at 08:47 after one change to the core, and the
+change is worth its paragraph before the figures. The first cross-build refused three range
+checks of the form `op < 0` over an enum. Under the ARM EABI an enum with no negative member is
+unsigned, so the test is always false, and the full wall treats dead code as an error; on the
+host compiler an enum is a signed int and the same test had meant something for eight days. The
+checks now compare as unsigned, which both ABIs accept. **A core that claims to need nothing
+beyond C11 had never been compiled under more than one ABI, and the claim was not earned until
+it was.** 27148 bytes of flash, 1.3 per cent of the part, no allocator in the image by `nm`.
+
+Flashed under its own name, `p04-freertos.bin`, one press of RESET, and the console from boot:
+
+    # built Oct 17 2026 08:47:14
+    # clock check: 200 ms of spinning advanced the counter by 55863636 ... 99 per cent
+    # wall clock check: 200 ms of SLEEP advanced the wall counter by 55897452 ... 99 per cent
+    #   core 280000000 Hz, APB1 140000000 Hz, the kernel configured for 280000000 Hz
+    #   the control register says instruction cache ON, data cache OFF
+    #   configUSE_PREEMPTION 1, configUSE_TIME_SLICING 0, configUSE_MUTEXES 1
+    #   configTICK_RATE_HZ 1000, configCHECK_FOR_STACK_OVERFLOW 2
+    # instrument: an empty bracket costs 22 counts at best, 26 at worst
+
+Both gates, the cache, the configuration and the instrument cost on the same lines the Zephyr
+image prints them, because the same file prints them. The instrument costs 22 counts here
+against 21 under Zephyr, which is the cycle counter's own price and not either kernel's.
+
+| Operation | Warm, min of 64 | Cold, min of 64 | Penalty, counts | Penalty, per cent |
+|---|---|---|---|---|
+| yield to an equal-priority ready thread | 626 | 1000 | 374 | 60 |
+| block on one object, be signalled, return | 840 | 2144 | 1304 | 155 |
+| block on several objects, be signalled, return | 986 | 2316 | 1330 | 135 |
+| hand work to a queue rather than do it in place | 1142 | 3144 | 2002 | 175 |
+| contended mutex, priority inheritance on | 16060 | | | |
+| contended mutex, priority inheritance off | 69890 | | | |
+| periodic thread period, wall counter | 280000 | | | |
+
+Criterion 1 reads 28, the instrument against the yield. Criterion 4's verdict line reads
+**inheritance off waited 69890 counts against 16060 with it on, a ratio of 4.3**, the same 4.3
+the Zephyr image printed at 08:20, and the agreement is mostly the 4:1 ratio of the two spins
+doing arithmetic; what it establishes is that the FreeRTOS mutex inherits on the part as it did
+on the host at 3.9. Criterion 5's device half is 1000.00 microseconds at a 1 kHz tick,
+and the board was left repeating its burst for the witness.
+
+**The cold penalties are larger than Zephyr's on every row**, 374, 1304,
+1330 and 2002 counts against 332, 513, 720 and 741 from the same morning, by
+factors from 1.1 to 2.7. That is one observation of each and no mechanism is offered for it. A
+cold penalty is the cost of refilling a line of instruction cache for every line the bracket
+touches, which depends on how much code the operation runs through, where the linker put it and
+what the compiler did with it at `-Os`; two toolchains and two kernels differ in all three, and
+nothing in this run separates them. It is recorded as the thing a reader would notice, with the
+reason it is not explained.
+
+**One pair cannot go into the table, and the table's own rule says so.** The hand-to-queue row
+cold is 3144 counts, 11.23 microseconds, past the witness's ten with the row's
+`Scale` reading `below`. The checker refuses the measurement against the prediction, which is
+what it is for, and the two ways round it are both the kind of quiet relabel it exists to stop.
+So that pair stays `not measured` with its figures in [RESULTS.md](RESULTS.md)'s prose, and the
+`Scale` column's open question, first raised by the Zephyr mutex rows at 29.9 and 130.8
+microseconds, now has an instance from a different operation under a different kernel. **It is
+open, not deferred:** the column was a prediction about which instrument could see a row, and a
+cold bracketed operation that crosses ten microseconds still cannot be seen by the witness, so
+the right fix is probably a column that says what the prediction was about rather than a row
+whose label is changed to fit its number. That is a change to the checker and the table together
+and is not made in the same commit as the figures it would admit.
+
+**What remains for this kernel.** The witness recording of the repeating burst, which turns the
+period row from the device's word into criterion 5 under a second kernel; and the `Scale`
+decision above.
