@@ -134,10 +134,18 @@ int main(void)
 		return 1;
 	}
 
+	/* THE NODE'S NAME SAYS WHOSE DRIVER THIS IS, and this text used not to, which is a
+	 * defect this run found in the application rather than in the firmware. It read that
+	 * the driver the tree already carries binds and initialises this part, which is true
+	 * of the description pointing the part at the tree's driver for the previous
+	 * generation and false of the one pointing it at this project's own, which is the
+	 * description that printed it. One application serving two descriptions may not carry
+	 * a sentence that is only true of one of them. */
 	printf("\nREADY %s\n", zones->name);
-	printf("# the driver the tree already carries binds and initialises this part.\n");
-	printf("# That is the cheap attempt answered in the affirmative, and it is the\n");
-	printf("# beginning of the question rather than the end: what the two generations\n");
-	printf("# differ in is read from the grid, which this run does not take.\n");
+	printf("# a driver bound this node and initialised the part, and the node's name above\n");
+	printf("# says which: vl53l5cx is the tree's, for the generation before this one, and\n");
+	printf("# vl53l8cx is this project's own.\n");
+	printf("# This is the beginning of the question rather than the end: what the two\n");
+	printf("# generations differ in is read from the grid, which this run does not take.\n");
 	return 0;
 }

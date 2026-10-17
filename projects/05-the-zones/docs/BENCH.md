@@ -578,3 +578,51 @@ it should not be met with a link error naming a devicetree ordinal.
 **It is also the second time today that a missing `select` has been the first thing a build
 said.** The two together are the shape of writing a driver outside the tree, and the chapter
 should say so once rather than treat each as an accident.
+
+## Saturday 17 October 2026 at 14:28: this project's own driver binds the part
+
+Built 14:28:17, flashed, one press:
+
+```
+# bus scan on i2c@40005400, addresses 0x08 to 0x77
+#   0x29 answers, which is the address the overlay names
+#   1 device(s) answered
+READY vl53l8cx@29
+<inf> vl53l8cx: device 0xf0 revision 0x0c at 0x29
+<inf> vl53l8cx: identified and bound; this driver does not range yet
+```
+
+**Where the tree's driver reported a timeout, this one reports the part.** Same board, same
+shield, same address, same part. The two descriptions differ in a compatible string and in where
+two control pins are declared, and the console goes from six seconds of silence followed by a
+bare `(1)` to a device identified by name in ten milliseconds.
+
+| | The tree's driver | This project's |
+|---|---|---|
+| the control pins | not in its binding, so nothing drives them | in the binding, driven by the driver |
+| the identity | never read | read in four transactions |
+| a part it cannot drive | a firmware image, then a timeout naming nothing | refused by name, or bound and logged |
+| what the console says | `Failed to initialize the sensor (1)` | `device 0xf0 revision 0x0c at 0x29` |
+
+**The image is 47424 bytes against the other's 144624, and that is not a claim about either
+driver.** The difference is the vendor library and the firmware image, which this one does not
+carry **because it does not range yet**. When it does, it will carry them and the figure will
+move. Quoting the gap as a saving would be quoting an unfinished feature.
+
+### Two defects of mine, both found by this run and neither by the firmware
+
+**The application's success message was true of one description and not the other.** It read that
+the driver the tree already carries binds and initialises this part, which is false of the
+description that printed it. One application serving two descriptions may not carry a sentence
+that is only true of one of them. It now says that a driver bound the node and that the node's
+name says which, since the console already prints `vl53l5cx@29` or `vl53l8cx@29`.
+
+That is the failure this whole volume watches for: prose that was true when written and is not
+true of what the code now does, with nothing able to notice.
+
+**And the edit that fixed it broke five string literals**, because it was made through a shell
+heredoc which ate a backslash level and turned every `
+` into a real newline. That trap is on
+file from earlier work and was walked into anyway. `check_string_literals.py` reported ten
+problems immediately and the repair was made with a proper editor rather than a heredoc, which
+is what the note on file says to do.

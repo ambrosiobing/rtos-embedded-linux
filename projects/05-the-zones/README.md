@@ -8,7 +8,10 @@ speed ruled out by a control. **The part names itself as the same device family 
 revision**, 0xF0 and 0x0C against the 0xF0 and 0x02 the previous generation answers, which is the
 first hard evidence that this is a different member of one family rather than inference from a
 failure. So the work this project exists to do is justified by a run rather than by an instinct.
-No number here has been measured.
+**This project's own driver binds the part**, powering it from its own binding, reading its
+identity in four transactions and reporting it by name where the tree's driver reported a
+timeout. It does not range yet: that needs this generation's vendor interface, cloned at a pin,
+which is the next piece of work. No number here has been measured.
 
 [docs/BENCH.md](docs/BENCH.md) records that run and, written before the hardware is powered, the
 four outcomes the identification run can return and what each one changes.
