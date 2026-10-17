@@ -4,8 +4,11 @@ Status on Saturday 17 October 2026: **the cheap attempt has been tried on the bo
 answer is no, for a reason that is now evidence rather than argument.** The shield is fitted and
 powered, the part answers on the two-wire bus at the address the overlay derived, and the
 operating system's driver for the generation before it still cannot initialise it, with the bus
-speed ruled out by a control. So the work this project exists to do is justified by a run rather
-than by an instinct. No number here has been measured.
+speed ruled out by a control. **The part names itself as the same device family at a different
+revision**, 0xF0 and 0x0C against the 0xF0 and 0x02 the previous generation answers, which is the
+first hard evidence that this is a different member of one family rather than inference from a
+failure. So the work this project exists to do is justified by a run rather than by an instinct.
+No number here has been measured.
 
 [docs/BENCH.md](docs/BENCH.md) records that run and, written before the hardware is powered, the
 four outcomes the identification run can return and what each one changes.

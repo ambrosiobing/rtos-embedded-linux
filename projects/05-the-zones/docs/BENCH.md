@@ -374,3 +374,47 @@ part in an unknown state, and nothing in the output would say so.
 The check writes the page selector back to the value the vendor's own routine leaves, so the
 driver that follows meets what it would otherwise have met and this reading changes nothing about
 the run it sits inside.
+
+## Saturday 17 October 2026 at 13:23: the part names itself, and it is neither of my two answers
+
+```
+<inf> identify: the part identifies as device 0xf0 revision 0x0c
+<inf> identify: the previous generation answers device 0xf0 revision 0x02
+```
+
+**The device identifier is the same and the revision is not.** 0xF0 in both; 0x0C here against
+the 0x02 the previous generation answers. The page before this one offered two outcomes, the same
+two bytes or different ones, and the truth is a third thing that is more useful than either:
+**the two parts agree on what family they are and disagree on which member.**
+
+That is exactly the shape a generation change takes, and it is the first hard evidence in this
+project that the part on the bench is a different member of one family rather than a different
+family or a misbehaving example of the same one. Everything before it was inference from a
+failure; this is the part's own answer, read in four bus transactions before anything else spoke
+to it.
+
+### The vendor's own check would have refused this part in four transactions
+
+`vl53l5cx_is_alive` requires **both** bytes to match and reports the part as not alive otherwise.
+So the library the in-tree driver links against already contains a cheap and correct refusal for
+exactly this case.
+
+**And the driver uploaded tens of kilobytes anyway, then timed out after 5.924 seconds.** Twice,
+to the millisecond, across two boots. That is the observation this run adds beyond the revision
+byte: a part that could have been refused in four transactions and one millisecond was instead
+sent a firmware image it cannot boot, and the failure arrived six seconds later as a timeout,
+which names neither the part nor the reason.
+
+**Whether the driver never calls the check or calls it and continues is not established here**,
+and the two are different statements about somebody else's code, so neither is written down as
+fact until its source is read. It is one search of the driver and it decides whether this is a
+gap worth offering upstream or a reading of a deliberate choice.
+
+### What this does to the chapter
+
+The chapter's claim was that the tree knows the previous generation and not this one. It now has
+the part's own word for the difference, a number for it, and a specific place where a driver
+could tell the two apart before doing anything expensive. **The binding this project writes
+should carry that refusal**, because a driver that uploads an image to a part it could have
+identified as wrong is a driver that fails slowly and says little, and six seconds of silence
+followed by "timeout" is what that looks like from a console.
