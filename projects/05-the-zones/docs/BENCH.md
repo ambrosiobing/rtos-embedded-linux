@@ -1043,3 +1043,32 @@ four lines long.
 The two millisecond waits are ST's and are reproduced rather than improved on, which is the same
 decision as the ten millisecond settle. The difference is that this time the shape is theirs as
 well as the number, and the shape was what mattered.
+
+## Saturday 17 October 2026 at 16:50: the pulse did not bring it back, and the pins are right
+
+The first cold start with the vendor's own sequence: **still no answer at 0x29.** The image was
+new, 142884 bytes against 142716, so the pulse was in it; the console's build stamp reads 15:42
+for the reason already recorded, since the stamp lives in the application file and this change
+was in the driver.
+
+**The pins are not the problem, and that is now checked rather than assumed.** ST's own project
+for this shield names `PWR_EN_C` as port A pin 7 and `LPn_C` as port B pin 0 on their board,
+which is a different Nucleo. On that board those are the Arduino positions **D11** and **A3**.
+This project's overlay names the same two Arduino positions, which this board maps to PA7 and
+PB1. So the description has been right all along and it is right for a reader with a third board
+as well, which is what naming positions instead of ports was for.
+
+### What has still never been confirmed, after four runs that rested on it
+
+**That a pin is driven at all.** Every entry since 12:17 has reasoned about pin driving, and no
+console has ever said a pin was driven. The driver's own helper returns success and says nothing
+both when it pulses a line and when the description does not carry one, so those two cases are
+indistinguishable in every log this project has. The helper now reports what it did, which costs
+nothing and should have been there from the first version.
+
+**And what the shield physically looks like.** It was asked for at 16:26 and the answer came as a
+command rather than a description, so the record still does not say whether the board is seated
+flat, whether anything is trapped under it, or where its jumpers sit. Four software experiments
+have been run on a bench whose state is written down nowhere since the morning. That is the rule
+this project has on file and has now failed twice in one afternoon: **a document records what was
+built, not what is connected now.**

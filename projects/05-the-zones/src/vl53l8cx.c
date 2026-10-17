@@ -153,6 +153,13 @@ static int pulse_line(const struct gpio_dt_spec *line, const char *what)
 	}
 	k_msleep(PULSE_MS);
 
+	/* THE PULSE REPORTS ITSELF, and the reason is that four runs were read as evidence about
+	 * pin driving without anything ever confirming that a pin had been driven. A silent
+	 * success is indistinguishable from a line the description does not carry, because the
+	 * absent case returns success too. This line costs nothing and turns "we believe the
+	 * pins were pulsed" into something a console says. */
+	LOG_INF("%s pulsed low then high on %s pin %d, %d ms each", what, line->port->name,
+		line->pin, PULSE_MS);
 	return 0;
 }
 
