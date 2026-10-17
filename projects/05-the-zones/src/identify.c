@@ -27,8 +27,17 @@
  * register map, so that the part is left as the library's check leaves it and the driver that
  * follows meets what it would otherwise have met.
  */
-#include <zephyr/device.h>
 #include <zephyr/devicetree.h>
+
+/* COMPILED ONLY FOR THE DESCRIPTION THAT NEEDS IT. The overlay that points this part at the
+ * tree's driver for the previous generation puts the control pins in `zephyr,user`, because that
+ * driver's binding has no property for them. The overlay that points it at this project's own
+ * driver puts them in the node, where the binding this project writes declares them, and the
+ * driver drives them itself. So this file has nothing to do in the second case and compiles to
+ * nothing, rather than being a second place the same pins are driven. */
+#if DT_NODE_HAS_PROP(DT_PATH(zephyr_user), pwren_gpios)
+
+#include <zephyr/device.h>
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/init.h>
 #include <zephyr/kernel.h>
@@ -116,3 +125,11 @@ static int identify_init(void)
 }
 
 SYS_INIT(identify_init, POST_KERNEL, IDENTIFY_INIT_PRIORITY);
+
+#else
+
+/* An empty translation unit is not C, so the file declares one unused type
+ * rather than nothing at all. */
+typedef int identify_not_used_t;
+
+#endif

@@ -1,0 +1,56 @@
+/* projects/05-the-zones/overlays/own_driver.overlay: the same part, described for this project's
+ * own driver rather than for the tree's driver for the generation before it.
+ *
+ * ONE APPLICATION, TWO DESCRIPTIONS, and the difference between them is the whole argument. Both
+ * overlays hang one part off the same controller at the same address with the same two control
+ * pins. They differ in exactly two things, and each is a sentence the chapter has to make:
+ *
+ *   the compatible string   st,vl53l8cx here against st,vl53l5cx there, which is the claim that
+ *                           these are different parts and the reason this project exists
+ *   where the pins live     in the node here, in zephyr,user there, because the tree's binding
+ *                           for the previous generation has no property for them and a fact
+ *                           about how a part is wired belongs in the description of the hardware
+ *
+ * Nothing in ../src/main.c changes between the two, which is P03's claim arriving here: the
+ * application knows one alias and the description decides everything else.
+ */
+#include <zephyr/dt-bindings/gpio/arduino-header-r3.h>
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/i2c/i2c.h>
+
+&i2c1 {
+	status = "okay";
+	pinctrl-0 = <&i2c1_scl_pb8 &i2c1_sda_pb9>;
+	pinctrl-names = "default";
+	clock-frequency = <I2C_BITRATE_FAST>;
+
+	/* The address is the one the other overlay derived from the vendor's constant and the
+	 * bench confirmed on Saturday 17 October 2026: a scan found 0x29 and exactly one
+	 * device. */
+	zones: vl53l8cx@29 {
+		compatible = "st,vl53l8cx";
+		reg = <0x29>;
+		status = "okay";
+
+		/* THE TWO LINES THE OTHER BINDING HAS NO PROPERTY FOR. Named by Arduino position
+		 * rather than by port, because the vendor's library for this expansion board
+		 * names positions and a different board maps them to different pins; this board
+		 * maps D11 to PA7 and A3 to PB1, which the run of 12:17 printed back.
+		 *
+		 * The data-ready line is not here, and its absence is a statement rather than an
+		 * omission: this project has not yet established which position carries it on
+		 * this expansion board, and the binding says that a driver polls when it is
+		 * absent. The fourth acceptance criterion needs it and will add it with its
+		 * source, as every other pin in this volume has been added. */
+		pwren-gpios = <&arduino_header ARDUINO_HEADER_R3_D11 GPIO_ACTIVE_HIGH>;
+		lpn-gpios = <&arduino_header ARDUINO_HEADER_R3_A3 GPIO_ACTIVE_HIGH>;
+	};
+};
+
+/ {
+	aliases {
+		/* The whole of the application's knowledge of the hardware, identical to the
+		 * other overlay's, which is what makes the two comparable. */
+		zones = &zones;
+	};
+};

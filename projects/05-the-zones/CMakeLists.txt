@@ -33,4 +33,4 @@ list(APPEND DTS_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(the_zones C)
 
-target_sources(app PRIVATE src/main.c src/shield_power.c src/identify.c)
+target_sources(app PRIVATE src/main.c src/shield_power.c src/identify.c src/vl53l8cx.c)

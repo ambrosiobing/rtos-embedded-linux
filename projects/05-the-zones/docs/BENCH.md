@@ -452,3 +452,49 @@ The build now states its binding directory rather than relying on the operating 
 it, which is P04's lesson moved across: that project added an overlay to a build directory
 configured days earlier, the file was never found, and the build silently differed from the tree
 by which files happened to exist at first configure.
+
+## Saturday 17 October 2026, this project's own driver, written and not yet run
+
+[src/vl53l8cx.c](../src/vl53l8cx.c) binds to the new compatible, drives the supply enable and the
+low-power line from its own binding, waits the vendor's ten milliseconds, asks the part what it
+is, and either refuses it by name or binds. **It does not range.** Ranging needs this
+generation's vendor interface, which is not in the tree and has to be cloned at a pin; nothing in
+this file depends on that and all of it is runnable now.
+
+**The refusal is the point of the file.** Three cases, and they are chosen by what can be
+justified rather than by what would be tidy:
+
+| What the part answers | What the driver does |
+|---|---|
+| a family byte that is not this family's | refuses. Whatever is at that address, no firmware image should be sent to it |
+| the previous generation's revision | refuses **by name**, and the message says to describe it as the compatible the tree already carries rather than that something went wrong |
+| anything else | binds, and logs the revision |
+
+**The third case is deliberate and the reason is a sample of one.** This bench has met one part
+of this generation and it answers revision 0x0C. One example is not a specification, so the
+driver does not refuse an unknown revision: it would be refusing on the strength of n = 1, and a
+reader with a later part would be told their hardware was wrong by a file that had never seen it.
+It logs what it found and says it has met one, which is the honest form of the same information.
+
+**`sample_fetch` returns "not supported" rather than zeroes**, which is this project's first
+acceptance criterion in one line: a grid of zeroes looks like an empty room and is more
+convincing than a single zero for having structure.
+
+### One application, two descriptions
+
+[overlays/own_driver.overlay](../overlays/own_driver.overlay) joins the first one, and the two
+differ in exactly two things. The compatible string, which is the claim that these are different
+parts. And where the control pins live: in the node here, where this project's binding declares
+them, and in `zephyr,user` there, because the tree's binding for the previous generation has no
+property for them.
+
+**Nothing in [src/main.c](../src/main.c) changes between them**, which is P03's claim arriving
+here rather than being restated: the application knows one alias and the description decides
+everything else. The two early-initialisation helpers compile to nothing under the second
+description, because the driver drives those pins itself and two places driving one pin is how
+descriptions and code drift apart.
+
+**The data-ready line is absent from both overlays and that is a statement.** This project has
+not established which connector position carries it on this expansion board, and the binding says
+a driver polls when it is absent. The fourth acceptance criterion needs it and it will be added
+with its source, as every other pin in this volume has been.
