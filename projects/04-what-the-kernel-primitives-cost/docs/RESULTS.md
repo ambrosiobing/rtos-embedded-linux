@@ -1,10 +1,11 @@
 # P04 results
 
-**Sixteen rows of twenty-six are measured, and the other ten read `not measured`.** Nine are
-Zephyr's, from Friday 9 October 2026; seven are FreeRTOS's, from Saturday 17 October 2026. Of the
-ten unmeasured, six have been measured and are refused by this table's own rules, which is
-explained below rather than worked around, and the column is filled in with a refusal rather
-than left blank for the same reason it always was.
+**Twenty-two rows of twenty-six are measured, and the other four read `not measured`.** Eleven
+are Zephyr's, from Friday 9 October 2026; eleven are FreeRTOS's, from Saturday 17 October 2026.
+The four unmeasured are the cold figures of the contended mutex rows, which no cold pass has
+taken, and the column is filled in with a refusal rather than left blank for the same reason it
+always was. Six of the twenty-two sat in prose for a time while the table refused them, and the
+story of that is below, because the refusals were right until the rule was refined.
 
 ## The ninth row, the first of two that two instruments watched
 
@@ -49,19 +50,18 @@ both at 99 per cent, the same instrument cost line at 22 counts, the same cold p
 first four operations, and the same warm figure, **the minimum of 64**. The six rows entered are
 the yield, the block on one object and the block on several, warm and cold.
 
-**The hand-to-queue pair is measured and not entered.** Its warm figure is 1142 counts,
-4.08 microseconds, and its cold figure is **3144 counts, 11.23
-microseconds**, which is on the far side of the witness's ten. The row's `Scale` says `below`, and
-the check refuses a `below` row whose duration is not. The two ways round it are both forbidden:
-relabelling the row `above` would claim a scale the warm half contradicts, and entering the warm
-half alone is what the warm-and-cold rule exists to prevent. So the pair stays `not measured` in
-the table with its figures here, and the `Scale` question that the Zephyr mutex rows first raised
-now has a second instance from a different operation under a different kernel. It has to be
-answered, and the answer is not a quiet relabel; it is recorded in [BENCH.md](BENCH.md) as open.
+**The hand-to-queue pair was measured at 08:48 and refused by the table until the afternoon.**
+Its warm figure is 1142 counts, 4.08 microseconds, and its cold figure is **3144
+counts, 11.23 microseconds**, on the far side of the witness's ten with the row's `Scale`
+reading `below`. The check refused it, which was correct against the rule as written, and the
+two ways round it were both the quiet moves the check exists to stop. The rule was then read
+rather than worked around: the column predicted which instrument could see the operation, and
+it never predicted the cache penalty, so the prediction is now held against the warm figure
+only. That refinement is its own commit, before this one, and the pair went in after it.
 
-The contended mutex rows under FreeRTOS are 16060 and 69890 counts,
-**57.4 and 249.6 microseconds**, inheritance on and off, and stay
-unmeasured for the reason the Zephyr pair does. The period row went in at **09:27 the same morning**, and it is the second row two instruments
+The contended mutex rows under FreeRTOS are 16060 and 69890 counts, **57.4 and
+249.6 microseconds**, inheritance on and off, entered the same afternoon under a `Scale`
+of `above`; see the Zephyr pair below for the relabel and why it is loud. The period row went in at **09:27 the same morning**, and it is the second row two instruments
 watched. The processor's own counter: minimum 999.868, **median 999.979**, maximum 1000.050
 microseconds. The MCC 118 on the Raspberry Pi: minimum 999.993, **median 1000.509**, maximum
 1009.618. That is 64 counts against 64 witness periods, from `p04f-burst` and the console log
@@ -114,12 +114,19 @@ the guard on deliberately, real firmware on it runs that way, and the setting we
 default the same evening so that a reader building this tree reproduces this table and not the
 comparison. The 21:15 numbers describe a configuration nobody should copy into a product.
 
-**It does still have to be answered for the contended mutex rows.** Those measured 8381 and 36610
-counts, which are **29.9 and 130.8 microseconds**, both far above the witness's ten, while their
-rows say `below`. That prediction was falsified by the first contended run and has nothing to do
-with the instrument. They stay unmeasured here because the cold pass covers only the first four
-operations, so nothing has to be decided today, and the `Scale` column having now mis-predicted
-in two different directions is itself an argument about which resolution to pick.
+**The contended mutex rows are relabelled `above`, on Saturday 17 October 2026, and this is the
+loud version of a relabel.** They measured 8381 and 36610 counts at 09:40 on Friday 9 October
+2026, **29.9 and 130.8 microseconds**, both far above the witness's ten, while their rows said
+`below`. The prediction was wrong for a reason that has nothing to do with the instrument and
+was visible before any run: the bracket contains, by construction, a holder spinning two
+thousand iterations and in one arm a medium thread spinning eight thousand, so the row was never
+going to be a few hundred counts. The figures stood in this page's prose from Friday 9 October
+2026 and the label moved eight days later, after the FreeRTOS pair arrived at 57.4 and
+249.6 and made the prediction wrong under two kernels. The git history shows that order.
+The rows keep the cycle counter as their instrument, since a thread's wait is still not a pin
+the witness can watch, and they keep their warm and cold rows; the cold ones read `not
+measured` because the cold pass covers the first four operations only, and that is a gap in
+the campaign rather than a refusal.
 
 This file is checked by [scripts/check_instruments.py](../../../scripts/check_instruments.py)
 on every push, and the check is **criterion 7**: no row may claim an instrument that cannot see
@@ -189,23 +196,24 @@ because a count is not a time until a clock rate is stated, and the check enforc
 | block on several objects, be signalled, return | freertos | below | cycle counter | cold | 2316 | 8.27 |
 | hand work to a queue rather than do it in place | zephyr | below | cycle counter | warm | 677 | 2.42 |
 | hand work to a queue rather than do it in place | zephyr | below | cycle counter | cold | 1380 | 4.93 |
-| hand work to a queue rather than do it in place | freertos | below | cycle counter | warm | not measured | not measured |
-| hand work to a queue rather than do it in place | freertos | below | cycle counter | cold | not measured | not measured |
-| contended mutex, priority inheritance on | zephyr | below | cycle counter | warm | not measured | not measured |
-| contended mutex, priority inheritance on | zephyr | below | cycle counter | cold | not measured | not measured |
-| contended mutex, priority inheritance on | freertos | below | cycle counter | warm | not measured | not measured |
-| contended mutex, priority inheritance on | freertos | below | cycle counter | cold | not measured | not measured |
-| contended mutex, priority inheritance off | zephyr | below | cycle counter | warm | not measured | not measured |
-| contended mutex, priority inheritance off | zephyr | below | cycle counter | cold | not measured | not measured |
-| contended mutex, priority inheritance off | freertos | below | cycle counter | warm | not measured | not measured |
-| contended mutex, priority inheritance off | freertos | below | cycle counter | cold | not measured | not measured |
+| hand work to a queue rather than do it in place | freertos | below | cycle counter | warm | 1142 | 4.08 |
+| hand work to a queue rather than do it in place | freertos | below | cycle counter | cold | 3144 | 11.23 |
+| contended mutex, priority inheritance on | zephyr | above | cycle counter | warm | 8381 | 29.93 |
+| contended mutex, priority inheritance on | zephyr | above | cycle counter | cold | not measured | not measured |
+| contended mutex, priority inheritance on | freertos | above | cycle counter | warm | 16060 | 57.36 |
+| contended mutex, priority inheritance on | freertos | above | cycle counter | cold | not measured | not measured |
+| contended mutex, priority inheritance off | zephyr | above | cycle counter | warm | 36610 | 130.75 |
+| contended mutex, priority inheritance off | zephyr | above | cycle counter | cold | not measured | not measured |
+| contended mutex, priority inheritance off | freertos | above | cycle counter | warm | 69890 | 249.61 |
+| contended mutex, priority inheritance off | freertos | above | cycle counter | cold | not measured | not measured |
 | periodic thread period | zephyr | above | witness | n/a | 308000 | 1100.00 |
 | periodic thread period | freertos | above | witness | n/a | 280000 | 1000.00 |
 
-*Table. Twenty-six rows, sixteen of them measured: the Zephyr rows from Friday 9 October 2026,
+*Table. Twenty-six rows, twenty-two of them measured: the Zephyr rows from Friday 9 October 2026,
 eight at 09:40 and the period at 23:16, and the FreeRTOS rows from Saturday 17 October 2026, six
 at 08:48 and the period at 09:27, every bracketed row with the processor's cycle counter as the
-instrument. The two kernels are priced against each
+instrument. The four contended mutex operations carry `above` since Saturday 17 October 2026, a
+relabel explained in full above the table. The two kernels are priced against each
 other only in the sense that a ratio between primitives within a kernel can be compared with the
 same ratio in the other. No row here licenses a claim that one kernel is faster than the other: that
 would be comparing two configurations, two sets of defaults and two compilers' inlining

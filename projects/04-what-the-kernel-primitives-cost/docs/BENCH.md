@@ -1310,3 +1310,38 @@ console log of the same image is `p04f-20261017-091525.log`, identical to the 08
 under FreeRTOS, criteria 1, 3, 4 and 5 are met from the board, 6 and 7 are the host's and hold
 for any kernel, and criterion 2 has no FreeRTOS counterpart to the upstream suite it names,
 which the design now says in its own words rather than leaving the reader to notice.
+
+## Saturday 17 October 2026, afternoon: the Scale decision, and six figures that had waited
+
+Six measured figures were outside the table at noon, refused by the table's own check: the
+hand-to-queue pair under FreeRTOS, whose cold half is 11.23 microseconds against a `below`
+label, and the four contended mutex figures under both kernels, 29.9, 130.8, 57.4 and
+249.6 microseconds against the same label. The check was right each time about the rule as
+written. The question was whether the rule was right, and it was answered in two commits so that
+the history can be read as an argument rather than an edit.
+
+**The first commit changes the rule and enters nothing.** Two refinements. The `Scale` column
+was a prediction about which instrument could see an operation, made before any number existed,
+and it is held against the operation's floor, the warm figure; it never predicted the cache
+penalty, so a cold figure past ten microseconds is the floor plus a penalty and not a failed
+prediction. And the cache state follows the instrument rather than the label: a cycle-counter
+row states warm or cold whichever side of ten it sits, a witness row states none. Every rule
+of the refined check was shown to go red on a mutated copy of the table before the commit, nine
+mutations, including the two admissions, so that the refinement is not a loosening that was
+never tested. The table passed before and after it with the same sixteen rows.
+
+**The second commit, this one, enters the six and relabels four operations loudly.** The
+hand-to-queue pair goes in under `below`, which its warm figure of 4.08 microseconds
+satisfies. The contended mutex operations go to `above`, with the reason beside the table: the
+bracket contains a holder spinning two thousand iterations and in one arm a medium thread
+spinning eight thousand, by construction, so the prediction was wrong before any run and was
+visible as wrong from the design. The figures sat in prose from Friday 9 October 2026, the
+FreeRTOS pair joined them this morning, and the label moved after both, which is the order a
+relabel has to have to be anything other than a number choosing its own column.
+
+**What the check can and cannot see now.** It can see that no `below` row carries a warm
+figure the witness could have resolved, that every cycle-counter row has its pair, and that
+every count has its rate. It cannot see whether a relabel was loud; that is the prose and the
+history, and the two commits are the evidence. Twenty-two of twenty-six rows are measured. The
+four that are not are the cold mutex figures, which the campaign's cold pass does not take,
+and that is a gap in the campaign to close rather than a refusal to respect.
