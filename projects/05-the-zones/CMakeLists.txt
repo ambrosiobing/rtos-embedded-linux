@@ -59,3 +59,42 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(the_zones C)
 
 target_sources(app PRIVATE src/main.c src/shield_power.c src/identify.c src/vl53l8cx.c)
+
+# ==================================================== the vendor's interface for this generation
+#
+# NOTHING IS VENDORED, which is this volume's rule and the operating system's as well. The
+# vendor's library is cloned at a pinned commit and compiled from where it lies; no copy of it,
+# and no copy of the firmware image it carries, enters this repository. P04 brings in a kernel
+# and a board support package the same way and for the same reasons: tens of thousands of lines
+# nobody here wrote stay out of a published tree, and the version becomes part of the build
+# rather than part of the history.
+#
+#   git clone https://github.com/STMicroelectronics/x-cube-tof1.git ~/src/x-cube-tof1
+#   git -C ~/src/x-cube-tof1 checkout <the pin below>
+#
+# Override VL53L8CX_ULD to point somewhere else.
+set(VL53L8CX_ULD "$ENV{HOME}/src/x-cube-tof1/Drivers/BSP/Components/vl53l8cx/modules"
+    CACHE PATH "the vendor's ultra lite driver for this generation, cloned not copied")
+
+# THE ABSENCE IS REPORTED WITH THE COMMAND THAT FIXES IT, because a missing clone otherwise
+# arrives as a compiler saying it cannot find a header, which names the symptom and not the step.
+if(NOT EXISTS "${VL53L8CX_ULD}/vl53l8cx_api.c")
+  message(FATAL_ERROR
+    "No vendor interface at ${VL53L8CX_ULD}.
+"
+    "  git clone https://github.com/STMicroelectronics/x-cube-tof1.git ~/src/x-cube-tof1
+"
+    "Nothing is vendored into this repository, so it has to be cloned once.")
+endif()
+
+# The porting layer is ours and comes first on the include path, so the library finds this
+# project's platform.h rather than the vendor's reference one. src/platform.h says why.
+target_include_directories(app PRIVATE src "${VL53L8CX_ULD}")
+
+target_sources(app PRIVATE
+  src/vl53l8cx_platform.c
+  "${VL53L8CX_ULD}/vl53l8cx_api.c")
+
+# THE LIBRARY IS NOT HELD TO THIS PROJECT'S WARNINGS. It is somebody else's code, used
+# unmodified, and a warning in it is not a defect this repository can fix without forking it.
+set_source_files_properties("${VL53L8CX_ULD}/vl53l8cx_api.c" PROPERTIES COMPILE_OPTIONS "-w")

@@ -44,6 +44,12 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(vl53l8cx, CONFIG_SENSOR_LOG_LEVEL);
 
+/* The vendor's interface for this generation, cloned at a pin and compiled from where it lies;
+ * see CMakeLists.txt for why nothing is copied in. `platform.h` is this project's and is on the
+ * include path first, so the library finds the six functions in src/vl53l8cx_platform.c. */
+#include "platform.h"
+#include <vl53l8cx_api.h>
+
 /* From `vl53l5cx_is_alive` in the vendor library in the workspace: a sixteen-bit register
  * address, big endian on the wire, a page selector, and the identity at the first two
  * registers of page zero. The same four transactions serve both generations, which is itself
@@ -73,6 +79,11 @@ struct vl53l8cx_config {
 struct vl53l8cx_data {
 	uint8_t device_id;
 	uint8_t revision_id;
+
+	/* The vendor's own state, which includes the buffer its firmware image is carried in.
+	 * It is large and it is per instance, which is the vendor's design and not a choice
+	 * this driver gets to make. */
+	VL53L8CX_Configuration vendor;
 };
 
 static int write_reg(const struct i2c_dt_spec *i2c, uint16_t reg, uint8_t value)
@@ -212,7 +223,20 @@ static int vl53l8cx_init(const struct device *dev)
 			"on one part. It is accepted rather than refused, because one example is "
 			"not a specification", data->revision_id, REVISION_SEEN_HERE);
 	}
-	LOG_INF("identified and bound; this driver does not range yet, see docs/DESIGN.md");
+	/* THE VENDOR'S INITIALISATION, WHICH IS WHERE THE FIRMWARE IMAGE GOES. Everything above
+	 * this line is four bus transactions and costs a millisecond; this is tens of kilobytes
+	 * and takes seconds. Doing the cheap refusal first is the whole argument of this driver
+	 * against the one in the tree, so the order is load bearing and not a style. */
+	data->vendor.platform.i2c = cfg->i2c;
+
+	rc = (int)vl53l8cx_init(&data->vendor);
+	if (rc != 0) {
+		LOG_ERR("the vendor's initialisation refused this part: %d. The identity above "
+			"was accepted, so this is not a wrong part and not a wrong address", rc);
+		return -EIO;
+	}
+
+	LOG_INF("initialised with this generation's own interface");
 	return 0;
 }
 

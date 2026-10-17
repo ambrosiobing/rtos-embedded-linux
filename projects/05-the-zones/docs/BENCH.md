@@ -635,3 +635,40 @@ proper editor rather than another heredoc, which is what the note on file says t
 **Then this paragraph was written through a heredoc and broke in exactly the same way**, which is
 recorded rather than silently repaired: the sentence describing the trap contained it. Hence no
 escape character appears in the sentence above, and the fix for both was the same editor.
+
+## Saturday 17 October 2026, the vendor's interface for this generation, written and not yet built
+
+Ranging needs the library this generation's part was made for, and the tree carries only the
+previous one's. **Nothing is vendored**, which is this volume's rule and the operating system's
+as well: the library is cloned at a pin and compiled from where it lies, and neither it nor the
+firmware image it carries enters this repository. P04 brings in a kernel and a board support
+package the same way.
+
+A missing clone is reported by the build with the command that fixes it, rather than arriving as
+a compiler that cannot find a header, which names a symptom and not a step.
+
+**The porting layer is six functions and a structure**, and the structure is this project's
+rather than the vendor's reference one. ST's own carries three function pointers because their
+board support reaches hardware through a layer of its own; nothing here needs that, since a
+devicetree address specification already names the controller and the address together. The
+operating system's driver for the previous generation makes the same choice.
+
+Two of the six are not three lines, and the reason is the two large transfers: initialisation
+sends tens of kilobytes to the part and a result comes back in one piece, so both are chunked
+with the register address advanced by what has already gone. **A write does not copy**: the
+address and the payload travel as two messages of one transaction rather than being joined into
+a buffer, because joining them would mean owning a second copy of the firmware image.
+
+**What this project does not know yet, and will be told by a compiler.** The vendor's interface
+may want more from a porting header than those six: a count of targets per zone, a buffer size,
+a compile-time option. None of it is guessed. The first build will name each thing it cannot
+find, which is a better source than a reading of somebody else's header, and each will be added
+with the line of theirs that asked for it.
+
+### The order in the driver is load bearing
+
+The identification stays in front of the vendor's initialisation and that is the argument rather
+than a style. Four bus transactions and a millisecond decide whether this part is one this driver
+knows; only then does it send the image, which is tens of kilobytes and seconds. **The driver in
+the tree does the expensive thing first and the cheap thing not at all**, which is why a wrong
+part there costs six seconds and a bare number.
