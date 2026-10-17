@@ -428,3 +428,27 @@ could tell the two apart before doing anything expensive. **The binding this pro
 should carry that refusal**, because a driver that uploads an image to a part it could have
 identified as wrong is a driver that fails slowly and says little, and six seconds of silence
 followed by "timeout" is what that looks like from a console.
+
+## Saturday 17 October 2026, the binding, written and not yet used
+
+[dts/bindings/sensor/st,vl53l8cx.yaml](../dts/bindings/sensor/st,vl53l8cx.yaml) exists and
+nothing points at it yet, which is deliberate: a node carrying a compatible with no driver behind
+it produces no device, and the link would fail on the application's own alias. It is committed
+now because it is the artefact the chapter is about and it can be read and argued with before a
+line of driver exists.
+
+**Three properties, and they are the whole difference from the binding the tree carries for the
+previous generation.** That one is eleven lines and has no property of its own, so it describes a
+part that is always powered, never in a low-power state, and never asks to be read. On this
+expansion board all three are false, and the 12:17 run is the evidence rather than the argument:
+with nothing driving the supply enable the part did not acknowledge its address, and with two
+pins driven it answered at once.
+
+All three are optional, because a binding describes what a board may have rather than what one
+board does have, and each says what a driver does when it is absent. The data-ready line is the
+one the fourth acceptance criterion turns on, and its description says so.
+
+The build now states its binding directory rather than relying on the operating system finding
+it, which is P04's lesson moved across: that project added an overlay to a build directory
+configured days earlier, the file was never found, and the build silently differed from the tree
+by which files happened to exist at first configure.

@@ -22,6 +22,14 @@
 # wrong address. docs/DESIGN.md says so in more words.
 cmake_minimum_required(VERSION 3.20.0)
 
+# THE BINDING DIRECTORY IS STATED RATHER THAN LEFT TO DETECTION, which is P04's lesson one level
+# across. That project added an overlay to a build directory configured days earlier, the file
+# was never found, and the build silently differed from the tree by which files happened to exist
+# at first configure. The operating system does look for bindings under an application by
+# default; saying so here costs one line and means a reader can see where dts/bindings/ is picked
+# up instead of having to know. This variable is read by find_package and must be set before it.
+list(APPEND DTS_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
+
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(the_zones C)
 

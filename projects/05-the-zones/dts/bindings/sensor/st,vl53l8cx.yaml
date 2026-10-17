@@ -1,0 +1,70 @@
+# Copyright (c) 2026 Joseph Ambrose Pagaran
+# SPDX-License-Identifier: Apache-2.0
+#
+# THE BINDING FOR THIS GENERATION, AND THE THREE PROPERTIES ARE THE POINT OF IT.
+#
+# The operating system carries a binding for the generation before this one. It is eleven lines:
+# a compatible string and two includes, with no property of its own. That binding describes a
+# part that is always powered, never held in a low-power state and never asks to be read. On the
+# expansion board this project uses, none of those three is true, and the run of Saturday 17
+# October 2026 at 12:17 is the evidence: with nothing driving the supply enable the part did not
+# answer its address at all, and with fifteen lines driving two pins it answered immediately.
+#
+# A fact about how a part is wired belongs in the description of the hardware. Putting it in an
+# application that happens to run first works, which is how this project proved it, and it leaves
+# the next person to discover the same thing the same way.
+#
+# WHY ALL THREE ARE OPTIONAL rather than required. A binding describes what a board may have, not
+# what one board does have. A design that ties the part's supply to a permanent rail has no
+# supply-enable line to name, and a design that polls has no data-ready line. Each property says
+# what the driver does when it is absent, which is the part a reader needs.
+
+description: |
+  STMicroelectronics VL53L8 series time-of-flight sensor, eight by eight multizone.
+
+  Reports a grid of sixty-four distances with a status for each, so that an empty scene and a
+  surface beyond range are different facts rather than the same number.
+
+  This part uploads a firmware image at initialisation and identifies itself as device 0xF0 at a
+  revision distinct from the VL53L5CX, which is why it is a separate compatible rather than an
+  addition to that one. A driver should read that identity and refuse a part it does not know
+  before it sends an image, which costs four bus transactions against several seconds.
+
+compatible: "st,vl53l8cx"
+
+include: [sensor-device.yaml, i2c-device.yaml]
+
+properties:
+  pwren-gpios:
+    type: phandle-array
+    description: |
+      The expansion board's supply enable, active high, driven before anything speaks to the
+      part and held for the life of the device.
+
+      Absent means the part is permanently powered and the driver drives nothing. Present means
+      the driver asserts it and waits for the part to settle before its first transaction; on
+      the board this binding was written against the vendor's own example waits ten
+      milliseconds, and a shorter wait was not tried.
+
+      With this line low the part does not acknowledge its address, so a bus scan finds nothing
+      and every other diagnosis is misleading.
+
+  lpn-gpios:
+    type: phandle-array
+    description: |
+      The part's low-power enable, active high, asserted to bring it out of its low-power state.
+
+      Absent means the part is never placed in that state by this system. It is separate from
+      the supply enable because the two are separate pins on the part and a design may tie one
+      and drive the other.
+
+  int-gpios:
+    type: phandle-array
+    description: |
+      The data-ready line the part asserts when a ranging result is available.
+
+      Absent means the driver polls, which is what the operating system's driver for the
+      previous generation does and the only thing its binding allows. Present means a thread
+      can wait rather than poll, which is the difference this project's fourth acceptance
+      criterion is about: with the line connected a reading thread runs at the ranging
+      frequency rather than at whatever rate a loop happens to have.
