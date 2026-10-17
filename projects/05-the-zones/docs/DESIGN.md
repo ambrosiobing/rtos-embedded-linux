@@ -147,11 +147,20 @@ and a repository that published the blob would be redistributing something it ha
 redistribute. This volume's own rule that nothing is vendored turns out to agree with the
 operating system's rule here, for a different reason.
 
-**The default bus address is 0x52 in the vendor's eight-bit form**, from
-`VL53L5CX_DEFAULT_I2C_ADDRESS` in the library's own header. The devicetree's `reg` property takes
-a seven-bit address, so the two numbers differ by a shift and **which one goes in the overlay is
-not a thing to reason out in prose**: the tree is asked, either from a shield definition if one
-exists for this family or from how the driver passes the address to the library.
+**The default bus address is 0x52 in the vendor's header**, and that is not enough to write an
+overlay with. `VL53L5CX_DEFAULT_I2C_ADDRESS` is `0x52`, the driver passes the address to the
+library through `i2c_write_dt` on an ordinary devicetree address specification, and a
+devicetree's `reg` carries a seven-bit address. **0x52 is a legal seven-bit address and also the
+eight-bit form of 0x29, so the header alone does not say which this is.** Vendors in this family
+publish eight-bit addresses by convention, which is a reason to expect 0x29 and not a reason to
+write it: the arithmetic is definitional and the convention is the part that would be assumed.
+The tree answers it outright, since `tests/drivers/build_all/sensor/i2c.dtsi` carries a node for
+this compatible, and that node is what the overlay copies.
+
+**No shield definition exists for this shield.** The tree carries one for `x_nucleo_53l0a1`, the
+single-point generation, and none for the multizone shields of either generation. So the overlay
+is written here rather than inherited, which also means the reset pin and the data-ready line
+have nowhere else to come from; see the two criteria above.
 
 ### So the deliverable is not the one the chapter wrote
 
