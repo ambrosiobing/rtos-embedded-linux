@@ -1,8 +1,8 @@
 # The seven operations under FreeRTOS, on a host and on the board
 
-**Status: on the board, Saturday 17 October 2026 at 08:48, first flash, every verdict ok.** Six
-rows entered in [../docs/RESULTS.md](../docs/RESULTS.md), the record of the run in
-[../docs/BENCH.md](../docs/BENCH.md), the witness recording of the period still to take.
+**Status: on the board, Saturday 17 October 2026, first flash at 08:48 with every verdict ok,
+and criterion 5 at 09:27 with the two instruments 0.531 microseconds apart.** Seven rows entered
+in [../docs/RESULTS.md](../docs/RESULTS.md), the record in [../docs/BENCH.md](../docs/BENCH.md).
 
 **The host half, earlier the same morning: green in WSL on the demo laptop, first build.** No
 allocator in the binary, all seven verdicts passed, and the reduction refused the period

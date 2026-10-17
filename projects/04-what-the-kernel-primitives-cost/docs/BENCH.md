@@ -1260,6 +1260,53 @@ two flashes and two boots. That is the strongest statement this record can make 
 run-to-run noise on this image, and it bounds the build bound from below: whatever moves a
 figure by two to four per cent between builds, it is the build and not the board.
 
-**What remains for this kernel.** The witness recording of the repeating burst, which turns the
-period row from the device's word into criterion 5 under a second kernel; and the `Scale`
-decision above.
+**What remains for this kernel.** The `Scale` decision above. The witness recording follows.
+
+## Saturday 17 October 2026 at 09:27: criterion 5 under FreeRTOS, 0.531 microseconds
+
+The board resting in its burst since the 09:15 flash, a ten second recording from the Pi taken
+at leisure, the two capture files copied to the authoring laptop, and the two halves joined:
+
+    # p04 witness half, from p04f-burst.csv, 999792 samples at 100000.000 Hz,
+    #   390 edges both polarities, 65 of them in the burst used
+    # 6 bursts in this recording; their median periods span 1.87 us, against a
+    #   witness resolution of 10.0 us. They agree.
+
+    instrument       wall, from the capture
+    clock            280000000 Hz, from the capture
+    witness can see  10.0 us, from the capture
+    samples          64 counts, 64 witness periods
+
+                          min          median         max
+      cycle counter    999.868 us    999.979 us   1000.050 us
+      witness          999.993 us   1000.509 us   1009.618 us
+
+    medians differ by 0.531 us against a tolerance of 10.0 us
+    AGREE the two instruments report the same period
+
+**Three things in that block are different from the Zephyr run, and each is worth its line.**
+
+**65 edges in the burst and 64 witness periods.** The Zephyr row rested on 63 because the
+resting loop's store before each gap fired an edge the witness merged with the burst's last.
+That store was removed on Friday 9 October 2026 and this is the first recording taken since: the
+burst now arrives whole, and the device's 64 counts are compared with 64 periods rather than 63.
+
+**Six bursts spanning 1.87 microseconds**, against seven spanning 0.69 under Zephyr. Both are
+inside the witness's ten and the repeat stands in for the run either way; the wider spread is
+recorded and not explained, since one recording of each kernel cannot separate the kernel's
+period jitter from the witness's own.
+
+**The witness's excess is 0.531 microseconds, and under Zephyr it was 0.504.** Two kernels,
+two tick rates, two periods, 1000 and 1100 microseconds, and the same excess to within a
+thirtieth of a microsecond. Whatever adds half a microsecond to what the MCC 118 sees is in
+the chain the two runs share, the board's clock against the Pi's and the edge finder's
+placement, and not in either kernel's handling of its tick. Two observations, so a property
+of the chain is the most that can be said, and what in the chain is not.
+
+The image identity in the capture's metadata is 27148 bytes, typed from the build; the
+console log of the same image is `p04f-20261017-091525.log`, identical to the 08:48 one.
+
+**Criterion 5 holds under both kernels.** All seven held under Zephyr on Friday 9 October 2026;
+under FreeRTOS, criteria 1, 3, 4 and 5 are met from the board, 6 and 7 are the host's and hold
+for any kernel, and criterion 2 has no FreeRTOS counterpart to the upstream suite it names,
+which the design now says in its own words rather than leaving the reader to notice.

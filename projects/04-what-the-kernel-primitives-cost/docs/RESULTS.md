@@ -1,12 +1,12 @@
 # P04 results
 
-**Fifteen rows of twenty-six are measured, and the other eleven read `not measured`.** Nine are
-Zephyr's, from Friday 9 October 2026; six are FreeRTOS's, from Saturday 17 October 2026. Of the
-eleven unmeasured, six have been measured and are refused by this table's own rules, which is
+**Sixteen rows of twenty-six are measured, and the other ten read `not measured`.** Nine are
+Zephyr's, from Friday 9 October 2026; seven are FreeRTOS's, from Saturday 17 October 2026. Of the
+ten unmeasured, six have been measured and are refused by this table's own rules, which is
 explained below rather than worked around, and the column is filled in with a refusal rather
 than left blank for the same reason it always was.
 
-## The ninth row, and the only one two instruments watched
+## The ninth row, the first of two that two instruments watched
 
 `periodic thread period` under Zephyr went in on **Friday 9 October 2026 at 23:16**, and it is
 the row the whole second half of the project existed for. Criterion 5 asks that two instruments
@@ -61,10 +61,20 @@ answered, and the answer is not a quiet relabel; it is recorded in [BENCH.md](BE
 
 The contended mutex rows under FreeRTOS are 16060 and 69890 counts,
 **57.4 and 249.6 microseconds**, inheritance on and off, and stay
-unmeasured for the reason the Zephyr pair does. The period row's device half is
-280000 counts at a 1 kHz tick, **1000.00 microseconds**, with the board
-left repeating its burst; the witness has not recorded it yet, and a row that names the witness
-is not entered on the device's word alone.
+unmeasured for the reason the Zephyr pair does. The period row went in at **09:27 the same morning**, and it is the second row two instruments
+watched. The processor's own counter: minimum 999.868, **median 999.979**, maximum 1000.050
+microseconds. The MCC 118 on the Raspberry Pi: minimum 999.993, **median 1000.509**, maximum
+1009.618. That is 64 counts against 64 witness periods, from `p04f-burst` and the console log
+`p04f-20261017-091525.log`, and **the medians differ by 0.531 microseconds against a tolerance
+of 10**. Criterion 5 holds under the second kernel. The pair shown in the table is the
+counter's, 280000 counts at the stated 280 MHz on a 1 kHz tick, for the reason the Zephyr row
+gives above; the witness found six bursts in the recording and their median periods span 1.87
+microseconds, so the repeat the witness saw stands in for the run the counter measured.
+
+**The witness's excess over the counter is 0.531 microseconds here and 0.504 under Zephyr**, on
+periods of 1000 and 1100 microseconds. Two observations of one chain under two kernels, which
+is enough to say the excess belongs to the chain and not to either kernel, and not enough to
+say what in the chain it is.
 
 **What the two kernels say about each other, which is only ratios.** Within FreeRTOS the block
 on one object costs 1.34 of the yield round trip, the block on several
@@ -180,11 +190,12 @@ because a count is not a time until a clock rate is stated, and the check enforc
 | contended mutex, priority inheritance off | freertos | below | cycle counter | warm | not measured | not measured |
 | contended mutex, priority inheritance off | freertos | below | cycle counter | cold | not measured | not measured |
 | periodic thread period | zephyr | above | witness | n/a | 308000 | 1100.00 |
-| periodic thread period | freertos | above | witness | n/a | not measured | not measured |
+| periodic thread period | freertos | above | witness | n/a | 280000 | 1000.00 |
 
-*Table. Twenty-six rows, fifteen of them measured: the Zephyr rows from Friday 9 October 2026,
-eight at 09:40 and the period at 23:16, and the FreeRTOS rows from Saturday 17 October 2026 at
-08:48, every bracketed row with the processor's cycle counter as the instrument. The two kernels are priced against each
+*Table. Twenty-six rows, sixteen of them measured: the Zephyr rows from Friday 9 October 2026,
+eight at 09:40 and the period at 23:16, and the FreeRTOS rows from Saturday 17 October 2026, six
+at 08:48 and the period at 09:27, every bracketed row with the processor's cycle counter as the
+instrument. The two kernels are priced against each
 other only in the sense that a ratio between primitives within a kernel can be compared with the
 same ratio in the other. No row here licenses a claim that one kernel is faster than the other: that
 would be comparing two configurations, two sets of defaults and two compilers' inlining

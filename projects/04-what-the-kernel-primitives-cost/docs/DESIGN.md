@@ -138,6 +138,13 @@ the harness cross built for the target, then the bench. That is not the order th
 them in, and the chapter is not wrong: the criteria are listed by what they mean and this table
 sorts them by what they cost.
 
+**Criterion 2 is Zephyr's alone, stated Saturday 17 October 2026 after the FreeRTOS board ran.**
+It names an upstream suite, and the suite it means is Zephyr's `latency_measure`, which ships in
+that kernel's tree and brackets the same spans. The FreeRTOS kernel repository ships no
+benchmark of its kind, so there is nothing of the kernel's own to agree with within a stated
+factor, and the criterion is not met under FreeRTOS because it cannot be posed there. That is a
+gap in the design's symmetry and is written down as one; it is not a figure that failed.
+
 ## The orchestration is in the core, since Saturday 17 October 2026
 
 The gates, the instrument's own cost, the warm and cold passes, criterion 1 and the verdicts
