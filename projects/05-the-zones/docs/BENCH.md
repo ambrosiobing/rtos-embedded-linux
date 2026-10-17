@@ -620,9 +620,18 @@ name says which, since the console already prints `vl53l5cx@29` or `vl53l8cx@29`
 That is the failure this whole volume watches for: prose that was true when written and is not
 true of what the code now does, with nothing able to notice.
 
+**Reflashed at 14:43 to confirm the correction**, because this page quotes that console and
+quoting a line the code no longer prints is precisely the drift being described. Three boots,
+identical, with the corrected sentence and the two device lines unchanged. The image grew by 68
+bytes, which is the new text. A correction to a console message is worth a reflash for the same
+reason a build stamp is worth a line: the record has to be of what ran.
+
 **And the edit that fixed it broke five string literals**, because it was made through a shell
-heredoc which ate a backslash level and turned every `
-` into a real newline. That trap is on
-file from earlier work and was walked into anyway. `check_string_literals.py` reported ten
-problems immediately and the repair was made with a proper editor rather than a heredoc, which
-is what the note on file says to do.
+heredoc, which ate a backslash level and turned every escape for a newline into an actual
+newline. That trap is on file from earlier work and was walked into anyway.
+`check_string_literals.py` reported ten problems immediately, and the repair was made with a
+proper editor rather than another heredoc, which is what the note on file says to do.
+
+**Then this paragraph was written through a heredoc and broke in exactly the same way**, which is
+recorded rather than silently repaired: the sentence describing the trap contained it. Hence no
+escape character appears in the sentence above, and the fix for both was the same editor.
