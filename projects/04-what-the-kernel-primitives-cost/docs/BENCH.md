@@ -1398,3 +1398,123 @@ tell.
 
 Either outcome is reportable. The cold figures go into the table whichever way it falls, because
 the table's gap was never about the size of the number.
+
+## Saturday 17 October 2026 at 10:06 and 10:09: the cold pass over six, and the prediction scored
+
+Two images built at 10:03, FreeRTOS flashed and captured at 10:06 and Zephyr at 10:09, each
+reflashed immediately before its own capture because the board is shared. Both stamps read the
+build, both sets of gates passed, and the FreeRTOS image came out at 27148 bytes, byte for byte
+the same size as the morning's, which is why the stamp is the first line read and not the size.
+
+| Zephyr, 10:09 | Warm, min of 64 | Cold, min of 64 | Penalty, counts | Penalty, per cent |
+|---|---|---|---|---|
+| yield to an equal-priority ready thread | 667 | 1047 | 380 | 57.0 |
+| block on one object, be signalled, return | 492 | 1030 | 538 | 109.3 |
+| block on several objects, be signalled, return | 871 | 1662 | 791 | 90.8 |
+| hand work to a queue rather than do it in place | 688 | 1374 | 686 | 99.7 |
+| contended mutex, priority inheritance on | 8379 | 9446 | 1067 | 12.7 |
+| contended mutex, priority inheritance off | 36628 | 37561 | 933 | 2.5 |
+
+| FreeRTOS, 10:06 | Warm, min of 64 | Cold, min of 64 | Penalty, counts | Penalty, per cent |
+|---|---|---|---|---|
+| yield to an equal-priority ready thread | 626 | 1000 | 374 | 59.7 |
+| block on one object, be signalled, return | 840 | 2144 | 1304 | 155.2 |
+| block on several objects, be signalled, return | 990 | 2316 | 1326 | 133.9 |
+| hand work to a queue rather than do it in place | 1158 | 3144 | 1986 | 171.5 |
+| contended mutex, priority inheritance on | 16054 | 18550 | 2496 | 15.5 |
+| contended mutex, priority inheritance off | 69890 | 72164 | 2274 | 3.3 |
+
+**All twenty-six rows of [RESULTS.md](RESULTS.md) are now measured.** The four contended mutex
+cells were the last, and both halves of each come from these two runs rather than being paired
+across runs, because the penalty is the point of the pair.
+
+### The prediction's refutable half held, under both kernels
+
+What was written before the run: the penalty should be a one-time refill of the code path, so it
+should be **about the same in both arms**, because what separates the arms is spin iterations and
+not code. What came back:
+
+| | Inheritance on | Inheritance off | Ratio of penalties | Ratio of the operations |
+|---|---|---|---|---|
+| Zephyr | 1067 counts | 933 counts | 0.87 | 4.37 |
+| FreeRTOS | 2496 counts | 2274 counts | 0.91 | 4.35 |
+
+**The operations differ by a factor of 4.4 and their penalties by about a tenth.** The penalty
+does not scale with the span, which is what a one-time refill means and what the prediction said
+would be visible. It was also given a way to fail: a penalty on the non-inheriting arm much
+larger than on the inheriting one would have meant the cache state was being lost and re-lost
+inside the bracket. It is not larger. It is slightly smaller, both times.
+
+**That slight asymmetry is unexplained and is left so.** The non-inheriting bracket contains
+more code, not less, since medium's whole path runs inside it, so a refill argument predicts its
+penalty to be the larger. One candidate is that medium's work calls the same `spin()` the holder
+has already run inside the same bracket, so those lines are warm by the time medium reaches
+them; that is a guess with one observation per kernel behind it and it is not offered as a
+mechanism. The honest statement is two numbers that are close and an ordering that is the other
+way round from the simplest story.
+
+### The magnitude band was missed, on the high side, and the reason is a method error
+
+The prediction also named sizes, and those were wrong:
+
+| | Predicted | Measured | Short rows' own penalties |
+|---|---|---|---|
+| Zephyr, counts | a few hundred | 933 and 1067 | 380 to 791 |
+| FreeRTOS, counts | one to two thousand | 2274 and 2496 | 374 to 1986 |
+| inheriting arm, per cent | 4 to 11 | 12.7 and 15.5 | |
+| other arm, per cent | 1 to 3 | 2.5 and 3.3 | |
+
+Both count bands came out above their top. **The error was in how the estimate was made, not in
+the arithmetic: the band was taken by analogy with the short rows rather than from what the
+bracket contains.** The contended bracket runs through more distinct code than any short row,
+the lock attempt, the block, the holder's release, two switches and in one arm medium's whole
+path, and a refill costs a line for every line the bracket touches. So the figure should have
+been predicted **above** the short rows' band, and it was predicted inside it. The ordering was
+the predictable part and it is the part that was got backwards.
+
+The percentage band on the inheriting arm was missed for the same reason, 12.7 and 15.5 against
+4 to 11. The other arm's band held at 2.5 and 3.3, which is luck rather than skill: it is a
+larger penalty divided by a much larger baseline.
+
+### The build bound was missed again, on the same two Zephyr rows, and FreeRTOS did not move
+
+The warm figures against the previous run of each kernel, against the four per cent bound
+revised this morning for a change that reorganises the image:
+
+| Operation | Zephyr 08:20 | Zephyr 10:09 | | FreeRTOS 08:48 | FreeRTOS 10:06 |
+|---|---|---|---|---|---|
+| yield to an equal-priority ready thread | 668 | 667 | down 0.1 pc | 626 | 626, none |
+| block on one object, be signalled, return | 499 | 492 | down 1.4 pc | 840 | 840, none |
+| block on several objects, be signalled, return | 879 | 871 | down 0.9 pc | 986 | 990, up 0.4 pc |
+| hand work to a queue rather than do it in place | 650 | **688** | **up 5.8 pc** | 1142 | 1158, up 1.4 pc |
+| contended mutex, priority inheritance on | 8393 | 8379 | down 0.2 pc | 16060 | 16054, down 0.04 pc |
+| contended mutex, priority inheritance off | 36633 | 36628 | down 0.01 pc | 69890 | 69890, none |
+
+And one cold figure moved as far: Zephyr's block-on-several cold was 1579 at 09:40 on Friday 9
+October 2026 and is **1662**, up 5.3 per cent.
+
+**This is the second time the bound has been missed and both times it was these two Zephyr rows**,
+the poll and the work queue, which is what the first miss already said: the rows that move most
+are the two whose brackets hold the most code. The work-queue row has now read 673, 650 and 688
+across three builds, a spread of 5.8 per cent top to bottom, so **for that row the honest bound
+is about six per cent and not four.** The general bound stays where this morning put it, because
+the other four rows moved by under 1.5 per cent.
+
+**The FreeRTOS image reproduced to within 1.4 per cent on every row across the same change**,
+and two of six did not move at all. That is the more useful half of the comparison: a build
+bound is a property of an image and a toolchain rather than of a measurement, and quoting one
+number for both kernels would have been quoting the looser of them. Nothing here says one
+toolchain is better; the two images differ in size, in layout and in how much of them the
+brackets touch.
+
+### Where the seven criteria stand under each kernel
+
+| | Criterion | Zephyr | FreeRTOS |
+|---|---|---|---|
+| 1 | the instrument is cheaper by an order of magnitude | met, ratio 21 | met, ratio 28 |
+| 2 | agreement with the upstream suite within a stated factor | met, 0.98 and 1.12 | **cannot be posed**, the kernel ships no benchmark suite |
+| 3 | warm and cold differ, and by how much | met, six operations | met, six operations |
+| 4 | priority inheritance changes the contended result | met, ratio 4.4 | met, ratio 4.4 |
+| 5 | two instruments agree on the period | met, 0.504 us | met, 0.531 us |
+| 6 | the disagreement is detectable | met, and it needs no kernel | met, the same reduction |
+| 7 | no row claims an instrument that cannot see it | met, checked on every push | met, the same check |

@@ -1,12 +1,10 @@
 # P04. What the kernel primitives cost, by the cycle counter
 
-Status on Saturday 17 October 2026: **twenty-two of the table's twenty-six rows are measured,
-under two kernels, and criterion 5 holds under both.** All seven criteria were met under Zephyr
-on Friday 9 October 2026. Under FreeRTOS, criteria 1, 3, 4 and 5 are met from the board, 6 and 7
-are the host's and hold for any kernel, and criterion 2 cannot be posed, because the FreeRTOS
-kernel ships no benchmark suite to agree with; [docs/DESIGN.md](docs/DESIGN.md) says so. The
-four unmeasured rows are the cold figures of the contended mutex, which the campaign's cold pass
-does not take. The figures are in [docs/RESULTS.md](docs/RESULTS.md), the record of every run in
+Status on Saturday 17 October 2026: **all twenty-six rows of the table are measured, under two
+kernels, and six of the seven criteria are met under each.** The seventh, agreement with an
+upstream benchmark suite, is Zephyr's alone and cannot be posed under FreeRTOS, whose kernel
+ships no such suite; [docs/DESIGN.md](docs/DESIGN.md) says so rather than leaving a reader to
+notice. The figures are in [docs/RESULTS.md](docs/RESULTS.md), the record of every run in
 [docs/BENCH.md](docs/BENCH.md), and the second kernel in [freertos/README.md](freertos/README.md).
 
 On Thursday 8 October 2026 this line read: the design page exists and no code does. The sections

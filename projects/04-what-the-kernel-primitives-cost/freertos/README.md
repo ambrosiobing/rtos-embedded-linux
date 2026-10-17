@@ -1,8 +1,11 @@
 # The seven operations under FreeRTOS, on a host and on the board
 
-**Status: on the board, Saturday 17 October 2026, first flash at 08:48 with every verdict ok,
-and criterion 5 at 09:27 with the two instruments 0.531 microseconds apart.** Seven rows entered
-in [../docs/RESULTS.md](../docs/RESULTS.md), the record in [../docs/BENCH.md](../docs/BENCH.md).
+**Status: on the board, Saturday 17 October 2026. First flash at 08:48 with every verdict ok,
+criterion 5 at 09:27 with the two instruments 0.531 microseconds apart, and the cold pass over
+six operations at 10:06.** All thirteen of this kernel's rows are in
+[../docs/RESULTS.md](../docs/RESULTS.md) and the record of every run is in
+[../docs/BENCH.md](../docs/BENCH.md). Six of the seven criteria are met; criterion 2 names an
+upstream suite and this kernel ships none, so it cannot be posed rather than having failed.
 
 **The host half, earlier the same morning: green in WSL on the demo laptop, first build.** No
 allocator in the binary, all seven verdicts passed, and the reduction refused the period

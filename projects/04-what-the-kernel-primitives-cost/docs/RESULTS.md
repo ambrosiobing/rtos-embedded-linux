@@ -1,11 +1,14 @@
 # P04 results
 
-**Twenty-two rows of twenty-six are measured, and the other four read `not measured`.** Eleven
-are Zephyr's, from Friday 9 October 2026; eleven are FreeRTOS's, from Saturday 17 October 2026.
-The four unmeasured are the cold figures of the contended mutex rows, which no cold pass has
-taken, and the column is filled in with a refusal rather than left blank for the same reason it
-always was. Six of the twenty-two sat in prose for a time while the table refused them, and the
-story of that is below, because the refusals were right until the rule was refined.
+**All twenty-six rows are measured, as of Saturday 17 October 2026 at 10:09.** Thirteen are
+Zephyr's and thirteen are FreeRTOS's. Nothing here reads `not measured`, which it did for nine
+days, and the column stays in the page because the refusal it used to carry is the reason the
+rest can be read: a blank invites somebody to fill it in and a refusal does not.
+
+The rows do not all come from one run and the caption says which came from where. Six of them
+sat in this page's prose for part of a morning while the table refused them, and the four
+contended mutex operations were relabelled `above` before they could enter; both stories are
+below, because the refusals were right until the rule was read.
 
 ## The ninth row, the first of two that two instruments watched
 
@@ -124,9 +127,26 @@ going to be a few hundred counts. The figures stood in this page's prose from Fr
 2026 and the label moved eight days later, after the FreeRTOS pair arrived at 57.4 and
 249.6 and made the prediction wrong under two kernels. The git history shows that order.
 The rows keep the cycle counter as their instrument, since a thread's wait is still not a pin
-the witness can watch, and they keep their warm and cold rows; the cold ones read `not
-measured` because the cold pass covers the first four operations only, and that is a gap in
-the campaign rather than a refusal.
+the witness can watch, and they keep their warm and cold rows.
+
+**Their cold halves arrived at 10:09 the same day, and the pair in the table is one run's.** The
+campaign's cold pass covered four operations because a comment written before any contended
+figure existed said these brackets take long enough to lose a cache state. That is right about
+the dilution and wrong about what to do with it, so the pass now covers six; only the period
+row, which brackets a millisecond of sleep, stays out. The warm and cold halves of these four
+rows are therefore both from the run of 10:09, where every other row's pair is from its own
+earlier run, and the two warm figures moved by less than a tenth of a per cent in the process:
+8381 to 8379 under Zephyr and 16060 to 16054 under FreeRTOS.
+
+**The penalty is a one-time refill of the code path, and the figures say so.** Under Zephyr it
+is 1067 counts with inheritance on and 933 with it off; under FreeRTOS 2496 and 2274. The two arms of
+each kernel differ by about a tenth while **the operations themselves differ by a factor of
+4.4**, so the penalty plainly does not scale with the span. That was the prediction's refutable
+half, written before the run, and it held under both kernels. What it means for a reader of this
+table is that the cold column on these four rows is not a cold version of a contended lock: it
+is the same lock with one cache refill in front of it, which is why it reads as 2.5 to 15.5 per
+cent where the short rows read 57 to 172. The percentages across rows are not comparable and
+the counts are.
 
 This file is checked by [scripts/check_instruments.py](../../../scripts/check_instruments.py)
 on every push, and the check is **criterion 7**: no row may claim an instrument that cannot see
@@ -198,22 +218,23 @@ because a count is not a time until a clock rate is stated, and the check enforc
 | hand work to a queue rather than do it in place | zephyr | below | cycle counter | cold | 1380 | 4.93 |
 | hand work to a queue rather than do it in place | freertos | below | cycle counter | warm | 1142 | 4.08 |
 | hand work to a queue rather than do it in place | freertos | below | cycle counter | cold | 3144 | 11.23 |
-| contended mutex, priority inheritance on | zephyr | above | cycle counter | warm | 8381 | 29.93 |
-| contended mutex, priority inheritance on | zephyr | above | cycle counter | cold | not measured | not measured |
-| contended mutex, priority inheritance on | freertos | above | cycle counter | warm | 16060 | 57.36 |
-| contended mutex, priority inheritance on | freertos | above | cycle counter | cold | not measured | not measured |
-| contended mutex, priority inheritance off | zephyr | above | cycle counter | warm | 36610 | 130.75 |
-| contended mutex, priority inheritance off | zephyr | above | cycle counter | cold | not measured | not measured |
+| contended mutex, priority inheritance on | zephyr | above | cycle counter | warm | 8379 | 29.93 |
+| contended mutex, priority inheritance on | zephyr | above | cycle counter | cold | 9446 | 33.74 |
+| contended mutex, priority inheritance on | freertos | above | cycle counter | warm | 16054 | 57.34 |
+| contended mutex, priority inheritance on | freertos | above | cycle counter | cold | 18550 | 66.25 |
+| contended mutex, priority inheritance off | zephyr | above | cycle counter | warm | 36628 | 130.81 |
+| contended mutex, priority inheritance off | zephyr | above | cycle counter | cold | 37561 | 134.15 |
 | contended mutex, priority inheritance off | freertos | above | cycle counter | warm | 69890 | 249.61 |
-| contended mutex, priority inheritance off | freertos | above | cycle counter | cold | not measured | not measured |
+| contended mutex, priority inheritance off | freertos | above | cycle counter | cold | 72164 | 257.73 |
 | periodic thread period | zephyr | above | witness | n/a | 308000 | 1100.00 |
 | periodic thread period | freertos | above | witness | n/a | 280000 | 1000.00 |
 
-*Table. Twenty-six rows, twenty-two of them measured: the Zephyr rows from Friday 9 October 2026,
-eight at 09:40 and the period at 23:16, and the FreeRTOS rows from Saturday 17 October 2026, six
-at 08:48 and the period at 09:27, every bracketed row with the processor's cycle counter as the
-instrument. The four contended mutex operations carry `above` since Saturday 17 October 2026, a
-relabel explained in full above the table. The two kernels are priced against each
+*Table. Twenty-six rows, all measured, from five runs and each row says which. Zephyr: eight at
+09:40 on Friday 9 October 2026, the period at 23:16 that day, the four contended mutex cells at
+10:09 on Saturday 17 October 2026. FreeRTOS: six at 08:48 on Saturday 17 October 2026, the
+period at 09:27, the four contended mutex cells at 10:09. Every bracketed row is measured with
+the processor's own cycle counter. The four contended mutex operations carry `above` since
+Saturday 17 October 2026, a relabel explained in full above the table. The two kernels are priced against each
 other only in the sense that a ratio between primitives within a kernel can be compared with the
 same ratio in the other. No row here licenses a claim that one kernel is faster than the other: that
 would be comparing two configurations, two sets of defaults and two compilers' inlining
