@@ -699,3 +699,52 @@ in the move except the `.yaml`.
 **The habit this leaves** is to run every check the workflow runs, not the subset that happens to
 be a script, and the way to make that possible is to keep no rule anywhere a laptop cannot reach.
 A guard the author cannot run is a guard the author will not run.
+
+## Saturday 17 October 2026 at 15:20: the part accepts this generation's firmware image
+
+```
+<inf> vl53l8cx: device 0xf0 revision 0x0c at 0x29
+READY vl53l8cx@29
+[00:00:01.970,000] <inf> vl53l8cx: initialised with this generation's own interface
+```
+
+**The claim is now proven in both directions on one bench, one board and one part.** The
+previous generation's library sends its firmware image to this part and times out after 5.924
+seconds. This generation's library sends its own and the part is initialised in 1.971 seconds.
+Everything else is held fixed: the same board, the same shield, the same bus at the same rate,
+the same address, the same two control pins driven the same way by the same code, and a porting
+layer that differs only in the name of the library it serves.
+
+| | The previous generation's library | This generation's |
+|---|---|---|
+| what it does with the part | uploads an image the part cannot boot | uploads one it can |
+| how it ends | `VL53L5CX_STATUS_TIMEOUT_ERROR` | initialised |
+| how long it takes | 5.924 s | 1.971 s |
+
+**That difference is the whole project in two numbers**, and the chapter can now say the thing it
+set out to say without any hedging: the operating system knows the generation before this one,
+this part is not that part, and the gap is a driver and a binding and the right vendor interface.
+
+### It also corroborates a model that was explicitly not tested
+
+The timing decomposition written at 12:42 split the failure into about **1.8 seconds of transfer
+at 400 kHz and about 4.1 seconds of waiting that the bus rate does not touch**, and that page
+said plainly that two measurements and a two-parameter model always fit, so it was a reading of
+the data and not a test of it.
+
+**A successful initialisation takes 1.971 seconds.** That is the same work without the waiting:
+the image goes over the same bus at the same rate, and the part answers instead of being waited
+for. It lands within a tenth of a second of the transfer term the model predicted.
+
+That is corroboration and not proof, and the difference matters enough to write down. The model
+was fitted to two points of one experiment and this is a third point from a different one, which
+is a much better position than the model had an hour ago, but a third bus rate would still be
+the test. What it does settle is the shape: **the previous generation's library was not failing
+to send the image. It sent it, and then waited for a part that was never going to answer.**
+
+### What is now true of the four candidate causes written before any of this
+
+Every one has been closed by a run rather than by argument: the address was right, the part is
+powered by two pins the tree's binding has no property for, the bus speed is not the cause, and
+the part is a different member of the same family that accepts its own generation's image. The
+only thing this driver has not done is read the grid.

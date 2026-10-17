@@ -1,10 +1,10 @@
 /* projects/05-the-zones/src/vl53l8cx.c: a driver for this generation, and it does not range yet.
  *
- * WHAT IT DOES, AND WHY THAT IS THE RIGHT FIRST VERSION. It drives the supply enable and the
- * low-power line from its own binding, waits, asks the part what it is, and either refuses it by
- * name or binds. It does not read the grid. Ranging needs this generation's vendor interface,
- * which is not in the tree and has to be cloned at a pin, and that is the next piece of work;
- * everything in this file is independent of it and runnable now.
+ * WHAT IT DOES. It drives the supply enable and the low-power line from its own binding, waits,
+ * asks the part what it is, refuses it by name or goes on, and sends it this generation's
+ * firmware image. On Saturday 17 October 2026 at 15:20 the part accepted that image in 1.971
+ * seconds, where the previous generation's image left the tree's driver timing out after 5.924.
+ * It does not read the grid; that is the next piece of work and everything above it is done.
  *
  * It exists in this form because the afternoon of Saturday 17 October 2026 established exactly
  * these things on the bench and nothing more, and a driver that claimed more would be claiming
