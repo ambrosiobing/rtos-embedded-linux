@@ -128,17 +128,50 @@ static int assert_line(const struct gpio_dt_spec *line, const char *what)
 	return rc;
 }
 
+/* HOW LONG THE PART MAY TAKE TO ANSWER AFTER ITS SUPPLY IS ENABLED, and this bound exists
+ * because of a control run on Saturday 17 October 2026 at 15:44. Every run before it had been a
+ * processor reset on a board that was already powered, and the part answered immediately because
+ * it had never stopped. The first run from a genuinely cold start, cable out and back in, found
+ * **nothing at all on the bus**: not a wrong address, not a wrong jumper, nothing answering
+ * anywhere.
+ *
+ * The vendor's own example waits ten milliseconds after driving the supply enable, and that is
+ * what this driver did. On an Arduino that ten milliseconds follows a rail which has been stable
+ * for as long as the sketch took to reach `setup()`. On a board coming up from cold it follows a
+ * rail that is itself still settling, and ten milliseconds is not enough.
+ *
+ * SO THE DRIVER ASKS REPEATEDLY RATHER THAN WAITING A LONGER FIXED TIME, and reports how long it
+ * took. A longer delay would be a number chosen to be safe; polling produces the figure instead,
+ * and the figure is what the record should carry. */
+#define IDENTITY_WAIT_MS 500
+
 static int vl53l8cx_identify(const struct device *dev)
 {
 	const struct vl53l8cx_config *cfg = dev->config;
 	struct vl53l8cx_data *data = dev->data;
+	int64_t began = k_uptime_get();
+	int64_t waited;
 	int rc;
 
-	rc = write_reg(&cfg->i2c, REG_PAGE, PAGE_IDENTITY);
+	do {
+		rc = write_reg(&cfg->i2c, REG_PAGE, PAGE_IDENTITY);
+		if (rc != 0) {
+			k_msleep(5);
+		}
+	} while (rc != 0 && (k_uptime_get() - began) < IDENTITY_WAIT_MS);
+
+	waited = k_uptime_get() - began;
+
 	if (rc != 0) {
-		LOG_ERR("no answer at 0x%02x: the part is not powered, is held in its low-power "
-			"state, or is not at this address", cfg->i2c.addr);
+		LOG_ERR("no answer at 0x%02x after %d ms: the part is not powered, is held in "
+			"its low-power state, or is not at this address",
+			cfg->i2c.addr, (int)waited);
 		return rc;
+	}
+	if (waited > 0) {
+		/* THE FIGURE, PRINTED WHENEVER IT IS NOT ZERO, because it is the thing the
+		 * control run was for and a driver that waited silently would hide it. */
+		LOG_INF("the part answered %d ms after its supply was enabled", (int)waited);
 	}
 
 	rc = read_reg(&cfg->i2c, REG_DEVICE, &data->device_id);

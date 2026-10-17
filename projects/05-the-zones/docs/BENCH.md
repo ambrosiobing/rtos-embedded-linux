@@ -796,3 +796,49 @@ It now takes **four frames in one run** rather than one, polls for each with a s
 prints how long each took and when it arrived. One run then shows the settling instead of leaving
 a reader to infer it from two logs, and the interval between frames is the ranging period
 measured rather than assumed, which is the figure the driver deliberately did not set.
+
+## Saturday 17 October 2026 at 15:44: a cold start, and the part is not there at all
+
+The control asked for in the previous entry: cable out, a few seconds, cable back in, no button
+pressed. **Nothing answered anywhere on the bus.**
+
+```
+# bus scan on i2c@40005400, addresses 0x08 to 0x77
+#   nothing answered. The part is not on this bus
+#   0 device(s) answered
+NOT READY vl53l8cx@29
+<err> vl53l8cx: no answer at 0x29: the part is not powered, is held in its
+      low-power state, or is not at this address
+```
+
+**That is not the result the control was looking for and it is a better one.** The question was
+whether a cold part's first frame is noise. The answer is that a cold part does not reach the
+first frame: it never answers its address.
+
+### Every run before this one was a processor reset on a board that never lost power
+
+The board has been powered continuously since the shield was fitted. Every result in this log
+came from a button press, which resets the processor and leaves the part's supply alone, so the
+part had been powered for minutes or hours before anything spoke to it. **The driver's ten
+millisecond settle was never tested from cold until now**, and from cold it is not enough.
+
+The vendor's own example waits ten milliseconds after driving the supply enable, which this
+driver copied deliberately rather than inventing a figure. On an Arduino that ten milliseconds
+follows a rail stable since whenever the sketch reached its setup. On a board coming up from cold
+it follows a rail still settling, and the two are not the same ten milliseconds.
+
+**So a copied figure was right about the number and wrong about the condition**, which is a
+specific kind of mistake worth naming: the value came from a source, and the circumstances it was
+measured in did not.
+
+### The driver now asks repeatedly and reports the figure
+
+A longer fixed delay would be a number chosen to be safe, and nobody would ever learn what the
+part actually needs. The driver polls for up to half a second and **prints how long it waited
+whenever that is not zero**, so the next cold start produces the figure rather than hiding it
+behind a delay. If half a second is not enough, that is also a result and the bound is stated in
+the message.
+
+**What this does not yet explain.** Whether the part needs the time because its supply is
+settling, because it has its own boot, or because the supply enable needs holding longer before
+it means anything. The figure will narrow that, and no mechanism is offered until it does.
