@@ -31,9 +31,9 @@ The second reason for the chapter is a boundary that matters. The acquisition bo
 >
 > The interrupt-to-thread latency distribution is not measured here. The sibling firmware volume's final chapter builds that measurement in full over a million events, and repeating it would be duplication rather than evidence. This chapter prices the primitives against one another, which is a different question.
 >
-> Every row in the table below reads `not measured` on Friday 2 October 2026. The method is written and the refutation is written; the runs have not happened. A reader should treat the table as a protocol rather than as a result, and the chapter says so rather than leaving the column blank.
+> Every row of the table below read `not measured` when this chapter was written on Friday 2 October 2026, and the chapter said so rather than leaving the column blank. All of them are measured now, under two kernels, the first on Friday 9 October 2026 and the last on Saturday 17 October 2026. What has not changed is which instrument may answer which question, and the row that only the acquisition board can witness is still one row of eight.
 >
-> The cycle counter measures the processor, including its caches. A number taken with the instruction cache warm and a number taken cold differ by more than the quantity being measured in some cases, so each row states which it is. A chapter that reported one number would be reporting an accident of ordering.
+> The cycle counter measures the processor, including its caches. A number taken with the instruction cache warm and a number taken cold differ by more than the quantity being measured in some cases, so each row states which it is. A chapter that reported one number would be reporting an accident of ordering. That sentence was written before any cold figure existed and is now a measurement rather than an expectation: of the twelve warm and cold pairs, four have a cold figure more than twice the warm one, the largest being work handed to a queue under FreeRTOS at 1158 counts warm and 3144 cold.
 
 ## Prior art and what to reuse
 
@@ -87,7 +87,7 @@ Two of those lines are measurements in disguise. Time slicing is off because a s
 
 ![Figure 4.2. Two leads.](../projects/04-what-the-kernel-primitives-cost/docs/figures/z04_wiring.svg)
 
-*Figure 4.2. Two leads. One general-purpose pin on the microcontroller to one analogue input on the acquisition board, and one ground between the two boards so that the voltages are comparable. The pin is driven high for the duration being witnessed and low otherwise, which turns a period into a square wave the acquisition board can resolve.*
+*Figure 4.2. Two leads. One general-purpose pin on the microcontroller to one analogue input on the acquisition board, and one ground between the two boards so that the voltages are comparable. The pin is toggled once per period, so one period is one edge and consecutive edges alternate, which turns the period into a square wave at half its frequency. It was going to be a pulse per period, high for the duration and low otherwise, until the sibling volume found that a sampler reading every ten microseconds catches only fragments of a pulse that short; both polarities are counted and the interval between consecutive edges is the period.*
 
 The ground lead is the one that gets forgotten and it is the one that produces the most confusing failure. Without it the acquisition board sees a signal referred to its own ground, which floats relative to the microcontroller's, and the capture looks like noise with structure in it. The two boards are powered from separate supplies here, so the ground lead is the only thing making the measurement meaningful.
 
@@ -97,20 +97,22 @@ The ground lead is the one that gets forgotten and it is the one that produces t
 
 *Figure 4.3. The measurement harness itself, and what it costs. The instrument has to be cheaper than the thing it measures, which for a two-instruction counter read it comfortably is, and the figure states the overhead so that it can be subtracted rather than ignored.*
 
-| What is being priced | Expected order | Measured | Cache state |
+| What is being priced | Expected order | Measured, Zephyr | Measured, FreeRTOS |
 | --- | --- | --- | --- |
-| Reading the cycle counter, the overhead itself | tens of cycles | not measured | warm |
-| Context switch, two ready threads | hundreds of cycles | not measured | warm |
-| Context switch, same, cold instruction cache | more than the above | not measured | cold |
-| Message queue, put then get, no block | hundreds of cycles | not measured | warm |
-| Waiting on several objects at once, one ready | more than a queue | not measured | warm |
-| Handing an item to a work queue | hundreds of cycles | not measured | warm |
-| Doing the same work in place | the baseline | not measured | warm |
-| Mutex, uncontended take and give | tens of cycles | not measured | warm |
-| Mutex, contended, with inheritance | far more than the above | not measured | warm |
-| Periodic thread, the period itself | one millisecond | not measured | witnessed |
+| Reading the cycle counter, the overhead itself | tens of cycles | 23 | 22 |
+| Control passing to an equal-priority thread and back | hundreds of cycles | 667 / 1047 | 626 / 1000 |
+| Blocking on one object, being signalled, returning | hundreds of cycles | 492 / 1030 | 840 / 2144 |
+| Blocking until any of several objects is ready | more than one object | 871 / 1662 | 990 / 2316 |
+| Handing work to a queue rather than doing it in place | hundreds of cycles | 688 / 1374 | 1158 / 3144 |
+| Contended mutex, priority inheritance on | far more than the above | 8379 / 9446 | 16054 / 18550 |
+| Contended mutex, priority inheritance off | more again | 36628 / 37561 | 69890 / 72164 |
+| Periodic thread, the period itself | one millisecond | 308000, witnessed | 280000, witnessed |
 
-*Table 4.3. The protocol for P04, which is what this table is until the runs happen. The last row is the only one the acquisition board can witness; every row above it is below that instrument's floor, and the chapter does not pretend otherwise. The two context-switch rows exist because reporting one number for both would be reporting an accident of ordering.*
+*Table 4.3. What the primitives cost. Each measured cell gives the warm figure and then the cold one, in cycle counts at 280 MHz, so 280 counts is one microsecond. Each figure is the minimum of sixty-four, because an operation has a floor and no ceiling. Zephyr's four short rows are from Friday 9 October 2026 and its mutex rows from Saturday 17 October 2026; every FreeRTOS figure is from Saturday 17 October 2026. The last row is the only one the acquisition board can witness, and it is the only one it was asked about. The project's own table carries all twenty-six rows with their durations, the run each came from and the prediction each had to survive.*
+
+**The Expected order column was written before any run and is the part worth scoring.** It holds for the instrument's own cost, at twenty-two and twenty-three counts against "tens"; for the switch, at six hundred odd against "hundreds"; for waiting on several objects against waiting on one, which is dearer under both kernels; and for the contended mutex, at twelve to twenty-eight times a switch against "far more". It fails twice. Work handed to a queue is 1158 counts under FreeRTOS, which is a thousand and not hundreds. And the period is one millisecond under FreeRTOS and 1.1 under Zephyr, because that build's tick is a hundred microseconds and a one-millisecond sleep is rounded up by one tick; a chapter that had asserted 1 kHz on this configuration would have been describing 909 Hz.
+
+**Three rows this chapter asked for are not in the table, and one was reinterpreted.** A message queue put and got without blocking, the same work done in place as a baseline, and an uncontended mutex taken and given were all specified here and none was built: the project measured a blocking semaphore, an event wait on several objects, a post to a work queue and the contended mutex, which answer the question the chapter opens with, the price of one primitive against another, without answering these three. Waiting on several objects "one ready" became waiting until any of several becomes ready, which blocks, and that is a different quantity from the one this page named. The project's design page carries the map from each row to each kernel's objects and marks every place a row had to change rather than be renamed. Going the other way, the table gained a row the chapter never listed: the contended mutex with inheritance off, which the acceptance criteria below do require and which is the arm that makes the other one evidence.
 
 ## Software design (UML)
 
@@ -246,6 +248,10 @@ When a case produces a number that looks wrong, the order of suspicion is fixed.
 - **Two instruments agree on the period.** The counter and the acquisition board agree on the periodic thread's period within the acquisition board's own resolution. *Refuted if* they disagree, which points at the clock configuration and not at the kernel.
 - **The disagreement is detectable.** With the period deliberately changed, the reduction script reports it. *Refuted if* it passes.
 - **No row claims the acquisition board where it cannot see.** Every row except the last names the cycle counter. *Refuted if* any sub-ten-microsecond number cites the external instrument.
+
+**Where the seven stand, on Saturday 17 October 2026.** Six are met under each kernel. The instrument is twenty-one to twenty-eight times cheaper than the smallest thing it measures. Warm and cold differ on six operations under both. Priority inheritance changes the contended result by a factor of 4.4 under both, and the arm with it off is the reason that is evidence. The two instruments agree on the period to 0.504 microseconds under Zephyr and 0.531 under FreeRTOS, against a tolerance of ten. The deliberate disagreement is reported, which was shown on synthetic input before any hardware existed. And no row claims the acquisition board where it cannot see, which is checked on every push rather than remembered.
+
+The exception is the second criterion, agreement with the operating system's own timing benchmark suite. It is met under Zephyr at 0.98 and 1.12 of the upstream figures. It **cannot be posed** under FreeRTOS, whose kernel ships no benchmark of that kind, so there is nothing of the kernel's own to agree with within a stated factor. That is a gap in this chapter's symmetry and is written down as one rather than being quietly scored as a pass or a failure.
 
 ## Variants
 
