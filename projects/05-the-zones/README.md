@@ -14,6 +14,10 @@ in 1.971 seconds where the previous generation's image left it timing out after 
 board, same shield, same bus, same address, same pins: the difference is which vendor interface
 the image came from, and that is the chapter's claim proven in both directions.
 
+**Open since 15:44: the part has not answered since the board was power cycled**, and nothing
+varied in software has brought it back. The observations below stand; what is in doubt is the
+explanation of why the part was answering at all. See [docs/BENCH.md](docs/BENCH.md).
+
 **The grid is read.** At 15:35 the part returned sixty-four distances between 2540 and 2640
 millimetres, flat across the rows and rising 52 millimetres across the columns, which is a flat
 surface at about two and a half metres seen at a slight angle. No number is in the table yet: an

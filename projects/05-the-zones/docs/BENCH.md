@@ -956,3 +956,50 @@ capturing. Same image, same shield, same everything.
 |---|---|
 | silent before the press, answers after | the press is the difference, and the question becomes what a reset does that a power-on does not. A supply that is still rising is the obvious candidate and is testable by waiting longer before pressing |
 | silent both times | the press is not the difference either, and what changed between 15:35 and 15:44 was something else about the bench, which would be the first thing to establish by eye |
+
+## Saturday 17 October 2026 at 16:39: the board is fine, the part is gone, and what that costs
+
+The board boots, the console works, a press produces two complete runs. **The part has not
+answered since 15:44** and nothing tried since has brought it back:
+
+| Varied | Values tried | The part |
+|---|---|---|
+| the settle bound | 10 ms, 500 ms, 5000 ms | absent |
+| the control pins | both driven, neither driven | absent |
+| the reset button | pressed, not pressed | absent |
+| the shield | reseated and pressed down | absent |
+
+The last run in which it answered was 15:35. Between that and 15:44 one thing happened: **the
+board was power cycled for the first time since the shield was fitted.**
+
+### What this costs, stated precisely rather than generally
+
+**The observations stand and the mechanism does not.** The part did answer at 0x29. It did
+identify itself as device 0xF0 revision 0x0C. It did refuse the previous generation's firmware
+image with a timeout and accept this generation's in 1.971 seconds. It did return sixty-four
+distances that formed a coherent surface at two and a half metres. Those happened, they are in
+this log with the consoles that produced them, and nothing since casts doubt on any of them.
+
+**What is in doubt is the explanation of why the part was answering at all**, and specifically
+the entry of 12:17 which says fifteen lines driving two pins woke it. That reading had a
+confound when it was written, and the runs since have shown that with those lines removed the
+part behaves no differently. The honest position now: **this project does not know what made the
+part answer between 12:17 and 15:35, and does not know what a power cycle changed.**
+
+### Why this stops being a software question here
+
+Everything a description or a driver can vary has been varied. What has not been read is the
+expansion board itself: its power path, whether the part has a reset line separate from the two
+this project drives, what the current-measurement links on it do, and which positions the
+interface jumpers are in. **That is a document and a look at the board, not another build.**
+
+The specific thing to find out is whether this part needs a sequence at power-up that nothing
+here performs, and which it happened not to need while it was already running. A part that works
+until it loses power and then does not come back under any software is the shape of a missing
+step in a power-up sequence, and the shape is a reason to read rather than a reason to conclude.
+
+**One smaller observation, kept because it is odd and unexplained.** Listing the serial ports on
+the demo laptop returns COM13 three times, alongside COM3, COM6 and COM7. Three registrations of
+one name is not something this bench has seen before. It has no bearing on the part, since the
+board talks through that port perfectly well, and it is written down in case it turns out to
+matter later.
