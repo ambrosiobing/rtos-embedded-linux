@@ -499,46 +499,54 @@ not established which connector position carries it on this expansion board, and
 a driver polls when it is absent. The fourth acceptance criterion needs it and it will be added
 with its source, as every other pin in this volume has been.
 
-## Saturday 17 October 2026, a configure that failed for a reason outside the application
+## Saturday 17 October 2026, a configure that failed, and two wrong readings before the right one
 
 The first build of the new description stopped before it compiled anything:
 
 ```
-Loading Zephyr default modules (Freestanding).
--- Found Python3: /usr/bin/python3
 boards/st/nucleo_h7a3zi_q/nucleo_h7a3zi_q.dts:9:10: fatal error:
   st/h7/stm32h7a3z(g-i)txq-pinctrl.dtsi: No such file or directory
 ```
 
-**The missing file belongs to the vendor's hardware abstraction module and the board's own
-description includes it**, so this is not a fault in the driver, the binding or the overlay: the
-build never reached them. The tell is two lines above the error. Python came from `/usr/bin`
-rather than from the workspace, and there is no "Found west" line at all, where every successful
-configure in this project has one.
+That file belongs to the vendor's hardware abstraction module and the board's own description
+includes it, so the build never reached this project's driver, binding or overlay. **It took four
+configures to say why, and two readings were written up before they had been tested.**
 
-**That diagnosis was wrong and is corrected here rather than quietly replaced.** The reading was
-that west lives in the workspace's virtual environment, which the shell had not activated, so the
-build could not ask what modules exist. It is true that west lives there and true that its
-absence stopped a blob fetch earlier the same day. **It was not the cause of this.** The configure
-was run again with the environment activated and **failed identically**, on the same include, with
-the module line now reading what a successful configure reads.
+| | Workspace environment | Build directory | Result |
+|---|---|---|---|
+| 1 | not activated | fresh | fails |
+| 2 | activated | **reused from 1** | fails |
+| 3 | not activated | fresh | fails |
+| 4 | activated | fresh | **configures** |
 
-**What made it a bad diagnosis was not the guess but the order.** Two lines near the top of the
-output differed from a successful run and a story fitted them, so the story was written up and
-committed before anything tested it. The test was one command and it took a minute. This page had
-spent the whole afternoon refusing to publish a reading of a timeout until a control had run, and
-then published a reading of a configure failure with no control at all.
+**The environment is the cause.** West lives in the workspace's virtual environment on this
+machine; without it the build cannot ask what modules exist, so the vendor's devicetree directory
+is not on the include path and the board's own description cannot be preprocessed. The file is on
+disk the whole time, under that vendor module, which the fourth run also confirmed by finding it.
 
-**What the evidence actually points at.** Between the last successful configure and the first
-failing one, this project's build file gained one line, `list(APPEND DTS_ROOT ...)`, intended to
-state where the project's own bindings live. The build directory that kept working had never
-configured with it: its last configure predates the commit that added it. **So that line is the
-only change in the file that has never been through a successful configure**, which makes it the
-candidate, and it has been removed with the reason kept in the file. Whether it was the cause is
-for the next build to say and not for this page.
+### The two wrong readings, kept because they are the lesson
 
-The shape is still worth recording and it is a different shape from the one first written: a
-fault that appears only in a new build directory looks like a fault in whatever else is new,
-and here that was a driver and a binding written an hour earlier, so the temptation was to
-suspect them. The thing that was actually new and unexamined was a single line of build
-configuration.
+**The first was right and was published before it was tested.** It came from two lines near the
+top of the output: a Python from the system rather than the workspace, and no line reporting
+west. A story fitted them and the story went into this page, the build file and a memory with no
+experiment behind it. It happened to be correct, which is the least useful way to be right.
+
+**The second was the retraction, and it was wrong because its control was contaminated.** Row 2
+looks like a test of the environment and is not one: it reused the build directory from row 1, so
+cmake read a cached configure and re-examined nothing. The output says as much, in the absence of
+the very lines whose absence had been the evidence. **A control that reuses the state under test
+is not a control**, and on the strength of it a correct claim was withdrawn, two files were
+edited and a memory was rewritten.
+
+Both errors have one root and it is not the guessing. It is publishing a reading before a clean
+experiment, which is what this page spent the afternoon refusing to do with the sensor and then
+did twice in twenty minutes with the toolchain.
+
+**One thing is not isolated and is written as not isolated.** The successful configure differs
+from the first failure in two ways: the environment, and the removal of a line this project had
+added to its build file. Row 3 shows that removing the line alone does not help, so the
+environment is necessary. Whether the line would have been harmless with the environment present
+was never tested, because the only run that could have said reused a cache. The line was
+redundant in any case and is gone, so that question is closed by not mattering rather than by
+being answered.
+

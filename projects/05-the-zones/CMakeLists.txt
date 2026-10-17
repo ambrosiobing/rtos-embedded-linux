@@ -17,11 +17,12 @@
 #
 #   source ~/zephyrproject/.venv/bin/activate
 #
-# Without it, `west` is not on the path and anything that needs west fails, which on Saturday 17
-# October 2026 was `west blobs fetch`. It was ALSO blamed that day for a configure failure it had
-# nothing to do with: the configure was run again with the environment activated and failed in
-# exactly the same way. The line stays because activating the environment is right; the story
-# attached to it was wrong and is not repeated here.
+# Without it, a FRESH configure finds no modules, the vendor's devicetree directory is off the
+# include path, and the board's own description fails to preprocess on a pinctrl include that is
+# on disk the whole time. Established on Saturday 17 October 2026 by four configures, of which
+# only the fourth was a test: the one that appeared to clear the environment had reused the build
+# directory from the failure and so read a cached configure. **Remove the build directory in the
+# same command as the test**, or the test is of the cache.
 #
 # THE SECOND DESCRIPTION, which points the part at this project's own driver and binding, is
 # built the same way with a different overlay and its own build directory:
