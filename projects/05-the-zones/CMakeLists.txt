@@ -17,10 +17,11 @@
 #
 #   source ~/zephyrproject/.venv/bin/activate
 #
-# Without it a FRESH configure finds no modules, loads none, and fails while preprocessing the
-# board's own description on a vendor pinctrl include. An existing build directory keeps working
-# from module paths cached at its first configure, so the fault only appears when a new build
-# directory is made, which is exactly when something else is new as well and takes the suspicion.
+# Without it, `west` is not on the path and anything that needs west fails, which on Saturday 17
+# October 2026 was `west blobs fetch`. It was ALSO blamed that day for a configure failure it had
+# nothing to do with: the configure was run again with the environment activated and failed in
+# exactly the same way. The line stays because activating the environment is right; the story
+# attached to it was wrong and is not repeated here.
 #
 # THE SECOND DESCRIPTION, which points the part at this project's own driver and binding, is
 # built the same way with a different overlay and its own build directory:
@@ -38,13 +39,20 @@
 # wrong address. docs/DESIGN.md says so in more words.
 cmake_minimum_required(VERSION 3.20.0)
 
-# THE BINDING DIRECTORY IS STATED RATHER THAN LEFT TO DETECTION, which is P04's lesson one level
-# across. That project added an overlay to a build directory configured days earlier, the file
-# was never found, and the build silently differed from the tree by which files happened to exist
-# at first configure. The operating system does look for bindings under an application by
-# default; saying so here costs one line and means a reader can see where dts/bindings/ is picked
-# up instead of having to know. This variable is read by find_package and must be set before it.
-list(APPEND DTS_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
+# A LINE THAT WAS HERE AND IS NOT, AND THE REMOVAL IS THE RECORD. It read
+#
+#   list(APPEND DTS_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
+#
+# and it was added on Saturday 17 October 2026 to state where this project's own bindings live
+# rather than leave it to detection, which is P04's lesson about a stated overlay carried one
+# level across. It is removed because the operating system already treats an application's own
+# directory as a place to look for bindings, so the line said nothing the build did not know, and
+# because it was the only change in this file that had never been through a successful configure
+# when one began to fail. Whether it was the cause is settled by the build rather than here.
+#
+# The lesson it was carrying is still right and now has nowhere better to live than this comment:
+# the bindings this project writes are under dts/bindings/, and a reader looking for them should
+# not have to know the default to find them.
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(the_zones C)

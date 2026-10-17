@@ -516,13 +516,29 @@ build never reached them. The tell is two lines above the error. Python came fro
 rather than from the workspace, and there is no "Found west" line at all, where every successful
 configure in this project has one.
 
-**West lives in the workspace's virtual environment**, which this shell had not activated. With
-no west, the build cannot ask the workspace what modules exist, loads none, and the vendor's
-devicetree directory is not on the include path. The same absence stopped `west blobs fetch`
-earlier the same day, and it stayed invisible in between because **an existing build directory
-keeps working**: its module paths were resolved at its first configure and cached, so
-`ninja -C build-p05-existing` ran happily all afternoon while a fresh configure could not.
+**That diagnosis was wrong and is corrected here rather than quietly replaced.** The reading was
+that west lives in the workspace's virtual environment, which the shell had not activated, so the
+build could not ask what modules exist. It is true that west lives there and true that its
+absence stopped a blob fetch earlier the same day. **It was not the cause of this.** The configure
+was run again with the environment activated and **failed identically**, on the same include, with
+the module line now reading what a successful configure reads.
 
-That is worth the paragraph because of the shape rather than the fix. A toolchain fault that
-only appears on a new build directory looks exactly like a fault in whatever was new in that
-directory, which here would have been a driver and a binding written an hour earlier.
+**What made it a bad diagnosis was not the guess but the order.** Two lines near the top of the
+output differed from a successful run and a story fitted them, so the story was written up and
+committed before anything tested it. The test was one command and it took a minute. This page had
+spent the whole afternoon refusing to publish a reading of a timeout until a control had run, and
+then published a reading of a configure failure with no control at all.
+
+**What the evidence actually points at.** Between the last successful configure and the first
+failing one, this project's build file gained one line, `list(APPEND DTS_ROOT ...)`, intended to
+state where the project's own bindings live. The build directory that kept working had never
+configured with it: its last configure predates the commit that added it. **So that line is the
+only change in the file that has never been through a successful configure**, which makes it the
+candidate, and it has been removed with the reason kept in the file. Whether it was the cause is
+for the next build to say and not for this page.
+
+The shape is still worth recording and it is a different shape from the one first written: a
+fault that appears only in a new build directory looks like a fault in whatever else is new,
+and here that was a driver and a binding written an hour earlier, so the temptation was to
+suspect them. The thing that was actually new and unexamined was a single line of build
+configuration.
