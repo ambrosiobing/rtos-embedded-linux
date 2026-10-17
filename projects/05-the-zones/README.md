@@ -14,9 +14,11 @@ in 1.971 seconds where the previous generation's image left it timing out after 
 board, same shield, same bus, same address, same pins: the difference is which vendor interface
 the image came from, and that is the chapter's claim proven in both directions.
 
-**Open since 15:44: the part has not answered since the board was power cycled**, and nothing
-varied in software has brought it back. The observations below stand; what is in doubt is the
-explanation of why the part was answering at all. See [docs/BENCH.md](docs/BENCH.md).
+**The two control lines are pulsed, not driven**, which is what the vendor's own application
+does under a comment reading "Sensor reset": each line low, two milliseconds, high, two
+milliseconds. This project drove them high and left them there, which a part already running
+does not notice and a part coming up from cold never recovers from. That is why every warm run
+worked and no cold one did. See [docs/BENCH.md](docs/BENCH.md).
 
 **The grid is read.** At 15:35 the part returned sixty-four distances between 2540 and 2640
 millimetres, flat across the rows and rising 52 millimetres across the columns, which is a flat

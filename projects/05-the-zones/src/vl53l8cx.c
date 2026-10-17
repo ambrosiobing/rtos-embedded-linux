@@ -107,9 +107,26 @@ static int read_reg(const struct i2c_dt_spec *i2c, uint16_t reg, uint8_t *value)
 	return i2c_write_read_dt(i2c, addr, sizeof(addr), value, 1);
 }
 
-/* A line the binding does not have to carry. Absent means the board does not have it, which is
- * a description of hardware rather than a failure, so this returns success and drives nothing. */
-static int assert_line(const struct gpio_dt_spec *line, const char *what)
+/* THE SEQUENCE IS A PULSE AND NOT A LEVEL, which is the whole of what this project had wrong
+ * from Saturday 17 October 2026 at 12:17 until 16:45. This driver drove both lines high and left
+ * them there. ST's own application for this expansion board, under the comment "Sensor reset",
+ * takes each line LOW, waits, then HIGH, waits:
+ *
+ *     PWR_EN low, 2 ms, PWR_EN high, 2 ms, LPn low, 2 ms, LPn high, 2 ms
+ *
+ * **A part that is already running does not notice the difference**, which is why every run on a
+ * board that had been powered for hours worked, and why removing the pin driving altogether
+ * changed nothing. A part that has just come up from cold is never taken out of reset, which is
+ * why no run after the first power cycle found it on the bus at all.
+ *
+ * The two millisecond waits are theirs and are reproduced rather than improved on, as the ten
+ * millisecond settle was. The difference is that this time the shape is theirs too.
+ *
+ * A line the binding does not carry is absent from the board, which is a description of hardware
+ * rather than a failure, so this drives nothing and reports success. */
+#define PULSE_MS 2
+
+static int pulse_line(const struct gpio_dt_spec *line, const char *what)
 {
 	int rc;
 
@@ -121,11 +138,22 @@ static int assert_line(const struct gpio_dt_spec *line, const char *what)
 			what);
 		return -ENODEV;
 	}
-	rc = gpio_pin_configure_dt(line, GPIO_OUTPUT_ACTIVE);
+
+	rc = gpio_pin_configure_dt(line, GPIO_OUTPUT_INACTIVE);
 	if (rc != 0) {
-		LOG_ERR("could not drive the %s line: %d", what, rc);
+		LOG_ERR("could not take the %s line low: %d", what, rc);
+		return rc;
 	}
-	return rc;
+	k_msleep(PULSE_MS);
+
+	rc = gpio_pin_set_dt(line, 1);
+	if (rc != 0) {
+		LOG_ERR("could not take the %s line high: %d", what, rc);
+		return rc;
+	}
+	k_msleep(PULSE_MS);
+
+	return 0;
 }
 
 /* HOW LONG THE PART MAY TAKE TO ANSWER AFTER ITS SUPPLY IS ENABLED, and this bound exists
@@ -278,11 +306,14 @@ static int vl53l8cx_dev_init(const struct device *dev)
 		return -ENODEV;
 	}
 
-	rc = assert_line(&cfg->pwren, "supply enable");
+	/* THE SUPPLY FIRST AND THE LOW-POWER LINE SECOND, in that order, because that is the
+	 * order ST's own application uses and nothing here has a reason to prefer another. Each
+	 * is pulsed rather than driven; see pulse_line for what that cost this project. */
+	rc = pulse_line(&cfg->pwren, "supply enable");
 	if (rc != 0) {
 		return rc;
 	}
-	rc = assert_line(&cfg->lpn, "low power");
+	rc = pulse_line(&cfg->lpn, "low power");
 	if (rc != 0) {
 		return rc;
 	}

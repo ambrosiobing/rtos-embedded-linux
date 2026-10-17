@@ -1003,3 +1003,43 @@ the demo laptop returns COM13 three times, alongside COM3, COM6 and COM7. Three 
 one name is not something this bench has seen before. It has no bearing on the part, since the
 board talks through that port perfectly well, and it is written down in case it turns out to
 matter later.
+
+## Saturday 17 October 2026 at 16:45: the answer was a pulse, and it was in the vendor's own code
+
+ST's application for this expansion board, in the example that ships with their library, under a
+comment reading "Sensor reset":
+
+```
+PWR_EN low,  wait 2 ms
+PWR_EN high, wait 2 ms
+LPn    low,  wait 2 ms
+LPn    high, wait 2 ms
+```
+
+**This project drove both lines high and left them there.** That is the whole fault, and it
+explains every observation of the afternoon without needing any of the theories that were tried:
+
+| Observation | What the pulse explains |
+|---|---|
+| every warm run worked | a part already out of reset does not notice a line that is already high |
+| removing the pin driving changed nothing | neither driving them high nor leaving them alone resets anything |
+| no cold start ever found the part | the part came up held in reset and was never released |
+| ten, five hundred and five thousand milliseconds all failed | waiting does not end a reset |
+
+**And it closes the confound honestly rather than rescuing it.** The entry of 12:17 credited two
+pins with waking the part. The pins were not what woke it, because driving them high does
+nothing to a part already running, so that reading was wrong and the thing that changed between
+11:16 and 12:17 was the shield being seated. The confound was real, it was named here before the
+answer was known, and the answer settled it against the published reading.
+
+### How it was found, which is the part worth keeping
+
+Not by another build. Everything a description or a driver could vary had been varied, so the
+next step was reading the vendor's own working application for this exact board. The prediction
+written before reading it was that the answer would be **either a reset line this project does
+not drive at all, or an order and a timing for the two it does.** It is the second, and it is
+four lines long.
+
+The two millisecond waits are ST's and are reproduced rather than improved on, which is the same
+decision as the ten millisecond settle. The difference is that this time the shape is theirs as
+well as the number, and the shape was what mattered.
