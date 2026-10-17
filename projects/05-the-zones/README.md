@@ -1,7 +1,12 @@
 # P05. The zones: an out-of-tree driver
 
-Status on Saturday 17 October 2026: **the design page exists and no code does.** Nothing in
-this directory has been built and no number here has been measured.
+Status on Saturday 17 October 2026: **the cheap attempt builds and nothing has been powered.**
+The part on this bench is described with the compatible string of the generation before it, the
+vendor's firmware image is fetched into the workspace, and the image links at 138964 bytes of
+flash. No number here has been measured and the shield is not fitted.
+
+[docs/BENCH.md](docs/BENCH.md) records that run and, written before the hardware is powered, the
+four outcomes the identification run can return and what each one changes.
 
 [docs/DESIGN.md](docs/DESIGN.md) sorts the chapter's seven acceptance criteria by what each
 costs, and **two of them need no hardware at all**: that P01's application object is byte for
