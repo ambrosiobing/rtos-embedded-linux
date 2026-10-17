@@ -672,3 +672,30 @@ than a style. Four bus transactions and a millisecond decide whether this part i
 knows; only then does it send the image, which is tens of kilobytes and seconds. **The driver in
 the tree does the expensive thing first and the cheap thing not at all**, which is why a wrong
 part there costs six seconds and a bare number.
+
+## Saturday 17 October 2026, eight red pushes nobody looked at
+
+Continuous integration had failed on every push since 13:40, and the author found out from a
+mailbox at 14:57. **One file and one reason**: the published tree's allowlist of file types
+admits `.yml` and this project's devicetree binding is a `.yaml`, which is the spelling the
+operating system requires for a binding. The first failure is the commit that added it.
+
+The allowlist now admits `.yaml`, and that is a clarification rather than a relaxation. It
+already admits `.conf` and `.overlay`, the other two files a project here uses to describe
+hardware to the operating system, and a binding is the third of that set. The purpose of the
+guard is untouched: no PDF, no HTML, no LaTeX.
+
+### The file type was the symptom and the invisibility was the fault
+
+Everything else that workflow runs is a script the authoring laptop can run before a commit, and
+it had been run before every one of those eight pushes. **The two rules that failed existed only
+as shell inside the workflow**, so they could not be run anywhere except by pushing, which means
+they are discovered by email or not at all.
+
+They are now `scripts/check_tree.py`, with their original comments carried over because the
+reasoning is the part worth keeping, and the workflow calls it. Nothing about either rule changed
+in the move except the `.yaml`.
+
+**The habit this leaves** is to run every check the workflow runs, not the subset that happens to
+be a script, and the way to make that possible is to keep no rule anywhere a laptop cannot reach.
+A guard the author cannot run is a guard the author will not run.
