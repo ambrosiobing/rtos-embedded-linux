@@ -1149,3 +1149,41 @@ about 39 us of switching, (5 times 15 plus 39) over (15 plus 39) is 2.1, which i
 The host spin counts were raised tenfold, which predicts about 4.2, a pass by two rather than
 by a fifth. **No figure from this directory goes near the table, by the contract's own
 refusal.**
+
+## Friday 17 October 2026 at 08:20: the campaign lift checked on the board, and the bound it missed
+
+The orchestration moved out of the Zephyr main into the core that morning, and the test written
+before the move was that the board's figures afterwards would sit within the two per cent build
+bound of the run of 23:16 on Friday 9 October 2026. Built 07:25:32, flashed, one press.
+
+| Operation | 23:16, warm minimum | 08:20, warm minimum | Change |
+|---|---|---|---|
+| yield to an equal-priority ready thread | 664 | 668 | up 0.6 per cent |
+| block on one object, be signalled, return | 500 | 499 | down 0.2 per cent |
+| block on several objects, be signalled, return | 854 | **879** | **up 2.9 per cent** |
+| hand work to a queue rather than do it in place | 673 | **650** | **down 3.4 per cent** |
+| contended mutex, priority inheritance on | 8370 | 8393 | up 0.3 per cent |
+| contended mutex, priority inheritance off | 36610 | 36633 | up 0.1 per cent |
+| periodic thread period | 308000 | 308000 | none |
+
+**Two rows of six are outside the bound the test named.** The lift did what it was meant to do:
+every gate passed, criterion 1 reads 21, the cold penalties read 332, 513, 720 and 741 against
+the previous 355, 525, 734 and 730, every ordering and every ratio survived, and the verdicts
+block, which the old image never printed, ends in a ratio of 4.3. But "within two per cent" was
+the stated criterion and 2.9 and 3.4 are not within it, so the honest statement is that the
+criterion was not met as written and the reason is identifiable.
+
+**The two per cent figure was a bound on a small edit, and this was not a small edit.** It came
+from two builds on Thursday 8 October 2026 that differed by one added function. Moving three
+hundred lines between translation units changes where everything after them lands in flash,
+and the rows that moved most are the two whose brackets contain the most code: the poll and the
+work queue. The revised bound, from the one restructuring this project has measured across:
+**about four per cent for a change that reorganises the image, two for one that adds to it.**
+Any figure quoted to better than that is quoting the build.
+
+**What this does not touch.** [RESULTS.md](RESULTS.md) keeps the figures of 09:40 on Friday 9
+October 2026, which this run confirms to within four per cent on every row; a results table is
+a dated run and is not rewritten by a later one that agrees with it. The verdicts now run on the
+board as well as on the host, and the board had never checked completion or the inheritance
+direction before: 4.3 on the board, 3.9 on the host the same morning, both saying the mutex
+inherits.
