@@ -550,3 +550,31 @@ was never tested, because the only run that could have said reused a cache. The 
 redundant in any case and is gone, so that question is closed by not mattering rather than by
 being answered.
 
+## Saturday 17 October 2026, the first compile of this project's own driver
+
+It configured, compiled and did not link:
+
+```
+app/libapp.a(main.c.obj): undefined reference to `__device_dts_ord_31'
+app/libapp.a(vl53l8cx.c.obj):(.rodata.vl53l8cx_config_0+0x0):
+  undefined reference to `__device_dts_ord_31'
+```
+
+**That ordinal is the two-wire controller the part sits on**, and it is absent from the image for
+the same reason the pin controllers were absent two hours earlier: nothing asked for it. The link
+line shows the gap plainly, carrying the pin and serial and timer drivers and no bus driver at
+all.
+
+**The build that uses the tree's driver never needed the line, and that difference is the
+finding.** An in-tree driver has a Kconfig of its own and that one reads `select I2C`, so the
+controller arrives with the driver. **A source file in an application has no Kconfig and can
+select nothing**, so everything it depends on has to be named in the application's configuration.
+
+That is a concrete argument for this driver eventually being a module with its own Kconfig rather
+than a file in an application, and it is a better argument than tidiness: a driver should carry
+its own dependencies, and a reader who takes the driver without taking the configuration beside
+it should not be met with a link error naming a devicetree ordinal.
+
+**It is also the second time today that a missing `select` has been the first thing a build
+said.** The two together are the shape of writing a driver outside the tree, and the chapter
+should say so once rather than treat each as an accident.
