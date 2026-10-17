@@ -417,6 +417,28 @@ jobs:
   # worth having for a reason that proved itself on Tuesday 6 October 2026: a stale local
   # binary printed a pass for a change it had not been built with, and the only thing that
   # noticed was the second kernel building the same file and printing different numbers.
+  freertos_measure:
+    runs-on: ubuntu-latest
+    name: FreeRTOS, the seven operations on a host, every capture refused
+    defaults:
+      run:
+        working-directory: projects/04-what-the-kernel-primitives-cost/freertos
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The kernel, at the tag this claim is made against
+        run: make fetch
+
+      - name: Build, and refuse a binary containing an allocator
+        run: make
+
+      # `make check` runs the binary, whose own verdicts set the exit status, and then feeds
+      # the period capture to the reduction and requires a refusal for its clock. A host build
+      # that could get a capture past the reduction is the thing the contract forbids, so the
+      # job is green only when the reduction says no.
+      - name: Seven operations complete, criterion 4 refutes, and the reduction refuses
+        run: make check
+
   freertos_claim:
     runs-on: ubuntu-latest
     name: FreeRTOS, the claim cascade on a host
