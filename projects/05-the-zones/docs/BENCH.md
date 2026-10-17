@@ -915,3 +915,44 @@ confirmation that the shield was seated, and it was credited to the pins.
 |---|---|
 | the part answers with no pin driven | driving those pins is what stops it: a level, an order or a meaning is wrong, and the earlier conclusion was an artefact of a control that moved two things |
 | it stays silent | the pins are not the difference either way, and the cold start fails for a reason not yet looked at: the interface jumpers, a current-measurement link on the shield, or its own power path |
+
+## Saturday 17 October 2026 at 16:08: no pins driven, and the part is still not there
+
+The control ran and its answer is the second of the two written before it: **the part stays
+silent with no pin driven**, exactly as it does with both driven. Ten milliseconds, five hundred,
+five thousand, pins or no pins: from a plug-in the part never appears on the bus.
+
+**So the pin driving is not what stops it**, and the conclusion of 12:17 is in doubt for a second
+reason rather than rescued. That conclusion said fifteen lines driving two pins woke the part. It
+was drawn from a pair of runs with two changes in them, and now a run with those lines removed
+behaves the same as one with them. **Neither of those is proof that the pins do nothing**, since
+no run has yet compared them under conditions where anything answers at all, but the claim as
+published is not supported and this page says so.
+
+### What the successes and the failures actually have in common
+
+Reading back every run in this log rather than the last three:
+
+| | How the board started | Pressed RESET | The part |
+|---|---|---|---|
+| 12:17 to 15:35 | powered for a long time | yes, every time | answers |
+| 15:44, 15:50, 15:56, 16:08 | cable out and back in | **no, deliberately** | never answers |
+
+**The variable called "cold" has two things in it**, and the one never isolated is the button.
+Every run where the part answered followed a press; every run where it did not, did not. That was
+not designed, it fell out of the hand-over, and it went unnoticed for four runs because the
+power cycle was the thing being thought about.
+
+This is the same fault as the 12:17 confound and it is the second time today: **a comparison that
+moves two things tells you about neither.** The difference is that this time the record noticed
+before a conclusion was published, which is the only part of it worth being pleased about.
+
+### The next run isolates the press and nothing else
+
+Cable out and back in as before, then wait, then press RESET once with the console already
+capturing. Same image, same shield, same everything.
+
+| What it shows | What follows |
+|---|---|
+| silent before the press, answers after | the press is the difference, and the question becomes what a reset does that a power-on does not. A supply that is still rising is the obvious candidate and is testable by waiting longer before pressing |
+| silent both times | the press is not the difference either, and what changed between 15:35 and 15:44 was something else about the bench, which would be the first thing to establish by eye |
