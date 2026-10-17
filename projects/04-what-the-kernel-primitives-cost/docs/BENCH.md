@@ -1253,6 +1253,13 @@ the right fix is probably a column that says what the prediction was about rathe
 whose label is changed to fit its number. That is a change to the checker and the table together
 and is not made in the same commit as the figures it would admit.
 
+**The same image, flashed and booted a second time at 09:15, reproduced the 08:48 log to the
+count.** `Compare-Object` over the two console files printed nothing: every one of the 448
+warm counts, every cold count, both gate figures and the instrument cost were identical across
+two flashes and two boots. That is the strongest statement this record can make about
+run-to-run noise on this image, and it bounds the build bound from below: whatever moves a
+figure by two to four per cent between builds, it is the build and not the board.
+
 **What remains for this kernel.** The witness recording of the repeating burst, which turns the
 period row from the device's word into criterion 5 under a second kernel; and the `Scale`
 decision above.

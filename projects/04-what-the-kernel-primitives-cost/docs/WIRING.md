@@ -90,6 +90,15 @@ names and is set to `timer` as a placeholder, and `firmware_identity` is a `git 
 that repository, not this one. The identity of what actually ran is the build stamp on the P04
 console, and the `--note` names this project so the JSON cannot later be read as a P06 capture.
 
+Since Friday 16 October 2026 that script also refuses to capture without `--image-bytes N`,
+the size of the image on the board, which it records as `firmware_image_bytes`. The sibling's
+firmware prints that figure in its banner; P04's does not, and the figure comes instead from
+the build that produced the image, the `image: ..., N bytes` line `make board` prints, or
+`ls -l` on the `.bin` that was copied to the flashing disk. It is the same number either way
+and it is a real identity: two images of different content and the same size are possible, two
+of the same build and different sizes are not. On Saturday 17 October 2026 the FreeRTOS image
+was 27148 bytes.
+
 The CSV and JSON travel to the laptop that holds this repository, and there:
 
     python3 witness.py run.csv run.json > witness.txt
