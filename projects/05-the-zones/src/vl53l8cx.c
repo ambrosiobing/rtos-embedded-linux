@@ -174,7 +174,12 @@ static DEVICE_API(sensor, vl53l8cx_driver_api) = {
 	.channel_get = vl53l8cx_channel_get,
 };
 
-static int vl53l8cx_init(const struct device *dev)
+/* NAMED `_dev_init` AND NOT `_init`, because the vendor's library already has a function called
+ * `vl53l8cx_init` and this one would shadow it; the compiler said so plainly the first time the
+ * two met. The operating system's driver for the previous generation calls its own
+ * `vl53l5cx_dev_init` for the same reason, which is a convention worth following rather than
+ * an accident worth repeating. */
+static int vl53l8cx_dev_init(const struct device *dev)
 {
 	const struct vl53l8cx_config *cfg = dev->config;
 	struct vl53l8cx_data *data = dev->data;
@@ -248,7 +253,7 @@ static int vl53l8cx_init(const struct device *dev)
 		.lpn = GPIO_DT_SPEC_INST_GET_OR(i, lpn_gpios, { 0 }),                          \
 		.irq = GPIO_DT_SPEC_INST_GET_OR(i, int_gpios, { 0 }),                          \
 	};                                                                                     \
-	SENSOR_DEVICE_DT_INST_DEFINE(i, vl53l8cx_init, NULL, &vl53l8cx_data_##i,               \
+	SENSOR_DEVICE_DT_INST_DEFINE(i, vl53l8cx_dev_init, NULL, &vl53l8cx_data_##i,               \
 				     &vl53l8cx_config_##i, POST_KERNEL,                        \
 				     CONFIG_SENSOR_INIT_PRIORITY, &vl53l8cx_driver_api);
 

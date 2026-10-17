@@ -28,6 +28,18 @@ typedef struct {
 	/* Controller and address in one, from the devicetree, so the porting layer cannot
 	 * disagree with the description about where the part is. */
 	struct i2c_dt_spec i2c;
+
+	/* THE LIBRARY WRITES THIS AND THIS PORTING LAYER DOES NOT READ IT, which is said here
+	 * because that is a limitation rather than an oversight. `vl53l8cx_set_i2c_address`
+	 * assigns to it, so the member has to exist or the library does not compile; the six
+	 * functions below use the devicetree specification instead, so **changing a part's
+	 * address at run time is not supported by this port.** The shield on this bench carries
+	 * one part and has no reason to, and a shield with three would: that is the case the
+	 * tree's overlay for the single-point generation shows, where three identical parts are
+	 * moved to three addresses while each is held in reset in turn. When this project meets
+	 * that case the six functions take their address from here instead, and the compiler
+	 * will not be the thing that notices. */
+	uint16_t address;
 } VL53L8CX_Platform;
 
 uint8_t VL53L8CX_RdByte(VL53L8CX_Platform *p_platform, uint16_t RegisterAdress, uint8_t *p_value);
