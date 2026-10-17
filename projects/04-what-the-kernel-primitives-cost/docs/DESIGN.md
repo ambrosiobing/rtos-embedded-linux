@@ -84,6 +84,33 @@ refutation: **with priority inheritance on, the high-priority thread's wait shou
 the medium thread's work, and with it off it should.** Two configurations, one program, and a
 difference that is predicted before it is measured.
 
+### The map to each kernel's names, written Friday 17 October 2026 before the FreeRTOS adapter
+
+Written after the Zephyr adapter had run every row and before a line of the FreeRTOS one
+existed, which is the only order in which a map can constrain anything. Each row says what
+differs between the two kernels' objects and why that difference does not change what the
+bracket contains; where it does change it, the row says so.
+
+| What happens | Zephyr, as built | FreeRTOS, as planned | What differs |
+|---|---|---|---|
+| control passes to an equal-priority ready thread and back | `k_yield()`, partner thread looping on `k_yield()` | `taskYIELD()`, partner task looping on `taskYIELD()` | Priority numbers run the other way, lower is higher in Zephyr and higher is higher in FreeRTOS. The partner is created suspended and resumed only around this loop in both, because an always-ready task at the measurer's priority starves everything below it, which stopped the first Zephyr run after one operation |
+| a thread blocks on one object, another signals it, control returns | `k_sem_take` and `k_sem_give` on a binary `k_sem` | `xSemaphoreTake` and `xSemaphoreGive` on a binary semaphore from `xSemaphoreCreateBinaryStatic` | Nothing in the bracket. The giver stamps as its last statement before the give in both |
+| a thread blocks until any of several objects is ready | `k_poll` over two `k_sem` | `xEventGroupWaitBits` on two bits of an event group from `xEventGroupCreateStatic`, waiting for any | **A different object, in both kernels.** `k_poll` watches semaphores and an event group is not a semaphore, so this row prices "the alternative to one object" rather than "the same object waited on differently", which is what the design asked for. Queue sets were considered and not used: whether the pinned V11.1.0 has a static creator for them is not established, and this build links no allocator |
+| work is handed to a queue rather than done in place | `k_work_submit` to the system work queue, cooperative priority above the measurer | `xTimerPendFunctionCall` to the timer daemon task at `configMAX_PRIORITIES - 1`, above the measurer | Same shape: a post to a queue and the daemon preempts into the handler, so the bracket holds one switch and not a round trip. The FreeRTOS daemon also services software timers; none are armed here |
+| a thread blocks on a mutex a lower-priority thread holds, with a medium-priority thread runnable, inheritance on | `k_mutex`, which always inherits and has no switch | a mutex from `xSemaphoreCreateMutexStatic`, which inherits under `configUSE_MUTEXES` and has no switch either | Both inherit and neither can be told not to. FreeRTOS's is documented as basic inheritance, one level, released on the unlock, which is exactly the three-task case here |
+| the same with inheritance off | a binary `k_sem` used as a lock | a binary semaphore used as a lock | **Two protocols rather than two settings of one object, in both kernels**, and the record has to say so or the row reads as a flag that does not exist |
+| the periodic thread's period | `k_msleep(1)` in a loop, on a 100 microsecond tick, giving 1.1 ms | `vTaskDelay(pdMS_TO_TICKS(1))` in a loop, on whatever tick the build sets | **Not comparable across kernels and never meant to be.** The tick decides it, and the row exists for criterion 5, two instruments agreeing on one kernel's period |
+
+**What the host build of this adapter can and cannot show**, stated now so that a green run is
+not read as more than it is. The POSIX port has no cycle counter, so `measure_now()` reads the
+monotonic clock and `measure_clock_hz()` returns zero, and **every capture it emits is refused
+by the reduction for its clock.** What a green host run shows is that all seven operations
+complete under a real kernel without deadlock, that no bracket returns zero or wraps, and that
+the inheritance-off arm waits for the medium task and the inheritance-on arm does not, which is
+criterion 4's refutation exercised with no board. Criterion 3 does not exist on a host, because
+there is no instruction cache to invalidate; the board adapter carries it. **No number from the
+host build goes near [RESULTS.md](RESULTS.md).**
+
 ## The seven criteria, sorted by what each actually needs
 
 This is the part worth settling before any code, because it decides what can be finished when.
