@@ -16,11 +16,48 @@ enough for an external witness to see, and criterion 5 asks that the two instrum
 | Lead | Signal | NUCLEO-H7A3ZI-Q end | MCC 118 end | Direction |
 |---|---|---|---|---|
 | 1 | the marker, **PB4** | **CN7 pin 19**, Zio header, labelled D25 | screw terminal **CH0** | board drives, HAT reads |
-| 2 | ground | any pin marked **GND** on the Zio or Arduino headers; the silkscreen is authority for ground | screw terminal **GND**, on the same block as CH0 | reference, no direction |
+| 2 | ground | any pin marked **GND** on the Zio or Arduino headers; the silkscreen is authority for ground | a screw terminal **GND**; see the note below, because this end moved on Saturday 17 October 2026 and every figure in the table so far was taken before it moved | reference, no direction |
 
-*Table. Two leads, Friday 9 October 2026. The colours of the two leads in the footage are not
-assigned to these rows, because nothing on this page can tell them apart; when they are
-confirmed by eye they belong in a third column here, dated.*
+*Table. Two leads, Friday 9 October 2026, with the ground end amended Saturday 17 October 2026.
+The colours of the two leads in the footage are not assigned to these rows, because nothing on
+this page can tell them apart; when they are confirmed by eye they belong in a third column
+here, dated.*
+
+### The ground end moved, and this page had it wrong for both captures
+
+**Reported at the bench on Saturday 17 October 2026, after both witness captures were taken and
+published.** The ground lead is now on the GND terminal of the block carrying CH0. Until that
+moment it was on a GND terminal of **the other block, the one with CH4 to CH7**, and this page
+said "on the same block as CH0" throughout. So the sentence describing the connection was wrong
+for the whole period in which the figures were obtained.
+
+| When | Ground at the MCC 118 | Which figures were taken on it |
+|---|---|---|
+| Friday 9 October 2026 to Saturday 17 October 2026, before about 10:30 | a GND terminal on the block with CH4 to CH7 | **both** criterion 5 results: Zephyr's 0.504 us at 23:16 on Friday 9 October 2026, FreeRTOS's 0.531 us at 09:27 on Saturday 17 October 2026 |
+| Saturday 17 October 2026, from about 10:30 | the GND terminal on the block with CH0 | none yet |
+
+**Neither figure is withdrawn and neither needs re-taking, and the reason is in the figures
+themselves.** Both are agreements between the HAT and the board's own cycle counter, 0.504 and
+0.531 microseconds against a tolerance of 10, from recordings whose swing was 3.33 V and whose
+edge counts were the ones the firmware emits. A ground return too poor to carry the measurement
+shows up as a reduced swing, as missed edges or as noise, and this bench has seen all three and
+named them: the flat captures of Friday 9 October 2026 at 20.4 mV, and the merged edge pair that
+reduced one row to 63 periods. None of those appeared in either capture. **The previous terminal
+was adequate for this measurement, whatever the HAT's internal topology is.**
+
+**What is not claimed.** Whether the two blocks' GND terminals are the same node on that HAT is
+a question for its user guide, and this page does not answer it from memory. The nearest figure
+the bench has is the sibling volume's, which measured the offset between the NUCLEO's ground and
+a GND terminal on this HAT at 4.7 to 8.3 millivolts on Saturday 17 October 2026, three orders of
+magnitude below the 0.1 V hysteresis the edge finders use. That bounds a board-to-board offset
+and says nothing about two terminals on one board.
+
+**Why it is written down at all, given that it changes no figure.** A wiring page is a record of
+what was connected when a number was taken, and it had drifted from the bench for eight days
+without anything noticing, because nothing can notice: there is no check that reads a screw
+terminal. The move itself is harmless and probably an improvement, since the return path is
+shorter. Having the page describe a connection that was not the one in use is the part worth
+correcting.
 
 **Ground first, before the signal lead, on the way up; signal first on the way down.** And the
 Raspberry Pi is powered before the NUCLEO, and the NUCLEO is powered off before the Pi, which is
