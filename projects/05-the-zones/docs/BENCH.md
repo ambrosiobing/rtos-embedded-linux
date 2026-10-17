@@ -83,15 +83,26 @@ NOT READY vl53l5cx@29
 [00:00:02.131,000] <err> vl53l5cx: Failed to initialize the sensor (255)
 ```
 
-**The bench state is not confirmed, so this result is not read as a measurement of anything.**
-The hand-over asked for P04's two leads to come off before the shield was fitted, and they did
-not come off. One of them sits in CN7 pin 19, which is a socket on the same header the shield
-seats into: **a flying lead in a socket means a shield pin cannot enter it**, so the shield is
-either not seated flat, seated with that one position empty, or resting on the lead. None of
-those is a configuration this page can reason from, and `bench state is not the record` is a rule
-this bench has needed before.
+**The bench state was reported in two steps and the first reading of it here was wrong, so it is
+corrected rather than quietly replaced.** This page first said that both of P04's leads were
+still fitted and that one of them, in CN7 pin 19, would stop a shield seating. **Only the ground
+lead is connected**, from a ground pin on the NUCLEO to the ground terminal of the acquisition
+board's CH0 block; the signal lead that was on CN7 pin 19 is off.
 
-So the honest reading is that there is no reading. What the run does establish is about the
+**That changes the reading, and in the part's favour.** A ground lead between two boards cannot
+stop a two-wire bus working. The parts of this project that depend on the bus are therefore
+testable with it in place, and leaving it is better than removing it, since it is the lead that
+has to be there whenever the acquisition board witnesses anything. The one thing worth checking
+is which ground socket it occupies: a shield pin cannot enter a socket a lead is already in, so a
+ground pin on a header the shield seats into should move to one the shield does not cover, and a
+shield has several ground pins so a single missed one changes nothing electrically.
+
+**What is still unconfirmed is whether the shield is seated at all**, which is the fact this run
+turns on, and the rule `bench state is not the record` is why it is not assumed in either
+direction here. If the shield is on the board and flat, this run stands as a real result. If it
+is not, the run says nothing about the part.
+
+So the reading, pending that one fact: What the run does establish is about the
 software and not the hardware: the image boots, the application runs, the driver binds, the
 driver's own initialisation is reached and fails, and **the failure code is the vendor library's
 generic error, 255**, which distinguishes none of the three causes written down in advance.

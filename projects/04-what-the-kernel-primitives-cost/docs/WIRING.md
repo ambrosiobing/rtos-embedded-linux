@@ -35,6 +35,7 @@ for the whole period in which the figures were obtained.
 |---|---|---|
 | Friday 9 October 2026 to Saturday 17 October 2026, before about 10:30 | a GND terminal on the block with CH4 to CH7 | **both** criterion 5 results: Zephyr's 0.504 us at 23:16 on Friday 9 October 2026, FreeRTOS's 0.531 us at 09:27 on Saturday 17 October 2026 |
 | Saturday 17 October 2026, from about 10:30 | the GND terminal on the block with CH0 | none yet |
+| Saturday 17 October 2026, from about 11:20 | unchanged, and **the signal lead is off**: the marker lead at CN7 pin 19 was removed so that P05's shield could be fitted, leaving ground alone between the two boards | none, and none is expected. Both of this project's witness results are recorded, and a ground lead with no signal lead witnesses nothing |
 
 **Neither figure is withdrawn and neither needs re-taking, and the reason is in the figures
 themselves.** Both are agreements between the HAT and the board's own cycle counter, 0.504 and
