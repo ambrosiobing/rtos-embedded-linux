@@ -498,3 +498,31 @@ descriptions and code drift apart.
 not established which connector position carries it on this expansion board, and the binding says
 a driver polls when it is absent. The fourth acceptance criterion needs it and it will be added
 with its source, as every other pin in this volume has been.
+
+## Saturday 17 October 2026, a configure that failed for a reason outside the application
+
+The first build of the new description stopped before it compiled anything:
+
+```
+Loading Zephyr default modules (Freestanding).
+-- Found Python3: /usr/bin/python3
+boards/st/nucleo_h7a3zi_q/nucleo_h7a3zi_q.dts:9:10: fatal error:
+  st/h7/stm32h7a3z(g-i)txq-pinctrl.dtsi: No such file or directory
+```
+
+**The missing file belongs to the vendor's hardware abstraction module and the board's own
+description includes it**, so this is not a fault in the driver, the binding or the overlay: the
+build never reached them. The tell is two lines above the error. Python came from `/usr/bin`
+rather than from the workspace, and there is no "Found west" line at all, where every successful
+configure in this project has one.
+
+**West lives in the workspace's virtual environment**, which this shell had not activated. With
+no west, the build cannot ask the workspace what modules exist, loads none, and the vendor's
+devicetree directory is not on the include path. The same absence stopped `west blobs fetch`
+earlier the same day, and it stayed invisible in between because **an existing build directory
+keeps working**: its module paths were resolved at its first configure and cached, so
+`ninja -C build-p05-existing` ran happily all afternoon while a fresh configure could not.
+
+That is worth the paragraph because of the shape rather than the fix. A toolchain fault that
+only appears on a new build directory looks exactly like a fault in whatever was new in that
+directory, which here would have been a driver and a binding written an hour earlier.

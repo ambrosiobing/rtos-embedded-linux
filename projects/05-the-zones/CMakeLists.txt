@@ -12,6 +12,22 @@
 #         -DDTC_OVERLAY_FILE=overlays/existing_driver.overlay -S projects/05-the-zones
 #   ninja -C build-p05-existing
 #
+# THE ENVIRONMENT COMES FIRST, and it is written here because its absence does not look like
+# itself. West lives in the workspace's virtual environment on the machine this is built on:
+#
+#   source ~/zephyrproject/.venv/bin/activate
+#
+# Without it a FRESH configure finds no modules, loads none, and fails while preprocessing the
+# board's own description on a vendor pinctrl include. An existing build directory keeps working
+# from module paths cached at its first configure, so the fault only appears when a new build
+# directory is made, which is exactly when something else is new as well and takes the suspicion.
+#
+# THE SECOND DESCRIPTION, which points the part at this project's own driver and binding, is
+# built the same way with a different overlay and its own build directory:
+#
+#   cmake -B build-p05-own -GNinja -DBOARD=nucleo_h7a3zi_q #         -DDTC_OVERLAY_FILE=overlays/own_driver.overlay -S projects/05-the-zones
+#   ninja -C build-p05-own
+#
 # THE FIRMWARE IMAGE IS NOT IN THE TREE and the part cannot range without it. The vendor's
 # library ships with the buffer header removed, because the operating system's rules do not
 # admit a binary blob in its source, so the image is fetched once into the workspace:
