@@ -20,6 +20,8 @@
  * RM0455 by way of ../../03-one-sensor/overlays/i2c.overlay. Taking the proven one is not
  * laziness: an overlay that fails leaves a reader unable to tell a wrong bus from a wrong part.
  */
+#include <zephyr/dt-bindings/gpio/arduino-header-r3.h>
+#include <zephyr/dt-bindings/gpio/gpio.h>
 #include <zephyr/dt-bindings/i2c/i2c.h>
 
 &i2c1 {
@@ -64,6 +66,23 @@
 };
 
 / {
+	/* THE TWO CONTROL PINS THE IN-TREE BINDING HAS NO PROPERTY FOR, put where P04 put its
+	 * marker pin: `zephyr,user` takes arbitrary properties and needs no binding of its own,
+	 * which is right for a fact that is true of this bench rather than of the part. When
+	 * this project writes its own binding they move into it, and that move is the point of
+	 * the chapter rather than a tidy-up.
+	 *
+	 * NAMED BY ARDUINO POSITION AND NOT BY PORT. The vendor's library for this shield says
+	 * `PWREN_PIN 11` and `LPN_PIN A3`, which are positions on a connector; this board maps
+	 * D11 to PA7 and A3 to PB1, and the board the vendor tested maps A3 somewhere else
+	 * entirely. Going through the connector keeps the file right for a reader with a
+	 * different Nucleo, and the board's own `arduino_r3_connector.dtsi` is the source.
+	 */
+	zephyr,user {
+		pwren-gpios = <&arduino_header ARDUINO_HEADER_R3_D11 GPIO_ACTIVE_HIGH>;
+		lpn-gpios = <&arduino_header ARDUINO_HEADER_R3_A3 GPIO_ACTIVE_HIGH>;
+	};
+
 	aliases {
 		/* The whole of the application's knowledge of the hardware. It names no bus, no
 		 * address and no pin, which is P03's claim arriving here rather than being
