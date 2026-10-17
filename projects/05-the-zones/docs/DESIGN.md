@@ -154,8 +154,19 @@ devicetree's `reg` carries a seven-bit address. **0x52 is a legal seven-bit addr
 eight-bit form of 0x29, so the header alone does not say which this is.** Vendors in this family
 publish eight-bit addresses by convention, which is a reason to expect 0x29 and not a reason to
 write it: the arithmetic is definitional and the convention is the part that would be assumed.
-The tree answers it outright, since `tests/drivers/build_all/sensor/i2c.dtsi` carries a node for
-this compatible, and that node is what the overlay copies.
+The tree was asked and **gave a non-answer, which is worth more than a wrong one.**
+`tests/drivers/build_all/sensor/i2c.dtsi` does carry a node for this compatible and it reads
+`reg = <0xde>`. That is 222, above the seven-bit range an address can occupy, so it is not an
+address at all: the build-all suite exists to compile every driver once and its nodes need to be
+unique rather than real. **A test node is not a wiring fact**, and copying that number into an
+overlay would have produced a build that passed and a part that never answered, which is the
+failure this project's first criterion is written against.
+
+So the address comes from the one place in the tree that describes a real shield of this family:
+the `x_nucleo_53l0a1` overlay, for the single-point generation. Whatever convention that file
+uses for `reg` against its own vendor header's eight-bit constant is the convention this family
+is described with, and it is a fact about files rather than about a datasheet nobody here can
+reach.
 
 **No shield definition exists for this shield.** The tree carries one for `x_nucleo_53l0a1`, the
 single-point generation, and none for the multizone shields of either generation. So the overlay
