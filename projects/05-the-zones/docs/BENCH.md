@@ -405,10 +405,20 @@ byte: a part that could have been refused in four transactions and one milliseco
 sent a firmware image it cannot boot, and the failure arrived six seconds later as a timeout,
 which names neither the part nor the reason.
 
-**Whether the driver never calls the check or calls it and continues is not established here**,
-and the two are different statements about somebody else's code, so neither is written down as
-fact until its source is read. It is one search of the driver and it decides whether this is a
-gap worth offering upstream or a reading of a deliberate choice.
+**It never calls the check.** The driver's own initialisation is thirteen lines: it asks whether
+the bus is ready, calls the vendor's `vl53l5cx_init` and reports the status it gets back. A
+search of that file for `is_alive` returns nothing. So this is not a deliberate choice to
+continue past a failed identification; the identification is simply not asked for.
+
+That makes it a specific and checkable observation about upstream code rather than an opinion:
+**a four-transaction refusal exists in the library the driver links against, and the driver goes
+straight to uploading a firmware image instead.** On a part of the right family and the wrong
+revision, which is what sits on this bench, the difference is a clear refusal in about a
+millisecond against a timeout in 5.924 seconds that names neither the part nor the reason.
+
+**Whether to offer that upstream is a decision for Joseph and not for this page.** It is written
+down here because it was found, with the evidence beside it, and because the chapter's own
+binding should carry the refusal the tree's does not.
 
 ### What this does to the chapter
 
