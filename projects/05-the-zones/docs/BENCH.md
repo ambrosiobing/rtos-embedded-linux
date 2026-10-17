@@ -347,3 +347,30 @@ generation's rather than the previous one's.
 
 The bus goes back to 400 kHz, since nothing now argues for the slower setting and every upload
 costs less at the faster one.
+
+## Saturday 17 October 2026, next: what the part says it is, asked before anything else asks it
+
+Written before the run, as this project writes everything before the run.
+
+The vendor library's own identification check is four bus transactions: select register page
+zero, read the byte at register zero as a device identifier, read the byte at register one as a
+revision, and put the page selector back. The previous generation answers **0xF0 and 0x02**, and
+anything else makes the library report the part as not alive. All of that is read from
+`vl53l5cx_api.c` in the workspace rather than from any memory of a register map.
+
+So the cheapest thing a wired board can tell us is which of two situations this is:
+
+| What the part answers | What it means |
+|---|---|
+| 0xF0 and 0x02 | the two generations **cannot be told apart at the handshake** and diverge only once a firmware image is booted. The in-tree driver cannot protect itself by checking, because this part will always look like one of its own |
+| anything else | the handshake is where a driver should refuse, the in-tree one did not, and the chapter gains a line about why |
+
+**It is read before the sensor driver initialises**, at a priority between the shield's power and
+the driver's own, and that ordering is asserted at compile time. By the time an application's
+`main()` runs, the driver has already spoken to this part, failed part way through an
+initialisation and left a register page of its own selected. A reading taken then would be of a
+part in an unknown state, and nothing in the output would say so.
+
+The check writes the page selector back to the value the vendor's own routine leaves, so the
+driver that follows meets what it would otherwise have met and this reading changes nothing about
+the run it sits inside.
