@@ -222,3 +222,63 @@ configuration, and the line is worth its comment for that reason rather than for
 **This was the cheapest of the four outcomes written down before the run**, which said that a
 build failure means the description is wrong and is cheaper to find than either answer from the
 hardware. It cost one build.
+
+## Saturday 17 October 2026 at 12:17: the part answers, and the driver still cannot have it
+
+The run that the morning was narrowing towards. Built 12:15:06, flashed, one press, and the two
+boots the button's bounce produces are identical to the character.
+
+```
+<inf> shield_power: shield powered: supply enable on gpio@58020000 pin 7,
+                    low power on gpio@58020400 pin 1, 10 ms
+# bus scan on i2c@40005400, addresses 0x08 to 0x77
+#   0x29 answers, which is the address the overlay names
+#   1 device(s) answered
+NOT READY vl53l5cx@29
+<err> vl53l5cx: Failed to initialize the sensor (1)
+```
+
+**Four things are settled, and three of them were predictions.**
+
+**The pins resolved to what the connector map said.** The supply enable came out on
+`gpio@58020000` pin 7, which is PA7, and the low-power line on `gpio@58020400` pin 1, which is
+PB1. Those are the Arduino D11 and A3 positions the vendor's library names, translated by this
+board's own connector description rather than by anyone's memory, and the run prints them so the
+translation is checkable rather than trusted.
+
+**The address was 0x29 and the derivation was right.** The overlay said so, said it was derived
+from the vendor's 0x52 by the seven-bit convention, and named 0x52 as the one other thing to try.
+It is not needed. **One device answered and exactly one**, so the scan is not void and there is
+nothing else on that bus.
+
+**The part is powered and talking.** It acknowledges its address, which it could not do fifteen
+minutes ago. The whole third branch of the earlier diagnosis, that a part held in its low-power
+state cannot reply and no driver in the tree can release it, is now demonstrated rather than
+argued: the only change between the silent part and the answering one is fifteen lines that drive
+two pins the in-tree binding has no property for.
+
+**And the driver still cannot initialise it, with a different error.** 255 before, **1** now. A
+changed error on a part that now answers is not a failure repeating itself; it is the driver
+getting further and stopping somewhere else. **That is the second branch of the prediction
+written before the run**: the two generations differ in something the driver can see, and the
+power question is eliminated rather than suspected.
+
+### So the cheap attempt is answered, and the chapter's shape is settled by evidence
+
+The question was whether the operating system's driver for the previous generation can drive this
+part. It cannot, and the reason is no longer a guess about addresses or wiring: the part is
+powered, on the bus, at the right address, answering, and the driver that has its firmware image
+for the older part cannot bring the newer one up.
+
+**The module argument, withdrawn this morning, comes back for a precise reason.** It was
+withdrawn because the tree already carries this family's vendor library and a parallel copy would
+have been a second way to do one thing. The tree carries the **previous generation's** library,
+and the run has now shown that library cannot serve this part. So this project does need the
+vendor's interface for this generation, and the reason is a demonstrated incompatibility rather
+than an instinct about vendoring. That is a better justification than the chapter started with,
+and it was obtained by trying the cheap thing first.
+
+**What is not yet established is what the error means.** Status 1 is a number from the vendor's
+library and this page does not translate it from memory; the library's own header is in the
+workspace and names its status codes, which is one line to read and worth reading before anything
+is built on top of it.

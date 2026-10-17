@@ -1,9 +1,11 @@
 # P05. The zones: an out-of-tree driver
 
-Status on Saturday 17 October 2026: **the cheap attempt builds and nothing has been powered.**
-The part on this bench is described with the compatible string of the generation before it, the
-vendor's firmware image is fetched into the workspace, and the image links at 138964 bytes of
-flash. No number here has been measured and the shield is not fitted.
+Status on Saturday 17 October 2026: **the cheap attempt has been tried on the board and the
+answer is no, for a reason that is now evidence rather than argument.** The shield is fitted and
+powered, the part answers on the two-wire bus at the address the overlay derived, and the
+operating system's driver for the generation before it still cannot initialise it. So the work
+this project exists to do is justified by a run rather than by an instinct. No number here has
+been measured.
 
 [docs/BENCH.md](docs/BENCH.md) records that run and, written before the hardware is powered, the
 four outcomes the identification run can return and what each one changes.
