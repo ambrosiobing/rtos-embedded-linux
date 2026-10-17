@@ -28,24 +28,13 @@
 	status = "okay";
 	pinctrl-0 = <&i2c1_scl_pb8 &i2c1_sda_pb9>;
 	pinctrl-names = "default";
-	/* ONE HUNDRED KILOHERTZ, AND IT IS A CONTROL RATHER THAN A SETTING. The run of
-	 * Saturday 17 October 2026 at 12:17 reached the part at this address and failed
-	 * initialisation with the vendor library's status 1, which its own header names
-	 * VL53L5CX_STATUS_TIMEOUT_ERROR. The obvious reading is that the previous generation's
-	 * firmware image does not boot on this part, and the obvious reading has a competitor:
-	 * initialisation uploads tens of kilobytes over this bus, which is by far the largest
-	 * transfer this bench has ever asked of a two-wire bus, and a timeout is what a transfer
-	 * problem looks like too.
-	 *
-	 * **This bench has already seen 400 kHz fail where 100 kHz worked**, on Friday 9 October
-	 * 2026 with a different part on flying leads. That is a recorded observation rather than
-	 * a theory, and it makes the speed a candidate to rule out before the part is held responsible. One variable moves at a time: the speed, because there is a prior for it,
-	 * and not the driver's chunk size, which is the other candidate and waits its turn.
-	 *
-	 * If it still times out, the speed is eliminated and the reading that the two
-	 * generations differ stands on a control rather than on an inference.
+	/* FOUR HUNDRED KILOHERTZ, RESTORED, because the control that lowered it has been run
+	 * and has answered. On Saturday 17 October 2026 at 12:42 the bus went to 100 kHz and
+	 * nothing else changed; initialisation still timed out. The speed is ruled out, so there
+	 * is nothing left arguing for the slower setting and the faster one costs less time on
+	 * every upload. docs/BENCH.md carries the run and the arithmetic that came with it.
 	 */
-	clock-frequency = <I2C_BITRATE_STANDARD>;
+	clock-frequency = <I2C_BITRATE_FAST>;
 
 	/* THE ADDRESS IS 0x29 AND IT IS DERIVED RATHER THAN READ, which is stated here because
 	 * the first run is what settles it and because the alternative is one digit away.

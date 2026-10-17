@@ -3,9 +3,9 @@
 Status on Saturday 17 October 2026: **the cheap attempt has been tried on the board and the
 answer is no, for a reason that is now evidence rather than argument.** The shield is fitted and
 powered, the part answers on the two-wire bus at the address the overlay derived, and the
-operating system's driver for the generation before it still cannot initialise it. So the work
-this project exists to do is justified by a run rather than by an instinct. No number here has
-been measured.
+operating system's driver for the generation before it still cannot initialise it, with the bus
+speed ruled out by a control. So the work this project exists to do is justified by a run rather
+than by an instinct. No number here has been measured.
 
 [docs/BENCH.md](docs/BENCH.md) records that run and, written before the hardware is powered, the
 four outcomes the identification run can return and what each one changes.

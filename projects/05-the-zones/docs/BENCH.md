@@ -291,7 +291,8 @@ transfer this bench has ever asked of one, and the overlay had the bus at 400 kH
 
 **This bench has already seen 400 kHz fail where 100 kHz worked**, on Friday 9 October 2026, with
 a different part on flying leads. That is a recorded observation rather than a theory, and it
-makes the bus speed a candidate that has to be ruled out before the part is held responsible. Publishing
+makes the bus speed a candidate that has to be ruled out before the part is held responsible.
+Publishing
 "the generations differ" on the strength of one timeout, with a known-suspicious bus speed
 underneath it, would be exactly the kind of conclusion this volume exists not to publish.
 
@@ -300,3 +301,49 @@ changes.** One variable moves, and the driver's chunk size, which is the other c
 its turn. If the timeout survives the control, the reading that the two generations differ rests
 on a control rather than on an inference, which is the difference between a chapter and an
 opinion.
+
+## Saturday 17 October 2026 at 12:42: the control is run, and the bus speed is ruled out
+
+The bus at 100 kHz, nothing else changed, one press. The part still answers at 0x29, exactly one
+device still answers, and initialisation still fails with `VL53L5CX_STATUS_TIMEOUT_ERROR`.
+
+**So the speed is ruled out.** Quartering the bus rate did not rescue the initialisation, which
+is what the control existed to find out, and the reading that the two generations differ no
+longer rests on a bus speed this bench has seen misbehave before.
+
+### The time it took to fail is the more useful half
+
+| Bus rate | Time to the timeout |
+|---|---|
+| 400 kHz | 5.924 s |
+| 100 kHz | 11.335 s |
+
+**The failure took 1.91 times as long on a bus four times slower.** That rules out two things at
+once. It is not all transfer, or it would have taken four times as long. And it is not all fixed
+waiting, or it would have taken the same time. **Something substantial is being carried over the
+bus before the timeout**, which means the driver is uploading the firmware image and the part is
+accepting the traffic, and then something that does not depend on the bus at all runs out of
+patience.
+
+Split between a fixed part and a part that scales with the rate, the two times give about **1.8
+seconds of transfer at 400 kHz and about 4.1 seconds of waiting that the bus rate does not
+touch**. At 400 kHz, 1.8 seconds is the right order for the tens of kilobytes of firmware image
+this part is sent.
+
+**That decomposition fits exactly and the exactness means nothing**, which is worth saying
+plainly: two measurements and a two-parameter model will always fit, so this is a reading of the
+data rather than a test of it. **A third bus rate would test it**, and would be one more build
+and one more press if the question ever needs settling. It does not need settling to support the
+conclusion, because the conclusion rests on the control and not on the model: the timeout
+survived a four-fold change in bus rate.
+
+### What is now established, and what the chapter does next
+
+The part is powered, on the bus, at the address the overlay derived, answering, and accepting a
+large upload. The operating system's driver for the previous generation still cannot bring it up,
+and the bus speed is not why. **The remaining explanation is the one the chapter was written
+about**: this is a different part, and the firmware image and interface it needs are this
+generation's rather than the previous one's.
+
+The bus goes back to 400 kHz, since nothing now argues for the slower setting and every upload
+costs less at the faster one.
