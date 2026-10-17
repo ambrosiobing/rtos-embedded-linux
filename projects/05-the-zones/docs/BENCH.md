@@ -278,7 +278,25 @@ vendor's interface for this generation, and the reason is a demonstrated incompa
 than an instinct about vendoring. That is a better justification than the chapter started with,
 and it was obtained by trying the cheap thing first.
 
-**What is not yet established is what the error means.** Status 1 is a number from the vendor's
-library and this page does not translate it from memory; the library's own header is in the
-workspace and names its status codes, which is one line to read and worth reading before anything
-is built on top of it.
+**Status 1 is `VL53L5CX_STATUS_TIMEOUT_ERROR`**, read from the vendor library's own header in
+the workspace rather than translated from memory. The part answers its address and then something
+in initialisation does not complete in time.
+
+### The obvious reading has a competitor, and this bench has a prior for it
+
+The obvious reading is that the previous generation's firmware image does not boot on this part,
+and that would settle the chapter. **A timeout is also what a transfer problem looks like.**
+Initialisation uploads tens of kilobytes over the two-wire bus, which is by far the largest
+transfer this bench has ever asked of one, and the overlay had the bus at 400 kHz.
+
+**This bench has already seen 400 kHz fail where 100 kHz worked**, on Friday 9 October 2026, with
+a different part on flying leads. That is a recorded observation rather than a theory, and it
+makes the bus speed a candidate that has to be ruled out before the part is held responsible. Publishing
+"the generations differ" on the strength of one timeout, with a known-suspicious bus speed
+underneath it, would be exactly the kind of conclusion this volume exists not to publish.
+
+So the next run is a control and not a fix: **the bus drops to 100 kHz and nothing else
+changes.** One variable moves, and the driver's chunk size, which is the other candidate, waits
+its turn. If the timeout survives the control, the reading that the two generations differ rests
+on a control rather than on an inference, which is the difference between a chapter and an
+opinion.
