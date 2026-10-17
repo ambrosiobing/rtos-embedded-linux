@@ -143,7 +143,15 @@ static int assert_line(const struct gpio_dt_spec *line, const char *what)
  * SO THE DRIVER ASKS REPEATEDLY RATHER THAN WAITING A LONGER FIXED TIME, and reports how long it
  * took. A longer delay would be a number chosen to be safe; polling produces the figure instead,
  * and the figure is what the record should carry. */
-#define IDENTITY_WAIT_MS 500
+#define IDENTITY_WAIT_MS 5000
+
+/* FIVE SECONDS, RAISED FROM HALF A SECOND ON SATURDAY 17 OCTOBER 2026, and the raise is an
+ * experiment rather than a fix. A cold start did not answer in 505 ms, which is far too long for
+ * a settling rail, so the bound is opened wide enough to separate two possibilities that the
+ * shorter one could not: **the part is slow, and we get a figure; or it is never going to
+ * answer, and the fault is the pins or their order.** If the next cold start reports a number,
+ * the bound comes back down to something near it with the figure beside it. If it reports five
+ * seconds, this bound is not the thing to change. */
 
 static int vl53l8cx_identify(const struct device *dev)
 {

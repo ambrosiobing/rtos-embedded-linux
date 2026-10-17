@@ -842,3 +842,38 @@ the message.
 **What this does not yet explain.** Whether the part needs the time because its supply is
 settling, because it has its own boot, or because the supply enable needs holding longer before
 it means anything. The figure will narrow that, and no mechanism is offered until it does.
+
+## Saturday 17 October 2026 at 15:50: half a second is not enough either, and a confound surfaces
+
+```
+<err> vl53l8cx: no answer at 0x29 after 505 ms
+```
+
+**Five hundred milliseconds is far too long for a settling rail**, so the explanation offered in
+the previous entry is not the explanation. Something else is keeping this part off the bus from
+cold.
+
+### A conclusion published earlier had two changes in it and was credited to one
+
+At 11:16 the part did not answer. At 12:17 it did, and this log says the difference was fifteen
+lines driving a supply enable and a low-power line. **Two things changed between those runs**: the
+code, and the confirmation that the shield was properly seated, which was settled in between.
+
+The reading was written as though only the code had changed. It may still be right, and it is no
+longer supported the way it was written, which is the part that matters. **This is the project's
+own rule applied to the project's own conclusion**: a control that moves two things tells you
+about neither.
+
+The cold-start failure is what surfaced it, which is the usual way: a later run disagreeing with
+an earlier reading is the cheapest audit there is.
+
+### The next run separates slow from wrong
+
+The bound is raised from half a second to five, and that is an experiment and not a fix. Either
+the part answers at some point and the figure is the finding, or it does not answer in five
+seconds and the bound is not the thing to change: the pins, their order, or something about the
+shield that this project has not read would be.
+
+**What is deliberately not done yet.** No pin is inverted, no order is swapped and no second
+delay is inserted, because each would be a guess and two guesses at once would be worse. The
+run decides which question to ask.
