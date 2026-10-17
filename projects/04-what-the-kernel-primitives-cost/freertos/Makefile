@@ -105,6 +105,7 @@ run: $(BIN)
 check: $(BIN)
 	./$(BIN) > $(BUILD)/run.txt; status=$$?; \
 	if [ $$status -ne 0 ]; then cat $(BUILD)/run.txt; exit $$status; fi
+	@sed -n '/^# host verdicts/,$$p' $(BUILD)/run.txt
 	@awk '/^instrument wall/{p=1} p{print} p&&/^a_counts/{exit}' $(BUILD)/run.txt > $(BUILD)/device.txt
 	@test -s $(BUILD)/device.txt || { echo "  FAIL no period capture in the run output"; exit 1; }
 	@printf 'resolution_s 0.00001\nb_edges_s' > $(BUILD)/witness.txt

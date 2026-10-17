@@ -1,8 +1,12 @@
 # The seven operations under FreeRTOS, on a host
 
-**Status: written Friday 17 October 2026 and not yet built anywhere.** The first build is in
-WSL on the demo laptop, not in continuous integration, because a red CI run says less and
-costs more.
+**Status: green in WSL on the demo laptop, Friday 17 October 2026, first build.** No
+allocator in the binary, all seven verdicts passed, and the reduction refused the period
+capture for its clock and for nothing else. No board was involved and none is wired for this:
+the POSIX port runs the kernel as a host process.
+
+The first version of `make check` hid the verdict lines on success and showed only the
+refusal, so a green run concealed its own evidence. It prints them now.
 
 The map from each row's "what happens" to this kernel's objects is in
 [../docs/DESIGN.md](../docs/DESIGN.md), and it was committed before this directory existed.
