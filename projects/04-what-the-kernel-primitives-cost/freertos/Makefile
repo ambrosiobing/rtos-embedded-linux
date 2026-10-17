@@ -29,7 +29,7 @@ FREERTOS_TAG    ?= V11.1.0
 FREERTOS_URL    ?= https://github.com/FreeRTOS/FreeRTOS-Kernel.git
 
 NUCLEO_BSP        ?= $(HOME)/src/firmware-nucleo-h7
-NUCLEO_BSP_COMMIT ?= ebdba6e
+NUCLEO_BSP_COMMIT ?= 1d6d10f
 NUCLEO_BSP_URL    ?= https://github.com/ambrosiobing/firmware-nucleo-h7.git
 
 CROSS ?= arm-none-eabi-

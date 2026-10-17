@@ -26,9 +26,16 @@ static const char *const NAMES[MEASURE_OP_COUNT] = {
 	[MEASURE_OP_PERIOD] = "periodic thread period",
 };
 
+/* THE RANGE CHECKS CAST TO UNSIGNED, and the reason is the first cross-build of this file. On
+ * the host compiler an enum is a signed int and `op < 0` means something; under the ARM EABI an
+ * enum with no negative member is unsigned, so the same test is always false and -Wextra said
+ * so on Friday 17 October 2026, three times, the first time this core met arm-none-eabi-gcc.
+ * Comparing as unsigned does the right thing on both: a negative value wraps to something
+ * enormous and fails the upper bound, and nothing is always false anywhere. A core that claims
+ * to need nothing beyond C11 has to compile under more than one ABI to have earned the claim. */
 const char *measure_op_name(measure_op_t op)
 {
-	if (op < 0 || op >= MEASURE_OP_COUNT) {
+	if ((unsigned int)op >= (unsigned int)MEASURE_OP_COUNT) {
 		return "unknown operation";
 	}
 	return NAMES[op];
@@ -54,7 +61,7 @@ static const char *const INSTRUMENT_NAMES[MEASURE_INSTRUMENT_COUNT] = {
 
 measure_instrument_t measure_op_instrument(measure_op_t op)
 {
-	if (op < 0 || op >= MEASURE_OP_COUNT) {
+	if ((unsigned int)op >= (unsigned int)MEASURE_OP_COUNT) {
 		return MEASURE_INSTRUMENT_CORE;
 	}
 	return INSTRUMENTS[op];
@@ -62,7 +69,7 @@ measure_instrument_t measure_op_instrument(measure_op_t op)
 
 const char *measure_instrument_name(measure_instrument_t instrument)
 {
-	if (instrument < 0 || instrument >= MEASURE_INSTRUMENT_COUNT) {
+	if ((unsigned int)instrument >= (unsigned int)MEASURE_INSTRUMENT_COUNT) {
 		return "unknown";
 	}
 	return INSTRUMENT_NAMES[instrument];
