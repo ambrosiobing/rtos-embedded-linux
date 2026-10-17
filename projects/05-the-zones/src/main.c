@@ -40,6 +40,16 @@
 
 #include <stdio.h>
 
+#if DT_NODE_HAS_COMPAT(DT_ALIAS(zones), st_vl53l8cx)
+#define READS_THE_GRID 1
+#include "zones.h"
+#else
+/* The description that points this part at the tree's driver for the generation before it gets
+ * no grid, because that driver does not bring this part up at all. One application serves two
+ * descriptions and this is the one place they differ. */
+#define READS_THE_GRID 0
+#endif
+
 /* The application's only piece of hardware knowledge, and it names no bus, no address and no
  * pin. P03 established that shape. The bus below is derived from the part rather than named
  * again, so the scan cannot drift to a different controller than the device sits on. */
@@ -91,6 +101,68 @@ static int scan_bus(void)
 	printf("#   %d device(s) answered\n", found);
 	return found;
 }
+
+#if READS_THE_GRID
+/* SIXTY-FOUR DISTANCES AND SIXTY-FOUR STATUSES, PRINTED TOGETHER, which is this project's second
+ * acceptance criterion in a format rather than in a sentence: an empty scene and a surface beyond
+ * range both have a number in the distance, and only the status tells them apart.
+ *
+ * NOTHING HERE TURNS A STATUS INTO A WORD, because this project has not established what the
+ * values mean and a mapping read off the shape of the data would be a guess wearing a label. It
+ * comes from the vendor's documentation or it does not appear.
+ *
+ * THE ORIENTATION IS UNESTABLISHED AND IS SAID TO BE. The grid is printed in the order the part
+ * returns it, and which physical corner the first zone is has not been shown. That is the fifth
+ * acceptance criterion and it needs a hand over one quadrant, not a reading of this file. */
+static void print_grid(void)
+{
+	struct zones_grid grid;
+	int rc;
+	int row;
+	int col;
+
+	rc = sensor_sample_fetch(zones);
+	if (rc == -EAGAIN) {
+		printf("# no result ready yet; the part ranges at its own rate\n");
+		return;
+	}
+	if (rc != 0) {
+		printf("# the fetch failed: %d. No grid is printed, because a value that might\n", rc);
+		printf("# not be a measurement is not printed as one\n");
+		return;
+	}
+
+	rc = zones_read(zones, &grid);
+	if (rc != 0) {
+		printf("# the grid could not be read: %d\n", rc);
+		return;
+	}
+
+	printf("\n# the grid as the part returns it: distance in millimetres, then the vendor's\n");
+	printf("# status. The status is a number because what each value means has not been read\n");
+	printf("# from a source yet, and the orientation has not been established\n");
+	printf("# silicon temperature %d C\n", grid.silicon_temp_degc);
+
+	for (row = 0; row < ZONES_ACROSS; row++) {
+		printf("#  ");
+		for (col = 0; col < ZONES_ACROSS; col++) {
+			int i = row * ZONES_ACROSS + col;
+
+			printf(" %5d/%-2u", grid.distance_mm[i], grid.status[i]);
+		}
+		printf("\n");
+	}
+
+	printf("# targets each zone saw, where zero means the zone saw nothing at all\n");
+	for (row = 0; row < ZONES_ACROSS; row++) {
+		printf("#  ");
+		for (col = 0; col < ZONES_ACROSS; col++) {
+			printf(" %u", grid.targets[row * ZONES_ACROSS + col]);
+		}
+		printf("\n");
+	}
+}
+#endif
 
 int main(void)
 {
@@ -146,6 +218,13 @@ int main(void)
 	printf("# says which: vl53l5cx is the tree's, for the generation before this one, and\n");
 	printf("# vl53l8cx is this project's own.\n");
 	printf("# This is the beginning of the question rather than the end: what the two\n");
-	printf("# generations differ in is read from the grid, which this run does not take.\n");
+	printf("# generations differ in is read from the grid, which follows.\n");
+
+#if READS_THE_GRID
+	print_grid();
+#else
+	printf("# This description uses the tree's driver, which does not bring this part up,\n");
+	printf("# so there is no grid to read and none is invented.\n");
+#endif
 	return 0;
 }

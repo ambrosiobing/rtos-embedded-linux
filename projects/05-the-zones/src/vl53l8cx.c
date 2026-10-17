@@ -48,6 +48,7 @@ LOG_MODULE_REGISTER(vl53l8cx, CONFIG_SENSOR_LOG_LEVEL);
  * see CMakeLists.txt for why nothing is copied in. `platform.h` is this project's and is on the
  * include path first, so the library finds the six functions in src/vl53l8cx_platform.c. */
 #include "platform.h"
+#include "zones.h"
 #include <vl53l8cx_api.h>
 
 /* From `vl53l5cx_is_alive` in the vendor library in the workspace: a sixteen-bit register
@@ -84,6 +85,12 @@ struct vl53l8cx_data {
 	 * It is large and it is per instance, which is the vendor's design and not a choice
 	 * this driver gets to make. */
 	VL53L8CX_Configuration vendor;
+
+	/* The most recent result, and a flag saying whether one has ever arrived. Reading the
+	 * grid before the first result would hand back a buffer of zeroes, which is the failure
+	 * this project's first acceptance criterion exists to prevent. */
+	VL53L8CX_ResultsData results;
+	bool have_result;
 };
 
 static int write_reg(const struct i2c_dt_spec *i2c, uint16_t reg, uint8_t value)
@@ -149,14 +156,54 @@ static int vl53l8cx_identify(const struct device *dev)
 
 static int vl53l8cx_sample_fetch(const struct device *dev, enum sensor_channel chan)
 {
-	ARG_UNUSED(dev);
+	struct vl53l8cx_data *data = dev->data;
+	uint8_t ready = 0u;
+
 	ARG_UNUSED(chan);
 
-	/* NOT A STUB THAT RETURNS ZEROES, which is this project's first acceptance criterion in
-	 * one line: a grid of zeroes looks like an empty room and is more convincing than a
-	 * single zero for having structure. Ranging needs this generation's vendor interface and
-	 * this driver does not have it yet, so it says so in the only way an interface allows. */
-	return -ENOTSUP;
+	if (vl53l8cx_check_data_ready(&data->vendor, &ready) != 0u) {
+		LOG_ERR("asking whether a result is ready failed");
+		return -EIO;
+	}
+	if (ready == 0u) {
+		/* NOT A FAULT. The part ranges at its own rate and a caller that asks more
+		 * often than that gets this, which is how it paces itself without this driver
+		 * inventing a delay for it. */
+		return -EAGAIN;
+	}
+
+	if (vl53l8cx_get_ranging_data(&data->vendor, &data->results) != 0u) {
+		LOG_ERR("a result was ready and did not come back");
+		return -EIO;
+	}
+
+	data->have_result = true;
+	return 0;
+}
+
+int zones_read(const struct device *dev, struct zones_grid *grid)
+{
+	struct vl53l8cx_data *data = dev->data;
+	size_t i;
+
+	if (grid == NULL) {
+		return -EINVAL;
+	}
+
+	/* NOT A BUFFER OF ZEROES, which is this project's first acceptance criterion in one
+	 * line: sixty-four zeroes look like an empty room and are more convincing than one zero
+	 * for having structure. A caller that has not fetched gets told so. */
+	if (!data->have_result) {
+		return -EAGAIN;
+	}
+
+	for (i = 0u; i < (size_t)ZONES_TOTAL; i++) {
+		grid->distance_mm[i] = data->results.distance_mm[i];
+		grid->status[i] = data->results.target_status[i];
+		grid->targets[i] = data->results.nb_target_detected[i];
+	}
+	grid->silicon_temp_degc = data->results.silicon_temp_degc;
+	return 0;
 }
 
 static int vl53l8cx_channel_get(const struct device *dev, enum sensor_channel chan,
@@ -242,6 +289,28 @@ static int vl53l8cx_dev_init(const struct device *dev)
 	}
 
 	LOG_INF("initialised with this generation's own interface");
+
+	/* EIGHT BY EIGHT IS ASKED FOR AND NOT ASSUMED. The vendor's library starts at the
+	 * smaller resolution, so a driver that never set this would quietly deliver sixteen
+	 * zones to a project whose whole subject is sixty-four. */
+	if (vl53l8cx_set_resolution(&data->vendor, VL53L8CX_RESOLUTION_8X8) != 0u) {
+		LOG_ERR("the part would not take the eight by eight resolution");
+		return -EIO;
+	}
+
+	/* THE RANGING RATE IS LEFT AT THE VENDOR'S DEFAULT, deliberately. The maximum differs
+	 * by resolution and this project has not read this part's figure from a source, so
+	 * setting one would be choosing a number from the previous generation's datasheet and
+	 * hoping. The default is whatever the library ships, the run prints nothing about it,
+	 * and the first capture that quotes a rate will have read it with `get_ranging_frequency_hz`
+	 * rather than assumed it. */
+
+	if (vl53l8cx_start_ranging(&data->vendor) != 0u) {
+		LOG_ERR("the part would not start ranging");
+		return -EIO;
+	}
+
+	LOG_INF("ranging started at eight by eight");
 	return 0;
 }
 

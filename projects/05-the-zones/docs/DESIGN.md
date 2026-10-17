@@ -352,6 +352,38 @@ this volume for anything at the scale of a bus transaction come from P04's metho
 instrument, and a comparison between an application in C and one in C++23 over the same driver
 would be comparing two compilers' inlining decisions.
 
+## Sixty-four numbers and one interface, which the sixth criterion does not settle
+
+**Written Saturday 17 October 2026, before any grid is read**, because the answer changes what
+the driver offers and a driver written first would have decided it by accident.
+
+The sixth acceptance criterion says P01 is unchanged and only its range source differs. P01 asks
+the sensor interface for a reading and gets one number. **This part returns sixty-four**, each
+with a status, and reducing them to one is a policy rather than a mechanism:
+
+| A reduction | What it suits | What it loses |
+|---|---|---|
+| the nearest valid zone | a presence machine that should trip on anything entering the field | a wall at two metres and a person at two metres are the same answer |
+| a named zone, the centre say | a device pointed at a doorway | everything the other sixty-three zones saw |
+| how many zones are occupied below a threshold | how much of a room is in use, which is the question this volume's product spine asks | where |
+
+**So the criterion means something narrower than it sounds**, and saying which is this chapter's
+job rather than a detail. P01's state machine is unchanged, and so is the interface it reads
+through; what cannot be unchanged is that something now chooses one number from sixty-four. The
+honest arrangement is that **the driver does not choose**. It offers the grid, and the choice is
+made in a named place that a reader can disagree with.
+
+That is why this driver's `channel_get` returns the grid's zones rather than a single distance,
+and why a reduction, when this project writes one, is a separate file with the policy in its name
+and its own page in the record. A driver that quietly returned the nearest zone would be shipping
+a product decision inside a device description, and the next person would find it by reading the
+source.
+
+**What this does to criterion 6** is make it checkable in a narrower form: P01's application
+object is byte for byte what it was, and the file that chooses one number from sixty-four is new
+and is not P01's. That is a stronger claim than the loose reading, because it names the thing
+that had to be added.
+
 ## The trap this project is most likely to produce
 
 **A grid whose orientation is assumed.** Sixty-four numbers arrive in an order, that order maps
