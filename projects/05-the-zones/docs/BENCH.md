@@ -1300,3 +1300,53 @@ The second case first reported "mutation did not apply", which is the dangerous 
 as a passing gate. The needle was written with one line ending and this file uses the other, so it
 matched nothing. **A mutation that does not apply proves neither direction**, and the harness now
 normalises before matching and says so when a mutation is inert.
+
+## Sunday 18 October 2026 at 22:35: the suite is real and the proof it could fail was not
+
+**The reduction compiled and passed on its first run on the demo laptop**, which is not what was
+predicted. The hand-over said to expect that step to find something, since the file was C that no
+compiler had ever seen, built with warnings as errors. It came back clean: 32 checks, 0 failures,
+across nine cases including the two refusals that matter.
+
+Then `make mutants` printed `all 4 mutations were caught, so the suite can fail`, **and that line
+was false.**
+
+### How a green line with a zero exit status was worth nothing
+
+The four mutations were a `mutant-%` pattern rule, and the four targets were declared `.PHONY`.
+**GNU make does not search pattern or implicit rules for a phony target.** So all four became
+phony targets with no recipe at all: make had nothing to do for each, did it silently, and the
+summary in the parent target then announced the result it was written to announce.
+
+Nothing failed. Nothing ran. The exit status was zero and the words were encouraging.
+
+**The only tell was four missing lines.** Each mutation was supposed to print its own name and how
+many checks it broke, and the pasted output went straight from the suite's last line to the
+summary. A run that produces less output than it should is a run worth reading twice, and this one
+would have passed unexamined if the per-mutation reporting had never been written in the first
+place.
+
+### This is the second version of this target to report success having done nothing
+
+The first looped in the shell over the mutation names and asked for `$SED_$m`, which the shell has
+never heard of, so every expression was empty and every mutation a copy of the original. That one
+was caught by reading it. This one was caught by its own output being too short.
+
+| Version | What it did | How it was caught |
+|---|---|---|
+| shell loop over make variables | every sed expression empty | read before it ran |
+| pattern rule with phony targets | no recipe matched, nothing ran | four lines missing from a green run |
+| a stamp file per mutation | make must produce a file, and the count is asserted | the subject of the next run |
+
+### The fix is to make the work leave evidence rather than to trust its silence
+
+Each mutation now produces `build/caught_<name>`, and the summary counts the stamps and refuses
+unless there is one per mutation. A recipe that does not run leaves no stamp. **Make's own
+machinery is the proof the work happened**, instead of the absence of a failure, which is what
+both earlier versions mistook for success.
+
+The method note is the one this project keeps relearning in new costumes: a guard, a counter, a
+gate and now a mutation harness have each reported a pass while measuring nothing. The shape is
+always the same, and so is the remedy: build the failure the thing claims to detect and watch it
+be detected. Here that means `make mutants` must be shown to fail when a mutation is removed from
+the list, and that run has not been made yet.

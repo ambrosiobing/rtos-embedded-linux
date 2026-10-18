@@ -106,3 +106,25 @@ each:
 
 A suite that has only ever passed is a suite nobody has checked. Both targets run in continuous
 integration, so neither is a thing to remember.
+
+### The harness reported success twice before it ran anything
+
+Worth the paragraph, because this page is asking a reader to trust that table.
+
+- **The first version** looped in the shell over the mutation names and asked for `$SED_$m`. The
+  shell has never heard of a make variable, so every expression was empty and every mutation would
+  have been a copy of the original. Caught by reading it before it ran.
+- **The second version** used a `mutant-%` pattern rule and declared those targets `.PHONY`.
+  **GNU make does not search pattern or implicit rules for a phony target.** All four became phony
+  targets with no recipe, make did nothing for each, silently, and the summary announced that four
+  mutations had been caught. It printed that on the demo laptop on Sunday 18 October 2026, and the
+  only tell was four missing lines of output.
+
+The second is the sharper lesson, because it was green and looked green for the right reasons: the
+suite passed, the mutations "were caught", and the exit status was zero. **The absence of a failure
+was mistaken for the presence of a check**, which is the thing the target exists to prevent, by a
+target that had become an example of it.
+
+The third version makes each mutation produce a file and asserts one stamp per mutation, so make's
+own machinery is the evidence the work happened. A recipe that does not run leaves no stamp, and
+the summary refuses rather than congratulating itself.

@@ -52,18 +52,36 @@ SED_ties_to_higher    := s/distance_mm\[i\] < out\.distance_mm/distance_mm[i] <=
 SED_never_initialises := s/!out\.found || //
 SED_always_found      := s/out\.found = false;/out.found = true;/
 
-# ONE TARGET PER MUTATION, so that make expands the sed expression rather than a shell trying to
-# read a make variable. The first version of this looped in the shell over $(MUTANTS) and asked
-# for $$SED_$$m, which the shell has never heard of: every expression came out empty, every
-# mutation would have been a no-op, and the target would have reported that the suite was fine.
-# A harness that cannot fail is the thing this target exists to rule out.
-mutants: $(addprefix mutant-,$(MUTANTS))
+# ONE TARGET PER MUTATION, AND IT PRODUCES A FILE, which is the third attempt at this target and
+# the first that runs anything. Both earlier versions reported success having done nothing, which
+# is precisely the failure this target exists to rule out, so both are recorded here:
+#
+#   the first   looped in the shell over $(MUTANTS) and asked for $$SED_$$m. The shell has never
+#               heard of a make variable, so every expression was empty and every mutation would
+#               have been a no-op
+#   the second  used a `mutant-%` pattern rule and declared those targets .PHONY. **GNU make does
+#               not search pattern or implicit rules for a phony target.** All four became phony
+#               targets with no recipe, make did nothing for each, silently, and the summary line
+#               then announced that four mutations had been caught. It printed that on Sunday
+#               18 October 2026 on the demo laptop, and the only tell was four missing lines
+#
+# SO THE TARGET IS NOW A REAL FILE and the count is asserted. A recipe that does not run leaves no
+# stamp, and `mutants` refuses unless it finds one per mutation. **Make's own machinery is the
+# proof the work happened**, rather than the absence of a failure, which is what both earlier
+# versions mistook for success.
+mutants: | $(BUILD)
+	@rm -f $(BUILD)/caught_*
+	@$(MAKE) --no-print-directory $(foreach m,$(MUTANTS),$(BUILD)/caught_$(m))
+	@n=$$(ls $(BUILD)/caught_* 2>/dev/null | wc -l); \
+	if [ "$$n" -ne $(words $(MUTANTS)) ]; then \
+	  echo "only $$n of $(words $(MUTANTS)) mutations left a stamp, so this proves nothing"; \
+	  exit 1; \
+	fi
 	@echo
-	@echo "all $(words $(MUTANTS)) mutations were caught, so the suite can fail"
+	@echo "all $(words $(MUTANTS)) mutations ran and were caught, so the suite can fail"
 
-.PHONY: $(addprefix mutant-,$(MUTANTS))
-
-mutant-%: | $(BUILD)
+$(BUILD)/caught_%: $(OBJSRC) $(TESTSRC) $(SRCDIR)/reduce_nearest_valid.h \
+                   $(SRCDIR)/zone_status.h | $(BUILD)
 	@sed '$(SED_$*)' $(OBJSRC) > $(BUILD)/mutant_$*.c
 	@if cmp -s $(BUILD)/mutant_$*.c $(OBJSRC); then \
 	  echo "$*: THE MUTATION DID NOT APPLY, so it proves neither direction"; exit 1; \
@@ -75,9 +93,9 @@ mutant-%: | $(BUILD)
 	fi
 	@if ./$(BUILD)/mutant_$* >$(BUILD)/mutant_$*.out 2>&1; then \
 	  echo "$*: NOT CAUGHT, the suite passed a reduction that is wrong"; exit 1; \
-	else \
-	  echo "$*: caught, $$(grep -c FAILED $(BUILD)/mutant_$*.out) check(s) failed"; \
 	fi
+	@echo "$*: caught, $$(grep -c FAILED $(BUILD)/mutant_$*.out) check(s) failed"
+	@echo caught > $@
 
 clean:
 	@rm -rf $(BUILD)
