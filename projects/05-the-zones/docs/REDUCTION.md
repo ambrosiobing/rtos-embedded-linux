@@ -87,6 +87,8 @@ arithmetic:
 cd projects/05-the-zones/host
 make check
 make mutants
+make selftest
+make sanitise
 ```
 
 `check` runs nine cases whose expected values are written out rather than computed by calling the
@@ -104,8 +106,15 @@ each:
 | the first valid zone no longer seeds the comparison | every case with a reading beyond zero millimetres |
 | a reading is reported before any zone is examined | the all status 6 grid |
 
-A suite that has only ever passed is a suite nobody has checked. Both targets run in continuous
-integration, so neither is a thing to remember.
+`selftest` proves the guard that protects `mutants` still fires, by reintroducing the defect that
+once made that target pass while running nothing. `sanitise` builds the same suite under the
+address and undefined-behaviour sanitisers, with `halt_on_error` set, because a warning cannot see
+a subscript: this file walks two arrays with one loop variable, narrows that variable for the zone
+index, and has a null path, and those are caught at a bad run rather than at a bad value. It
+reported no diagnostics on Sunday 18 October 2026.
+
+A suite that has only ever passed is a suite nobody has checked. All four targets run in
+continuous integration, so none of them is a thing to remember.
 
 ### The harness reported success twice before it ran anything
 
