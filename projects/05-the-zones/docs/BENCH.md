@@ -1072,3 +1072,73 @@ flat, whether anything is trapped under it, or where its jumpers sit. Four softw
 have been run on a bench whose state is written down nowhere since the morning. That is the rule
 this project has on file and has now failed twice in one afternoon: **a document records what was
 built, not what is connected now.**
+
+## Sunday 18 October 2026 at 19:21: the pins are driven, and the software is now exhausted
+
+**Prediction written before the run:** two new lines naming a port and a pin each. If they appear
+and the part still does not answer, the software has been exhausted and the remaining question is
+the shield itself.
+
+Both halves came true. The console:
+
+    <inf> vl53l8cx: supply enable pulsed low then high on gpio@58020000 pin 7, 2 ms each
+    <inf> vl53l8cx: low power pulsed low then high on gpio@58020400 pin 1, 2 ms each
+
+`gpio@58020000` pin 7 is PA7, which this board puts at Arduino D11. `gpio@58020400` pin 1 is PB1,
+at Arduino A3. Those are ST's two pins at ST's two positions, pulsed in ST's order with ST's two
+millisecond waits. **After four runs that reasoned about pin driving, a console has finally said a
+pin was driven.**
+
+### The log's words are true of the pins, which is a second thing and was also checked
+
+A helper that reports "low then high" is reporting the logical levels it asked for, and whether
+those are the physical levels depends on a flag in the description. Both properties carry
+`GPIO_ACTIVE_HIGH`, in both overlays, so logical and physical agree and the sentence on the
+console is a sentence about the pin. Had that flag said otherwise, the log would have read
+correctly while the supply was being held off, which is the failure this check exists to exclude.
+
+### Why the scan's answer rules out the driver rather than implicating it
+
+**Nothing answered, 0 of 112 addresses.** That is neither of the two failures a driver can
+produce, and the scan was built to separate them:
+
+    a wrong address        something answers somewhere, and the scan prints where
+    a scan that is void    everything answers, and the scan says so rather than reporting 112
+    nothing at all         the part is not electrically on this bus, which no address, no bus
+                           speed and no register sequence can change
+
+Bus speed was already eliminated by the 100 kHz control. The address is the one the part itself
+used this afternoon. So the result is not about software, and four more builds would not move it.
+
+### What makes this a regression rather than a bring-up problem
+
+Earlier the same day, this same description and this same driver read a coherent grid at about
+2.56 metres with a 52 millimetre gradient from left to right, and a silicon temperature. The
+part, the bus wiring and these two pins were all sound a few hours ago. The only event between
+that reading and the silence is the power cycle at 15:44, cable out and back in. **A working
+system did not become a broken driver by being unplugged.**
+
+### The stamp defect caught itself in the act, and is fixed
+
+This console reads `# built Oct 17 2026 15:42:20` on an image that demonstrably contains code
+written after 16:50, since the two lines above are in it. The stamp was `__DATE__` and `__TIME__`
+in the application file, which fix themselves when that one file is compiled and not when the
+image is linked. It has been replaced: `scripts/stamp.py` runs at every build and writes the time
+in full and the commit, with a count of the files in this project that were edited or untracked
+at that moment. The first version of that script used `git describe --dirty`, which reads tracked
+modifications only; a tree carrying an untracked C file was proved to report a clean hash, so the
+marker is computed instead. Both directions were run before the script was committed.
+
+The stamp was added so a stale flash could be told from a reproduction, and in this form it did
+the opposite: it reported a new image as an old one. **A guard that produces false alarms is worse
+than no guard, because the result it discards is real.**
+
+### The one thing still not examined, now the only thing left
+
+The shield's physical state, asked for at 16:26 on Saturday 17 October 2026 and again at the end
+of that day. Five software experiments have now been run on a bench whose state nothing records
+since Saturday morning. What is wanted is not another build but a description or a photograph:
+whether the board sits flat on both header rows with no tilt or gap, whether anything is trapped
+beneath it, and where its jumper blocks sit, particularly the pair that selects between the
+two-wire and four-wire interfaces. A part that answers for hours and then does not, across one
+cable cycle, is a question about contact and configuration.

@@ -40,6 +40,8 @@
 
 #include <stdio.h>
 
+#include "build_stamp.h"
+
 #if DT_NODE_HAS_COMPAT(DT_ALIAS(zones), st_vl53l8cx)
 #define READS_THE_GRID 1
 #include "zones.h"
@@ -199,8 +201,13 @@ int main(void)
 	k_msleep(200);
 
 	printf("\np05 the zones, identification run\n");
-	printf("# built %s %s, and a stamp older than your last edit means a stale flash\n",
-	       __DATE__, __TIME__);
+	/* THE STAMP IS THE LINK'S AND NOT THIS FILE'S, which it used not to be. `__DATE__` here
+	 * reported a time 69 minutes old for an image built minutes earlier, because an edit to
+	 * the driver does not recompile main.c. scripts/stamp.py is run at every build instead,
+	 * and build_stamp.h records what went wrong with the first arrangement. */
+	printf("# built %s\n", build_stamp_when);
+	printf("# from %s, and a stamp older than your last edit means a stale flash\n",
+	       build_stamp_commit);
 	printf("# the overlay names address 0x%02x on %s\n", (unsigned int)ZONES_ADDR, bus->name);
 	printf("# this run asks two questions: what is on the bus, and did the device come up\n");
 	printf("# it does not read the grid, and ../docs/DESIGN.md says why not yet\n");

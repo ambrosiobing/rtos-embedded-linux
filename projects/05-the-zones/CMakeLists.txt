@@ -103,3 +103,44 @@ target_sources(app PRIVATE
 # THE LIBRARY IS NOT HELD TO THIS PROJECT'S WARNINGS. It is somebody else's code, used
 # unmodified, and a warning in it is not a defect this repository can fix without forking it.
 set_source_files_properties("${VL53L8CX_ULD}/vl53l8cx_api.c" PROPERTIES COMPILE_OPTIONS "-w")
+
+# ================================================= what the image is, regenerated at every build
+#
+# THIS IS A CORRECTION AND NOT A FEATURE. The banner used to print `__DATE__` and `__TIME__` from
+# main.c. Those two macros are fixed when that one file is compiled, and a build that changes any
+# other file does not recompile it: on Saturday 17 October 2026 at 16:51 an image built from an
+# edit to the driver printed a stamp 69 minutes old. The reading that followed was nearly thrown
+# away as a stale flash, which is the dangerous direction for a guard to fail in.
+#
+# THE COMMAND RUNS EVERY BUILD, BY CONSTRUCTION. A custom target with no output is always out of
+# date, so a command that depends on one is never skipped. The generated file therefore changes
+# on every build, its translation unit recompiles, and the image is relinked. That cost is one
+# small compile and one link, paid so the console cannot claim an age the image does not have.
+# `ninja` in this project is consequently never a no-op, which is the intended arrangement.
+#
+# THE OUTPUT FORM IS USED RATHER THAN A BYPRODUCT, so the build system has a real rule producing
+# a real file and the first build cannot race its own generator.
+set(BUILD_STAMP_C "${CMAKE_CURRENT_BINARY_DIR}/build_stamp.c")
+set(REPO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../..")
+
+# THE INTERPRETER IS THE ONE THE OPERATING SYSTEM'S BUILD ALREADY FOUND, because the build runs
+# inside a virtual environment where the bare name resolves differently than outside it. The
+# fallback exists so that a missing variable arrives as a sentence about Python rather than as a
+# command that cannot be run.
+if(NOT DEFINED PYTHON_EXECUTABLE)
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
+endif()
+
+add_custom_target(stamp_always)
+
+add_custom_command(
+  OUTPUT "${BUILD_STAMP_C}"
+  COMMAND "${PYTHON_EXECUTABLE}" "${REPO_ROOT}/scripts/stamp.py"
+          --out "${BUILD_STAMP_C}"
+          --scope "projects/05-the-zones"
+  DEPENDS stamp_always "${REPO_ROOT}/scripts/stamp.py"
+  COMMENT "stamping the image with the time and the commit"
+  VERBATIM)
+
+target_sources(app PRIVATE "${BUILD_STAMP_C}")
