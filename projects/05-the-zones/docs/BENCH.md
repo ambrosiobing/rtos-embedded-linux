@@ -1396,3 +1396,44 @@ mutation caught by a single check names a load-bearing check: deleting it as red
 remove the only cover for the rule that a tie keeps the lower zone index, and nothing else in the
 suite would notice. The counts are therefore not decoration either, they say which checks are
 carrying weight alone.
+
+## Sunday 18 October 2026 at 23:20: the chain under the reduction is closed
+
+Three targets, three results, and each one is load-bearing for the one above it:
+
+    make check      32 checks, 0 failures, across nine cases
+    make mutants    accept_everything 9, ties_to_higher 1, never_initialises 16,
+                    always_found 14 checks broken. All four ran and were caught
+    make selftest   with the historical .PHONY defect reintroduced into the makefile the work is
+                    done by: "only 0 of 4 mutations left a stamp, so this proves nothing"
+
+**That is a closed chain rather than three separate assurances.** The suite passing says the
+reduction behaves. The mutations say the suite can fail, so its passing means something. The
+selftest says the mutation result cannot be a silent no-op, which it twice was. Each layer has
+something underneath it that would notice if it stopped working, and the bottom layer tests itself
+in continuous integration rather than when somebody remembers.
+
+It took three versions of the harness and two void tests of the guard to get there, all recorded
+above. The cost was worth paying once; the thing that makes it worth paying is that none of it is
+now a matter of memory.
+
+## What the sixth criterion still needs, read rather than guessed
+
+The half that needed writing is written. The remaining half is that P01's application object is
+byte for byte what it was with only its range source different, and **the tool for it already
+exists**: `scripts/check_object_identity.py`, written for P03's first criterion, which compares
+two build directories by disassembly and symbol table and tolerates exactly one class of
+difference, the `__device_dts_ord_` pair that a devicetree ordinal moves.
+
+Two things stand between here and that check, and neither is a guess:
+
+- **The checker names one object, `CMakeFiles/app.dir/src/main.c.obj`, as a constant.** Criterion 6
+  is about P01's presence machine rather than an application's `main.c`, so that path has to become
+  an argument. That is a small change and it strengthens the script for every later chapter.
+- **The comparison needs two builds of P01 and the second does not exist.** P01's machine is fed
+  events by an adapter; nothing yet feeds it from this part through the reduction. That integration
+  is the real work, it needs the Zephyr software development kit rather than the board, and it is
+  the right place for a session to start rather than the place for one to end.
+
+Recording it here in that order so the next session reads the sibling before writing the copy,
+which is the rule this project has already been saved by twice.
