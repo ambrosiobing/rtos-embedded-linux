@@ -58,7 +58,13 @@ cmake_minimum_required(VERSION 3.20.0)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(the_zones C)
 
-target_sources(app PRIVATE src/main.c src/shield_power.c src/identify.c src/vl53l8cx.c)
+target_sources(app PRIVATE src/main.c src/shield_power.c src/identify.c src/vl53l8cx.c
+                           src/reduce_nearest_valid.c)
+
+# THE REDUCTION IS PLAIN C AND NAMES NO OPERATING SYSTEM, which is why it has a host suite in
+# host/ that needs no board and no Zephyr. `make check` builds and runs it, and `make mutants`
+# breaks it four ways and fails unless the suite notices each. It is compiled into the firmware
+# here as well, so the thing the suite proves is the thing the board runs.
 
 # ==================================================== the vendor's interface for this generation
 #

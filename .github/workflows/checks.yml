@@ -98,6 +98,24 @@ jobs:
           make
           python test_capture_pipeline.py build/emit_capture
 
+      # P05's reduction, which turns sixty-four zones into the one distance P01's state machine
+      # compares. It is plain C over two arrays, so every answer it can give is arithmetic and
+      # none of it needs the board: the half of that chapter provable without a bench is proved
+      # here. The cases that matter are the refusals, above all a grid whose every zone carries
+      # the status the only recorded grid actually carried, which must yield no reading rather
+      # than a distance of zero. Zero would be the nearest possible object and would manufacture
+      # a presence out of an empty answer.
+      #
+      # `mutants` is the second half and is not optional. It breaks the reduction four ways and
+      # fails unless the suite notices each, because a suite that has only ever passed is a
+      # suite nobody has checked. This repository has that lesson from three counters that read
+      # zero against 949 malformed rows.
+      - name: P05's reduction, and the proof its suite can fail
+        run: |
+          cd projects/05-the-zones/host
+          make check
+          make mutants
+
       # P04 criterion 7, and it is enforced rather than remembered because it is the rule most
       # likely to be broken quietly by somebody adding a row in a hurry. The acquisition board
       # resolves about ten microseconds; a context switch is far shorter; a row measuring one

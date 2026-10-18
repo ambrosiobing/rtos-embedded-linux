@@ -46,6 +46,8 @@
 #if DT_NODE_HAS_COMPAT(DT_ALIAS(zones), st_vl53l8cx)
 #define READS_THE_GRID 1
 #include "zones.h"
+#include "zone_status.h"
+#include "reduce_nearest_valid.h"
 #else
 /* The description that points this part at the tree's driver for the generation before it gets
  * no grid, because that driver does not bring this part up at all. One application serves two
@@ -145,15 +147,32 @@ static int scan_bus(void)
  * turn a slow part into a broken one on the console. */
 #define FRAME_WAIT_MS 2000
 
-/* The two values the vendor's header names, and nothing else is given a meaning. They are
- * written as named constants rather than as literals in the comparison so that the quotation
- * above and the code below cannot drift apart. */
-#define STATUS_RANGING_OK_A 5u
-#define STATUS_RANGING_OK_B 9u
-
-static bool status_is_ranging_ok(uint8_t status)
+/* WHAT P01 WOULD RECEIVE, WHICH IS THE SIXTH CRITERION MADE VISIBLE. That criterion asks that
+ * P01's application be unchanged and only its range source differ, and docs/DESIGN.md narrows it:
+ * what cannot be unchanged is that something now chooses one number from sixty-four. The driver
+ * does not choose. src/reduce_nearest_valid.c does, its policy is in its filename, and this is
+ * the one place a run shows what that policy produces.
+ *
+ * THE INTERESTING CASE IS THE REFUSAL. P01's test is `range_mm <= range_mm_max`, so a reduction
+ * that returned zero when it had no reading would hand P01 the closest possible object and
+ * manufacture a presence. The result therefore carries `found` separately, and the correct
+ * response to false is to post no reading event at all. On the only grid this project has
+ * recorded, every zone was status 6 and this prints exactly that refusal. */
+static void print_reduction(const struct zones_grid *grid)
 {
-	return status == STATUS_RANGING_OK_A || status == STATUS_RANGING_OK_B;
+	struct reduce_nearest_valid_result r =
+		reduce_nearest_valid(grid->distance_mm, grid->status, ZONES_TOTAL);
+
+	printf("# the nearest valid zone, which is what P01 would be given:\n");
+	if (r.found) {
+		printf("#   %d mm from zone %u, with %u of %d zones valid\n",
+		       r.distance_mm, r.zone, r.valid_zones, ZONES_TOTAL);
+	} else {
+		printf("#   NO READING, because %u of %d zones carry a status the vendor calls\n",
+		       r.valid_zones, ZONES_TOTAL);
+		printf("#   ranging OK. P01 would be posted no reading event at all, which is not\n");
+		printf("#   the same as being told the range is zero\n");
+	}
 }
 
 static void print_grid(int frame)
@@ -212,7 +231,7 @@ static void print_grid(int frame)
 		printf("#  ");
 		for (col = 0; col < ZONES_ACROSS; col++) {
 			int i = row * ZONES_ACROSS + col;
-			bool valid = status_is_ranging_ok(grid.status[i]);
+			bool valid = zone_status_is_ranging_ok(grid.status[i]);
 
 			if (valid) {
 				ok++;
@@ -243,6 +262,8 @@ static void print_grid(int frame)
 		}
 		printf("\n");
 	}
+
+	print_reduction(&grid);
 }
 #endif
 

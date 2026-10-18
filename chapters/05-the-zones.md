@@ -223,12 +223,18 @@ projects/05-the-zones/
   src/vl53l8cx_platform.c         # the six functions the vendor library calls
   src/platform.h                  # and the struct it calls them through
   src/zones.h                     # sixty-four distances, statuses and targets
+  src/zone_status.h               # the one definition of which statuses mean a reading
+  src/reduce_nearest_valid.c      # sixty-four numbers to one, by a policy in its own name
+  src/reduce_nearest_valid.h
   src/main.c                      # the bus scan, and the grid
   src/shield_power.c              # only for the first description
   src/identify.c                  # only for the first description
   src/build_stamp.h               # what the image is, generated at every link
+  host/test_reduce_nearest_valid.c    # nine cases, and the refusals are the point
+  host/Makefile                       # make check, and make mutants to break it on purpose
   docs/DESIGN.md                  # written before any code, with its predictions
   docs/BENCH.md                   # every run, dated, each with its prediction
+  docs/REDUCTION.md               # the policy's own page, which DESIGN.md asked for
   README.md
 ```
 
@@ -323,7 +329,7 @@ The console prints the grid as eight rows of eight with the status beside each v
 - **One fetch serves sixty-four zones. By construction, not yet counted.** The application makes one fetch and one read per frame. The count of bus transactions underneath is several, by the vendor library's construction, so the criterion is about the interface rather than the wire. *Refuted if* the application's call count scales with the number of zones read.
 - **The application never polls. Not met, deliberately.** It polls every five milliseconds. The line's position is established and the binding declares the property; the overlay does not carry it yet. *Refuted if* a thread's run count follows a loop rate once the line is connected.
 - **The grid is the right way up. Open.** Covering one quadrant should darken a known corner of the printed grid. *Refuted if* the covered quadrant appears elsewhere, in which case the orientation is written down before anything downstream uses it.
-- **P01 is unchanged. Not attempted.** It needs a host and no hardware. The presence machine's source must be byte for byte what it was, with only its range source different. *Refuted if* a single line had to move.
+- **P01 is unchanged. Half met, and the half that is met is the half that had to be written.** The criterion narrows to two claims, and [docs/DESIGN.md](../projects/05-the-zones/docs/DESIGN.md) said so before any code: P01's application is unchanged, and the thing that chooses one number from sixty-four is new and is not P01's. That second thing now exists as `src/reduce_nearest_valid.c`, with its policy in its filename, its cost written down, no threshold of its own, and a host suite that needs no board. What remains is the byte comparison of P01's own object across the two range sources, which needs a build and no hardware. *Refuted if* a single line of the presence machine had to move, or if the reduction turns out to live inside the driver after all.
 - **The revision travels with the code. Met, in a different form than first written, and now by a check rather than by inspection.** Nothing is vendored, so there is no committed licence file to check. Three things are checked instead, by `scripts/check_vendoring.py` in continuous integration: that no C or C++ source under the projects directory fails to name its own path, which is how a file copied in from elsewhere announces itself; that an external source's path never defaults inside this repository; and that its revision is declared as a value the build reads rather than as a comment. **The third was added because it was false.** The pin lived only in a comment, so the build compiled whatever revision the clone happened to be at while this chapter and that build file both claimed the version was part of the build. The build now asks the clone what revision it is at and refuses to configure against any other, with an explicit option for doing so on purpose. *Refuted if* any of the three fails, and all four of the checker's failure cases were built deliberately and watched being detected before it was trusted.
 
 ## Variants
