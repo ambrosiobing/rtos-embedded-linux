@@ -2,9 +2,19 @@ name: code
 
 # The code half of this volume, which did not exist until P01 started.
 #
-# Why this is a separate workflow from checks.yml: that one reads the published
-# Markdown and needs nothing but Python, so it stays fast and never goes red for a
-# compiler's reasons. This one needs compilers, and it is allowed to be slower.
+# Why this is a separate workflow from checks.yml: that one is mostly the published
+# Markdown and the tree's own rules, so it stays fast. This one carries the language
+# matrix and is allowed to be slower.
+#
+# THAT DESCRIPTION USED TO SAY checks.yml "needs nothing but Python", and it had
+# stopped being true. That workflow builds P04's capture emitter and, from Sunday
+# 18 October 2026, P05's reduction suite under four targets including the
+# sanitisers. Both are small host builds that belong beside the thing they prove
+# rather than in this matrix, which exists for a different claim: the same source
+# compiled under three versions of a language with no per-version source and no
+# ifdefs. A reduction with one implementation has nothing to say about that claim,
+# so it is not here, and the reason is written down rather than left as an absence
+# somebody later reads as an oversight.
 #
 # **The point of the matrix is the point of the project.** The same two source
 # files are compiled under three versions of the language, with no per-version

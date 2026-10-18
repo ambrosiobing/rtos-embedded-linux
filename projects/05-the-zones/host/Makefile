@@ -4,6 +4,7 @@
 #   make mutants    break the reduction four ways and confirm the suite notices each
 #   make selftest   reintroduce a defect that once made `mutants` pass while running nothing,
 #                   and confirm it now refuses
+#   make sanitise   the same suite under the address and undefined-behaviour sanitisers
 #   make clean
 #
 # WHY A HOST SUITE EXISTS FOR THIS PROJECT AT ALL. The reduction from sixty-four zones to one
@@ -24,7 +25,7 @@ SUITE   := $(BUILD)/test_reduce_nearest_valid
 OBJSRC  := $(SRCDIR)/reduce_nearest_valid.c
 TESTSRC := test_reduce_nearest_valid.c
 
-.PHONY: all check mutants selftest clean
+.PHONY: all check mutants selftest sanitise clean
 
 all: check
 
@@ -36,6 +37,21 @@ $(SUITE): $(TESTSRC) $(OBJSRC) $(SRCDIR)/reduce_nearest_valid.h $(SRCDIR)/zone_s
 
 check: $(SUITE)
 	@./$(SUITE)
+
+# THE SANITISERS, because -Werror cannot see a subscript. This file walks two arrays with one
+# loop variable, casts that variable to a narrower type for the zone index, and has a path for
+# null pointers, and none of those is something a warning catches at a bad value: they are
+# caught at a bad run. P01's and P02's cores are already built this way by the code workflow,
+# and this reduction was not, which is the gap this target closes.
+#
+# `halt_on_error` matters. The undefined-behaviour sanitiser reports and continues by default,
+# so a suite that printed a diagnostic and then exited zero would be another pass that measured
+# nothing.
+SANFLAGS ?= -std=c11 -Wall -Wextra -Werror -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer
+
+sanitise: | $(BUILD)
+	$(CC) $(SANFLAGS) -I$(SRCDIR) -o $(BUILD)/test_sanitised $(TESTSRC) $(OBJSRC)
+	@ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 ./$(BUILD)/test_sanitised
 
 # Each entry is a name and the sed expression that breaks the reduction that way. The names say
 # what the defect would be, because a mutation nobody can describe proves nothing about the suite.
