@@ -1142,3 +1142,56 @@ whether the board sits flat on both header rows with no tilt or gap, whether any
 beneath it, and where its jumper blocks sit, particularly the pair that selects between the
 two-wire and four-wire interfaces. A part that answers for hours and then does not, across one
 cable cycle, is a question about contact and configuration.
+
+## Sunday 18 October 2026 at 19:50: two questions answered away from the bench
+
+Neither of these needed the board, and both were open while the shield question waits.
+
+### The status values, as far as a source will say
+
+The grid printed bare numbers because this project would not invent a meaning for them. The
+vendor's header, at the commit `CMakeLists.txt` pins, says exactly one thing about them, beside
+the `target_status` field:
+
+    Status indicating the measurement validity (5 & 9 means ranging OK)
+
+That is enough for the second acceptance criterion, which is about telling a measurement from a
+number, and it is now in the printer: each zone carries an asterisk when its status is 5 or 9,
+and the count of marked zones is printed under the grid.
+
+**The rest of the enumeration is still not established, and still not guessed.** The whole pinned
+package carries one documentation file, `Documentation/X_CUBE_TOF1.chm`, which is compiled help,
+and no source file in it lists the values. So an unmarked zone is reported as a number with no
+interpretation, which is what the project said it would do.
+
+### The data-ready line is at Arduino A2, which is PC3 on this board
+
+The fourth criterion wants the line the part raises when a frame is ready, and the position was
+unknown. ST's pin configuration for this shield gives `TOF_INT_EXTI` as port A pin 4 on their
+board, a different Nucleo, so the position has to be resolved through that board's connector map
+rather than read off the port name.
+
+**That map was checked against two facts already confirmed on this bench, so the lookup could
+fail rather than merely agree.** On ST's board it gives D11 as port A pin 7 and A3 as port B pin
+0, which are precisely their `PWR_EN_C` and `LPn_C`. With the method confirmed on both anchors,
+their interrupt pin resolves to Arduino **A2**.
+
+This board's own map then gives, and the first two match what the driver printed at 19:21 to the
+port and the pin:
+
+| Arduino position | ST's board | This board | What it carries |
+|---|---|---|---|
+| D11 | port A pin 7 | port A pin 7 | supply enable, confirmed driven |
+| A3 | port B pin 0 | port B pin 1 | low power, confirmed driven |
+| A2 | port A pin 4 | port C pin 3 | data ready, not yet described |
+
+The two boards disagree about A3 and agree about D11, which is the argument for naming positions
+rather than ports made by the hardware instead of by a design document.
+
+### The overlay is deliberately not changed yet
+
+The binding already declares `int-gpios` optional, so adding the line is one edit. **It is being
+held.** There is an unexplained regression open, and the description is the thing under test: a
+new property in it would be a second variable in exactly the way that produced the confound of
+12:17, when two things moved between two runs and the result was credited to one of them. The
+line goes in once the part answers again, and not before.

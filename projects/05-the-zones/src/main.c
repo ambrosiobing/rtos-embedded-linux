@@ -38,6 +38,7 @@
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/kernel.h>
 
+#include <stdbool.h>
 #include <stdio.h>
 
 #include "build_stamp.h"
@@ -109,9 +110,19 @@ static int scan_bus(void)
  * acceptance criterion in a format rather than in a sentence: an empty scene and a surface beyond
  * range both have a number in the distance, and only the status tells them apart.
  *
- * NOTHING HERE TURNS A STATUS INTO A WORD, because this project has not established what the
- * values mean and a mapping read off the shape of the data would be a guess wearing a label. It
- * comes from the vendor's documentation or it does not appear.
+ * NOTHING HERE TURNS A STATUS INTO A WORD, because a mapping read off the shape of the data
+ * would be a guess wearing a label. It comes from the vendor's own source or it does not appear.
+ *
+ * ONE FACT NOW COMES FROM THAT SOURCE, quoted from the header this project compiles against, at
+ * the commit CMakeLists.txt pins, beside the `target_status` field:
+ *
+ *     Status indicating the measurement validity (5 & 9 means ranging OK)
+ *
+ * So two values mean a measurement and every other value means something that is not one. **What
+ * the other values mean is still not established and is still not invented.** The only
+ * documentation in that pinned tree is `Documentation/X_CUBE_TOF1.chm`, a compiled help file, and
+ * no source file in it enumerates the values. The number is therefore still printed as a number,
+ * with the one distinction the vendor does state marked beside it and counted underneath.
  *
  * THE ORIENTATION IS UNESTABLISHED AND IS SAID TO BE. The grid is printed in the order the part
  * returns it, and which physical corner the first zone is has not been shown. That is the fifth
@@ -121,6 +132,17 @@ static int scan_bus(void)
  * turn a slow part into a broken one on the console. */
 #define FRAME_WAIT_MS 2000
 
+/* The two values the vendor's header names, and nothing else is given a meaning. They are
+ * written as named constants rather than as literals in the comparison so that the quotation
+ * above and the code below cannot drift apart. */
+#define STATUS_RANGING_OK_A 5u
+#define STATUS_RANGING_OK_B 9u
+
+static bool status_is_ranging_ok(uint8_t status)
+{
+	return status == STATUS_RANGING_OK_A || status == STATUS_RANGING_OK_B;
+}
+
 static void print_grid(int frame)
 {
 	struct zones_grid grid;
@@ -129,6 +151,7 @@ static void print_grid(int frame)
 	int rc;
 	int row;
 	int col;
+	int ok;
 
 	/* POLLING, NOT A FIXED DELAY, and the time it took is printed. The run of 15:35 showed
 	 * why one frame is not enough: the first grid after a cold start was seven millimetres
@@ -165,20 +188,34 @@ static void print_grid(int frame)
 
 	printf("\n# frame %d, ready after %d ms of waiting, at %d ms since boot\n", frame,
 	       (int)(ready_at - began), (int)ready_at);
-	printf("# distance in millimetres, then the vendor's status. The status is a number\n");
-	printf("# because what each value means has not been read from a source yet, and the\n");
-	printf("# orientation has not been established\n");
+	printf("# distance in millimetres, then the vendor's status, then an asterisk when that\n");
+	printf("# status is 5 or 9, the only two the vendor's own header calls ranging OK. The\n");
+	printf("# other values are printed as numbers because the pinned tree documents them\n");
+	printf("# only in a compiled help file, and the orientation is still unestablished\n");
 	printf("# silicon temperature %d C\n", grid.silicon_temp_degc);
 
+	ok = 0;
 	for (row = 0; row < ZONES_ACROSS; row++) {
 		printf("#  ");
 		for (col = 0; col < ZONES_ACROSS; col++) {
 			int i = row * ZONES_ACROSS + col;
+			bool valid = status_is_ranging_ok(grid.status[i]);
 
-			printf(" %5d/%-2u", grid.distance_mm[i], grid.status[i]);
+			if (valid) {
+				ok++;
+			}
+			/* The asterisk is the vendor's distinction and not this project's opinion
+			 * of the number: a zone without one has a distance that is not a
+			 * measurement, whatever it reads. */
+			printf(" %5d/%-2u%c", grid.distance_mm[i], grid.status[i],
+			       valid ? '*' : ' ');
 		}
 		printf("\n");
 	}
+	printf("# %d of %d zones are marked, which is this frame's count of statuses 5 and 9, the\n",
+	       ok, ZONES_TOTAL);
+	printf("# only two the vendor's header calls ranging OK. An unmarked zone's distance is a\n");
+	printf("# number the part returned and not a distance it measured\n");
 
 	printf("# targets each zone saw, where zero means the zone saw nothing at all\n");
 	for (row = 0; row < ZONES_ACROSS; row++) {
