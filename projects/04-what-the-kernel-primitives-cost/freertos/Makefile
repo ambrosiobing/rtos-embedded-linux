@@ -29,7 +29,7 @@ FREERTOS_TAG    ?= V11.1.0
 FREERTOS_URL    ?= https://github.com/FreeRTOS/FreeRTOS-Kernel.git
 
 NUCLEO_BSP        ?= $(HOME)/src/firmware-nucleo-h7
-NUCLEO_BSP_COMMIT ?= 1d6d10f
+NUCLEO_BSP_COMMIT ?= 1d6d10f826ee0728ded6533defc468baa2ff0f2a
 NUCLEO_BSP_URL    ?= https://github.com/ambrosiobing/firmware-nucleo-h7.git
 
 CROSS ?= arm-none-eabi-
@@ -195,8 +195,14 @@ fetch-bsp:
 	  echo "$(NUCLEO_BSP) is already present, leaving it alone"; \
 	fi
 	@echo "board support at commit:"
-	@git -C "$(NUCLEO_BSP)" rev-parse --short HEAD
-	@if [ "$$(git -C "$(NUCLEO_BSP)" rev-parse --short HEAD)" != "$(NUCLEO_BSP_COMMIT)" ]; then \
+	@git -C "$(NUCLEO_BSP)" rev-parse HEAD
+#	THE COMPARISON IS AGAINST THE WHOLE HASH, and it used to be against `rev-parse --short`,
+#	which was correct only while the pin above was also abbreviated. Widening the pin to all
+#	forty characters on Sunday 18 October 2026 would have left a seven-character answer compared
+#	against a forty-character pin, so the note would have fired on every run including the
+#	correct one. A comparison that can only report a mismatch is worse than none, because the
+#	first few false alarms teach a reader to skip the line.
+	@if [ "$$(git -C "$(NUCLEO_BSP)" rev-parse HEAD)" != "$(NUCLEO_BSP_COMMIT)" ]; then \
 	  echo "  NOTE that is not the pinned $(NUCLEO_BSP_COMMIT); the build uses what is checked out"; \
 	fi
 
