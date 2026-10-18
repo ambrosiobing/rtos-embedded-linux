@@ -124,6 +124,19 @@ static int scan_bus(void)
  * no source file in it enumerates the values. The number is therefore still printed as a number,
  * with the one distinction the vendor does state marked beside it and counted underneath.
  *
+ * AND THAT QUOTATION COLLIDES WITH THE ONLY DATA THIS PROJECT HAS, which is why the marking is
+ * presented as the vendor's claim rather than as a verdict. The grid of Saturday 17 October 2026
+ * at 15:35 was a coherent surface at about 2.56 metres, flat across its rows and rising 52
+ * millimetres across its columns, and **every one of its sixty-four zones reported status 6**. So
+ * did the noise grid from the boot before it. Under the sentence above, the real surface would
+ * carry no marks at all.
+ *
+ * Two readings fit and this project cannot choose between them from here: either 6 is a state the
+ * header's parenthesis does not list and the measurement is sound anyway, or that parenthesis
+ * describes a field or a generation other than this one. **Both are better than a mapping
+ * invented to make the output look right.** The count is printed, the conflict is printed beside
+ * it, and no unmarked zone is called invalid.
+ *
  * THE ORIENTATION IS UNESTABLISHED AND IS SAID TO BE. The grid is printed in the order the part
  * returns it, and which physical corner the first zone is has not been shown. That is the fifth
  * acceptance criterion and it needs a hand over one quadrant, not a reading of this file. */
@@ -214,8 +227,13 @@ static void print_grid(int frame)
 	}
 	printf("# %d of %d zones are marked, which is this frame's count of statuses 5 and 9, the\n",
 	       ok, ZONES_TOTAL);
-	printf("# only two the vendor's header calls ranging OK. An unmarked zone's distance is a\n");
-	printf("# number the part returned and not a distance it measured\n");
+	printf("# only two the vendor's header calls ranging OK.\n");
+	printf("# READ THAT COUNT AGAINST THIS: the only grid this project has recorded, a\n");
+	printf("# coherent surface at about 2.56 m on 17 October 2026 at 15:35, reported status 6\n");
+	printf("# in every zone, and so did the noise grid from the boot before it. A zero here is\n");
+	printf("# therefore expected and is not a fault in this printer. Whether 6 is a valid\n");
+	printf("# measurement the header does not list, or whether that comment describes another\n");
+	printf("# field, is unresolved, so an unmarked zone is not called anything.\n");
 
 	printf("# targets each zone saw, where zero means the zone saw nothing at all\n");
 	for (row = 0; row < ZONES_ACROSS; row++) {

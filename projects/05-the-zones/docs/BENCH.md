@@ -1195,3 +1195,54 @@ held.** There is an unexplained regression open, and the description is the thin
 new property in it would be a second variable in exactly the way that produced the confound of
 12:17, when two things moved between two runs and the result was credited to one of them. The
 line goes in once the part answers again, and not before.
+
+## Sunday 18 October 2026 at 20:30: the vendor's valid statuses contradict the only grid we have
+
+**Caught by reading this log rather than by a run, and it would have arrived on the bench looking
+like a broken printer.**
+
+The marking committed an hour earlier takes the vendor's header at its word: statuses 5 and 9 mean
+ranging OK. The entry of Saturday 17 October 2026 at 15:35, the only grid this project has ever
+recorded, says of the coherent surface at about 2.56 metres:
+
+    every zone reporting one target, every status 6
+
+And of the noise grid from the boot before it, the same: status 6 everywhere. So under the
+vendor's own sentence, **the one real measurement this project has taken would have been marked as
+zero valid zones out of sixty-four**, and the line printed underneath would have told a reader
+those were not distances the part measured.
+
+That line has been corrected. The count stays, because it is what the source says; the claim that
+an unmarked zone is not a measurement is withdrawn, because this log does not support it.
+
+### Two readings, and this project cannot choose from here
+
+    6 is a state the parenthesis       the measurement is sound and the header's list is
+    does not list                      incomplete rather than wrong. Early frames after a start
+                                       are a candidate, but naming the state would be a guess
+    the parenthesis is about           some other field, or the generation before this one, in
+    something else                     which case the quotation is true and irrelevant here
+
+Both outrank a mapping invented to make the output agree with itself. The conflict is now printed
+beside the count, so the next run reports it rather than implying a fault.
+
+### What this does to the second acceptance criterion
+
+The criterion asks that an empty scene and a surface beyond range be distinguishable by status
+rather than by distance alone, and the chapter says the rest of the volume depends on it. **In the
+only dataset that exists the status is uniform and distinguishes nothing**: 6 across a coherent
+surface and 6 across sixty-four zones of noise reading between -2 and +5 millimetres, ten of them
+negative. What separated those two grids was the distances and the coherence, which is precisely
+the reasoning the criterion was written to avoid having to do.
+
+So the criterion is not met, and more usefully it is not yet posable: it needs a frame in which
+the statuses are not all one value. Recorded here rather than in the chapter's criteria table as a
+pass, which is what reading the old table would have produced.
+
+### The method note, since this is the second time today
+
+Both of today's two defects were found by reading a record instead of running something. The stamp
+reported a new image as stale, and this marking would have reported a real surface as no
+measurement at all. **Each was a guard whose failure direction was to discard good evidence**, and
+in both cases the guard was written from a source that was correct and incomplete. A guard earns
+its place by being tried against the data already on file before it is pointed at new data.
