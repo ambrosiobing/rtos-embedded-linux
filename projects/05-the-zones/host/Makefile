@@ -2,6 +2,8 @@
 #
 #   make check      build and run the suite
 #   make mutants    break the reduction four ways and confirm the suite notices each
+#   make selftest   reintroduce a defect that once made `mutants` pass while running nothing,
+#                   and confirm it now refuses
 #   make clean
 #
 # WHY A HOST SUITE EXISTS FOR THIS PROJECT AT ALL. The reduction from sixty-four zones to one
@@ -22,7 +24,7 @@ SUITE   := $(BUILD)/test_reduce_nearest_valid
 OBJSRC  := $(SRCDIR)/reduce_nearest_valid.c
 TESTSRC := test_reduce_nearest_valid.c
 
-.PHONY: all check mutants clean
+.PHONY: all check mutants selftest clean
 
 all: check
 
@@ -69,9 +71,19 @@ SED_always_found      := s/out\.found = false;/out.found = true;/
 # stamp, and `mutants` refuses unless it finds one per mutation. **Make's own machinery is the
 # proof the work happened**, rather than the absence of a failure, which is what both earlier
 # versions mistook for success.
+#
+# THE RECURSIVE MAKE NAMES ITS MAKEFILE, and that is what makes the guard testable. Written as a
+# bare `$(MAKE)` it always read ./Makefile, so reintroducing the historical defect through an
+# included scratch file could not reach the sub-make that does the work: the injected declaration
+# applied to the outer make and every mutation ran anyway. The test reported that the guard had
+# not fired when the guard had never been given the defect to catch. Naming the makefile here
+# propagates an override, which is what `selftest` below relies on.
+THIS_MAKEFILE := $(firstword $(MAKEFILE_LIST))
+
 mutants: | $(BUILD)
 	@rm -f $(BUILD)/caught_*
-	@$(MAKE) --no-print-directory $(foreach m,$(MUTANTS),$(BUILD)/caught_$(m))
+	@$(MAKE) --no-print-directory -f $(THIS_MAKEFILE) \
+	  $(foreach m,$(MUTANTS),$(BUILD)/caught_$(m))
 	@n=$$(ls $(BUILD)/caught_* 2>/dev/null | wc -l); \
 	if [ "$$n" -ne $(words $(MUTANTS)) ]; then \
 	  echo "only $$n of $(words $(MUTANTS)) mutations left a stamp, so this proves nothing"; \
@@ -96,6 +108,36 @@ $(BUILD)/caught_%: $(OBJSRC) $(TESTSRC) $(SRCDIR)/reduce_nearest_valid.h \
 	fi
 	@echo "$*: caught, $$(grep -c FAILED $(BUILD)/mutant_$*.out) check(s) failed"
 	@echo caught > $@
+
+# THE GUARD TESTS ITSELF, because two attempts to test it by hand were both void and in the same
+# way: the perturbation never reached the code path it was meant to disturb.
+#
+#   the first   overrode MUTANTS to three names and expected a refusal for three stamps against
+#               four expected. That moved the work and the expectation together, so three against
+#               three was a pass and was right to be
+#   the second  injected the historical .PHONY declaration through an included scratch makefile,
+#               which reached the outer make and not the recursive one that does the work. Every
+#               mutation ran and the test reported that the guard had not fired, having never
+#               given it the defect to catch
+#
+# So the test lives here, where it reintroduces the exact historical defect into the makefile the
+# work is actually done by, and it asserts two things rather than one: that `mutants` fails, and
+# that it fails **because of the stamp count** rather than for any other reason. A refusal for the
+# wrong reason would be the next way to be fooled.
+selftest: | $(BUILD)
+	@printf 'include %s\n.PHONY: $$(foreach m,$$(MUTANTS),$$(BUILD)/caught_$$(m))\n' \
+	  '$(abspath $(THIS_MAKEFILE))' > $(BUILD)/phony.mk
+	@if $(MAKE) --no-print-directory -f $(BUILD)/phony.mk mutants \
+	     >$(BUILD)/selftest.out 2>&1; then \
+	  echo "SELFTEST FAILED: with the historical defect present the guard did not fire"; \
+	  sed -n '1,12p' $(BUILD)/selftest.out; exit 1; \
+	fi
+	@if ! grep -q "left a stamp" $(BUILD)/selftest.out; then \
+	  echo "SELFTEST FAILED: it refused, but not because of the stamp count"; \
+	  sed -n '1,12p' $(BUILD)/selftest.out; exit 1; \
+	fi
+	@echo "selftest: with the .PHONY defect reintroduced, the stamp guard refuses:"
+	@grep "left a stamp" $(BUILD)/selftest.out | sed 's/^/  /'
 
 clean:
 	@rm -rf $(BUILD)

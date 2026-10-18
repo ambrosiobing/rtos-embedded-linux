@@ -115,6 +115,7 @@ jobs:
           cd projects/05-the-zones/host
           make check
           make mutants
+          make selftest
 
       # P04 criterion 7, and it is enforced rather than remembered because it is the rule most
       # likely to be broken quietly by somebody adding a row in a hurry. The acquisition board
