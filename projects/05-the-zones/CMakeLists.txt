@@ -77,9 +77,20 @@ target_sources(app PRIVATE src/main.c src/shield_power.c src/identify.c src/vl53
 # April 2025, and every figure this project takes comes from that revision until the line is
 # changed deliberately and the change is dated.
 #
+# AND UNTIL SUNDAY 18 OCTOBER 2026 THAT PARAGRAPH WAS NOT TRUE, which is worth keeping rather
+# than quietly fixing. The revision appeared in this file only inside the comment above: no cmake
+# command read it, so the build compiled whatever revision happened to be checked out in the
+# clone, and a `git pull` in that directory would have moved every figure this project publishes
+# without changing a line here. The claim that "the version becomes part of the build rather than
+# part of the history" was a claim about a comment. **A rule named in prose and enforced by
+# nothing is this volume's most repeated defect**, and the fix is the eight lines below.
+#
 # Override VL53L8CX_ULD to point somewhere else.
 set(VL53L8CX_ULD "$ENV{HOME}/src/x-cube-tof1/Drivers/BSP/Components/vl53l8cx/modules"
     CACHE PATH "the vendor's ultra lite driver for this generation, cloned not copied")
+
+set(VL53L8CX_ULD_COMMIT "c12709c3ac802d91dd2a215178f53cb94c024709"
+    CACHE STRING "the vendor revision every figure in this project was measured against")
 
 # THE ABSENCE IS REPORTED WITH THE COMMAND THAT FIXES IT, because a missing clone otherwise
 # arrives as a compiler saying it cannot find a header, which names the symptom and not the step.
@@ -90,6 +101,59 @@ if(NOT EXISTS "${VL53L8CX_ULD}/vl53l8cx_api.c")
     "  git clone https://github.com/STMicroelectronics/x-cube-tof1.git ~/src/x-cube-tof1
 "
     "Nothing is vendored into this repository, so it has to be cloned once.")
+endif()
+
+# THE CLONE IS ASKED WHAT REVISION IT IS AT, because the alternative is to trust it. `git -C` on
+# the modules subdirectory walks up to the clone's own root, so no second path is needed.
+execute_process(
+  COMMAND git -C "${VL53L8CX_ULD}" rev-parse HEAD
+  OUTPUT_VARIABLE uld_head
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  RESULT_VARIABLE uld_rc
+  ERROR_QUIET)
+
+if(NOT uld_rc EQUAL 0)
+  message(FATAL_ERROR
+    "Cannot ask git what revision ${VL53L8CX_ULD} is at.
+"
+    "That directory exists but is not inside a git clone, which usually means the vendor's source
+"
+    "was copied rather than cloned. This project states the revision every figure came from, so
+"
+    "it has to be able to read it:
+"
+    "  git clone https://github.com/STMicroelectronics/x-cube-tof1.git ~/src/x-cube-tof1
+"
+    "  git -C ~/src/x-cube-tof1 checkout ${VL53L8CX_ULD_COMMIT}")
+elseif(NOT uld_head STREQUAL "${VL53L8CX_ULD_COMMIT}")
+  # DELIBERATELY FATAL. Building against another revision is a legitimate thing to want and it is
+  # not something to do by accident: every figure in docs/RESULTS and every number in the chapter
+  # is attributed to the pinned one. The escape hatch is explicit and says so in the log.
+  if(VL53L8CX_ULD_ANY_REVISION)
+    message(WARNING
+      "The vendor clone is at ${uld_head}, not the pinned ${VL53L8CX_ULD_COMMIT}, and "
+      "VL53L8CX_ULD_ANY_REVISION is set, so this build is going ahead. Nothing measured from it "
+      "may be quoted beside a figure taken against the pin without saying so.")
+  else()
+    message(FATAL_ERROR
+      "The vendor clone is at a different revision than this project is written against.
+"
+      "  clone is at   ${uld_head}
+"
+      "  pinned here   ${VL53L8CX_ULD_COMMIT}
+"
+      "Every figure this project publishes was measured against the pinned one, so the build
+"
+      "refuses rather than quietly producing numbers that belong to another revision:
+"
+      "  git -C ${VL53L8CX_ULD} checkout ${VL53L8CX_ULD_COMMIT}
+"
+      "To build against the clone's revision on purpose, configure with
+"
+      "-DVL53L8CX_ULD_ANY_REVISION=ON, which warns instead and marks the build as unpinned.")
+  endif()
+else()
+  message(STATUS "vendor interface at the pinned ${VL53L8CX_ULD_COMMIT}")
 endif()
 
 # The porting layer is ours and comes first on the include path, so the library finds this

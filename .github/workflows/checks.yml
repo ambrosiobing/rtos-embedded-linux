@@ -175,3 +175,16 @@ jobs:
       # exception.
       - name: Only the file types this repository publishes, and nothing over four megabytes
         run: python scripts/check_tree.py
+
+      # P05's seventh acceptance criterion, which needs a host and no hardware, and which was
+      # met by inspection until Sunday 18 October 2026. Three rules: an external source is
+      # pinned to a full commit the build can compare against rather than to a comment, its
+      # path never defaults inside this repository, and every C and C++ source under projects/
+      # names its own path so that a file copied in from elsewhere fails on its first line.
+      #
+      # The first rule was added because the thing it checks was false. The pin lived only in a
+      # comment, so the build compiled whatever revision the clone happened to be at while the
+      # build file claimed the version was part of the build. All four of its failure cases were
+      # built on purpose and watched being detected before it was committed.
+      - name: Nothing third-party is copied in, and every external source is pinned
+        run: python scripts/check_vendoring.py

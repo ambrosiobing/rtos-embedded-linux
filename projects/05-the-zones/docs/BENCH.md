@@ -1246,3 +1246,57 @@ reported a new image as stale, and this marking would have reported a real surfa
 measurement at all. **Each was a guard whose failure direction was to discard good evidence**, and
 in both cases the guard was written from a source that was correct and incomplete. A guard earns
 its place by being tried against the data already on file before it is pointed at new data.
+
+## Sunday 18 October 2026 at 21:40: the pin was a comment, which is not what this file claimed
+
+**Criterion 7 needs a host and no hardware, so it was the one piece of work available while the
+shield question waits.** Writing the check found that the thing it was meant to confirm was false.
+
+This project's build file carried two sentences about the vendor's revision: that the pin "is what
+was built against and not what was intended", and that "the version becomes part of the build
+rather than part of the history". The revision appeared in exactly one place in that file:
+
+    #   git -C ~/src/x-cube-tof1 checkout c12709c3ac802d91dd2a215178f53cb94c024709
+
+A comment. No cmake command read it. **The build compiled whatever revision happened to be checked
+out in the clone**, so a single `git pull` in that directory would have moved every figure this
+project publishes without changing a line here, and nothing would have said so. The claim was a
+claim about a comment.
+
+### What now enforces it, in two places because they catch different things
+
+    at configure time   the build asks the clone what revision it is at, with git rev-parse HEAD,
+                        and refuses to configure against any other. Deliberately fatal, since
+                        every published figure is attributed to the pinned one, with an explicit
+                        -DVL53L8CX_ULD_ANY_REVISION=ON that warns instead and says the build is
+                        unpinned
+    in the tree         scripts/check_vendoring.py, which runs anywhere and needs no clone: the
+                        revision must be a cmake value and a full forty characters, the source
+                        path must not default inside this repository, and every C and C++ file
+                        under projects/ must name its own path
+
+### The third rule, and why it is a house-style check rather than a search for vendor names
+
+A list of third-party filenames goes stale and says nothing about the next library. What
+generalises is that **every C and C++ source in this tree introduces itself by its own repository
+path on its first line**, which holds for 61 of 61 such files. A file carrying somebody else's
+copyright header does not, so a vendored drop fails on line one whatever it is called. Rust is
+excluded deliberately: those ten files carry `//!` module documentation describing their role,
+which is that language's convention and was read before being called a defect.
+
+### All four failure cases were built on purpose
+
+A gate that has only ever passed is a gate nobody has checked, so each was constructed and watched
+being detected, with the file restored from its original bytes afterwards:
+
+| Mutation | Detected |
+|---|---|
+| a branch name where a commit belongs | yes, and it reported the comment rule as well |
+| the revision demoted back to a comment | yes |
+| an external source defaulting inside this repository | yes |
+| a source file that does not introduce itself | yes |
+
+The second case first reported "mutation did not apply", which is the dangerous outcome: it reads
+as a passing gate. The needle was written with one line ending and this file uses the other, so it
+matched nothing. **A mutation that does not apply proves neither direction**, and the harness now
+normalises before matching and says so when a mutation is inert.
