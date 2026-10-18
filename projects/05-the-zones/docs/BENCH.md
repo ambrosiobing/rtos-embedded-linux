@@ -1350,3 +1350,49 @@ gate and now a mutation harness have each reported a pass while measuring nothin
 always the same, and so is the remedy: build the failure the thing claims to detect and watch it
 be detected. Here that means `make mutants` must be shown to fail when a mutation is removed from
 the list, and that run has not been made yet.
+
+## Sunday 18 October 2026 at 22:55: the harness runs, and my test of it was void
+
+The third version works. Four mutations, each with its own line, each with a plausible count of
+broken checks:
+
+    accept_everything: caught, 9 check(s) failed
+    ties_to_higher: caught, 1 check(s) failed
+    never_initialises: caught, 16 check(s) failed
+    always_found: caught, 14 check(s) failed
+
+    all 4 mutations ran and were caught, so the suite can fail
+
+### The test I handed over to prove the stamp count works proved nothing
+
+It ran `make mutants MUTANTS="accept_everything ties_to_higher never_initialises"` and expected a
+refusal, on the reasoning that three stamps against four expected would fire the guard. **Overriding
+that variable changes the work and the expectation together.** The target made three stamps and
+compared them against `$(words $(MUTANTS))`, which was now three, so it reported three of three and
+was right to. The run printed my own error message.
+
+This is the same mistake as the Zephyr configure of Saturday 17 October 2026, where a control
+reused the build directory under test. **A control that moves the thing under test is not a
+control**, and twice now the giveaway has been that the experiment could not have failed.
+
+### The test that does work, because it reintroduces the exact defect
+
+The guard exists to catch one thing: a prerequisite that make silently does nothing for. So put
+that back without touching the tracked file, by including the Makefile and re-declaring the stamp
+targets phony:
+
+    printf 'include Makefile\n.PHONY: $(foreach m,$(MUTANTS),$(BUILD)/caught_$(m))\n' > /tmp/phony.mk
+    make -f /tmp/phony.mk clean && make -f /tmp/phony.mk mutants
+
+That must report `only 0 of 4 mutations left a stamp, so this proves nothing`, which is the
+sentence that would have caught the defect of an hour earlier. Anything else means the guard is
+decoration.
+
+### One number in that output is worth keeping
+
+`ties_to_higher` broke **exactly one check** where the others broke nine, sixteen and fourteen.
+That one check is the tie case, and it is the only thing in the suite covering tie ordering. A
+mutation caught by a single check names a load-bearing check: deleting it as redundant would
+remove the only cover for the rule that a tie keeps the lower zone index, and nothing else in the
+suite would notice. The counts are therefore not decoration either, they say which checks are
+carrying weight alone.
