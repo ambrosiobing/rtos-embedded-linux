@@ -10,6 +10,34 @@ sat in this page's prose for part of a morning while the table refused them, and
 contended mutex operations were relabelled `above` before they could enter; both stories are
 below, because the refusals were right until the rule was read.
 
+## What produced these rows, and the revisions it was at
+
+Neither of the two external trees this project compiles against is in this repository, so a row
+here means nothing without them named. **Added on Sunday 18 October 2026**, because until then
+the provenance of every board figure on this page lived in a Makefile variable and nowhere a
+reader would look.
+
+| What | Pinned at | Checked |
+|---|---|---|
+| The FreeRTOS kernel | tag `V11.1.0` | the tag is what the clone is fetched at, and `make fetch` prints what the clone reports |
+| The board support package, which is the sibling firmware volume | commit `1d6d10f826ee0728ded6533defc468baa2ff0f2a`, of Friday 16 October 2026 | verified by hand on the build machine on Sunday 18 October 2026: `git -C ~/src/firmware-nucleo-h7 rev-parse HEAD` in WSL on the demo laptop returned exactly that commit |
+
+**The board rows therefore match the revision this project states they were taken against**, which
+had not been established before and is the kind of claim that is easy to assume. The check was one
+command and it agreed.
+
+Two caveats belong with that, since a verified fact invites more confidence than the arrangement
+deserves:
+
+- **The pin was abbreviated to seven characters until Sunday 18 October 2026.** An abbreviated
+  hash can become ambiguous as the other repository grows, and a checkout on an ambiguous prefix
+  does not resolve, so it was widened to all forty. The commit it names did not change.
+- **Nothing verifies this on an ordinary build.** `make fetch-bsp` reports a mismatch, and only
+  when it is run; `make board` does not. So the agreement above is a dated observation rather than
+  a standing guarantee, and it holds for that machine on that day. P05 does it the other way, by
+  refusing to configure against any revision but its pin, and whether these three make projects
+  should do the same is an open decision rather than an oversight.
+
 ## The ninth row, the first of two that two instruments watched
 
 `periodic thread period` under Zephyr went in on **Friday 9 October 2026 at 23:16**, and it is

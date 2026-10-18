@@ -64,23 +64,41 @@ COLUMNS = ["Operation", "Kernel", "Scale", "Instrument", "Cache", "Cycles", "Dur
 
 
 def parse_rows(text: str) -> list[dict[str, str]]:
-    """Pull the one pipe table out of the page, and refuse a page whose header has drifted."""
+    """Pull the results table out of the page, and refuse a page where it is absent or renamed.
+
+    THE RESULTS TABLE IS FOUND BY ITS HEADER, not by being the first table on the page, and that
+    changed on Sunday 18 October 2026. The earlier version took the first pipe table it met and
+    refused any header but this one, which was right while the page held exactly one table and
+    brittle the moment it held two: adding a short provenance table above the results, naming the
+    revisions the board rows were taken against, made this check exit on the provenance header
+    without reading a single result.
+
+    **The refusal it used to make is kept and not loosened.** A table whose header is not this
+    one is skipped rather than accepted, and if no table with this header is found the check
+    still fails, now naming the headers it did see so the failure says what happened. A renamed
+    column therefore still fails, which is the case the original refusal existed for; what no
+    longer fails is an unrelated table sharing the page.
+    """
     rows: list[dict[str, str]] = []
     header_seen = False
+    other_headers: list[list[str]] = []
+    in_other_table = False
 
     for raw in text.splitlines():
         line = raw.strip()
         if not line.startswith("|"):
+            # A blank or prose line ends whatever table we were in, so the next header is read
+            # as a header rather than as a row.
+            in_other_table = False
             continue
         cells = [c.strip() for c in line.strip("|").split("|")]
 
         if not header_seen:
-            if cells != COLUMNS:
-                raise SystemExit(
-                    f"the table header is {cells}, and this check was written against "
-                    f"{COLUMNS}. Reconcile them rather than loosening this check"
-                )
-            header_seen = True
+            if cells == COLUMNS:
+                header_seen = True
+            elif not in_other_table:
+                other_headers.append(cells)
+                in_other_table = True
             continue
         if all(set(c) <= set("-: ") for c in cells):
             continue
@@ -89,7 +107,10 @@ def parse_rows(text: str) -> list[dict[str, str]]:
         rows.append(dict(zip(COLUMNS, cells)))
 
     if not header_seen:
-        raise SystemExit("no table found, so nothing was checked, which is worse than a failure")
+        raise SystemExit(
+            "no table with the header %s was found, so nothing was checked, which is worse than "
+            "a failure. The headers on the page were %s. Reconcile them rather than loosening "
+            "this check." % (COLUMNS, other_headers or "none"))
     return rows
 
 
