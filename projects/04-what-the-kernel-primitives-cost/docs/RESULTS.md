@@ -32,11 +32,28 @@ deserves:
 - **The pin was abbreviated to seven characters until Sunday 18 October 2026.** An abbreviated
   hash can become ambiguous as the other repository grows, and a checkout on an ambiguous prefix
   does not resolve, so it was widened to all forty. The commit it names did not change.
-- **Nothing verifies this on an ordinary build.** `make fetch-bsp` reports a mismatch, and only
-  when it is run; `make board` does not. So the agreement above is a dated observation rather than
-  a standing guarantee, and it holds for that machine on that day. P05 does it the other way, by
-  refusing to configure against any revision but its pin, and whether these three make projects
-  should do the same is an open decision rather than an oversight.
+- **It is now a standing guarantee and was a dated observation for one day.** Until Monday 19
+  October 2026 nothing compared either pin on an ordinary build: `make fetch-bsp` reported a
+  mismatch and only when it was run, and `make board` did not. Joseph decided one rule should
+  apply across the set, so both pins are now checked by `scripts/check_pin.py` as an order-only
+  prerequisite of every build here, and a clone off its pin refuses rather than reporting. The
+  escape hatch is `ALLOW_ANY_REVISION=1`, which warns and says in the same breath that nothing
+  measured may be quoted beside a figure taken at the pin.
+
+That check is tested rather than trusted: `scripts/test_check_pin.py` builds real clones in a
+temporary directory and requires a refusal for each of a moved commit, a moved tag, a plain copy
+that is not a clone, an absent path and an abbreviated hash. And `scripts/check_vendoring.py`
+requires that a Makefile cloning an external source actually calls the gate, because removing the
+dependency would otherwise be a one-line change nothing would notice.
+
+**One defect from that change is worth leaving on the record**, because it is the failure this
+page exists to guard against. The check was first placed above `all`, and the first target in a
+makefile is the default goal, so a bare `make` ran the check, built nothing, and exited zero. All
+three projects printed one encouraging line that read exactly like a successful build. The pin
+readings from those runs were sound; the builds they appeared to confirm had not happened.
+`.DEFAULT_GOAL := all` is now named in each file, since an explicit assignment cannot fail the
+way an ordering convention can. The three builds were re-run and completed on Monday 19 October
+2026.
 
 ## The ninth row, the first of two that two instruments watched
 
