@@ -208,3 +208,11 @@ jobs:
       # built on purpose and watched being detected before it was committed.
       - name: Nothing third-party is copied in, and every external source is pinned
         run: python scripts/check_vendoring.py
+
+      # The gate that refuses a build against a clone which is not at the project's pin. It is
+      # tested rather than trusted: the suite builds real git clones in a temporary directory,
+      # moves them off the pin, replaces one with a plain copy, and abbreviates a hash, and the
+      # gate must refuse each. A gate for an unenforced pin which itself only ever passed would
+      # be the same defect one level up.
+      - name: The pin gate refuses what it is supposed to refuse
+        run: python scripts/test_check_pin.py

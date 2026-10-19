@@ -36,7 +36,42 @@ CROSS ?= arm-none-eabi-
 
 WALL := -Wall -Wextra -Werror -Wpedantic -Wconversion
 
-.PHONY: all run check fetch fetch-bsp board clean
+# =============================================== the pins are checked, and not only written down
+#
+# WHY THIS RUNS ON A BUILD AND NOT ONLY ON A FETCH TARGET. `fetch` clones the kernel at the tag
+# when the directory is absent and leaves it alone when it is not. `fetch-bsp` went one better
+# and printed a NOTE when the board support clone was off its pin, but a note is not a refusal and
+# it only appeared when that target was run, never on `make board`. So until Monday 19 October
+# 2026 the two revisions above were statements of intent rather than properties of the image, and
+# every published figure in docs/RESULTS.md is attributed to them. P05 was fixed first, in cmake,
+# and Joseph decided one rule should apply across the set.
+#
+# THIS PROJECT HAS TWO PINS AND THEY ARE DIFFERENT PROMISES. The kernel is pinned by release tag,
+# which is the upstream's own convention; the sibling volume is pinned by a whole commit, which
+# cannot be moved by anyone. scripts/check_pin.py carries that distinction so these Makefiles do
+# not have to argue it three times.
+#
+# ORDER-ONLY, so the check runs before a build and does not make the binary out of date. A phony
+# prerequisite in the ordinary position would relink on every invocation.
+PYTHON    ?= python3
+REPO_ROOT := ../../..
+
+# Build against whatever is checked out, deliberately and loudly: make ALLOW_ANY_REVISION=1 board
+ALLOW_ANY_REVISION ?=
+PIN_ANY := $(if $(ALLOW_ANY_REVISION),--allow-any,)
+
+.PHONY: all run check fetch fetch-bsp board check-pins check-pins-bsp clean
+
+check-pins:
+	@$(PYTHON) $(REPO_ROOT)/scripts/check_pin.py --path "$(FREERTOS_KERNEL)" \
+	  --tag $(FREERTOS_TAG) --url $(FREERTOS_URL) --what "the FreeRTOS kernel" $(PIN_ANY)
+
+# The board support package is only needed by the board build, so it is a separate target rather
+# than part of check-pins: a host run must not be refused for a clone it never reads.
+check-pins-bsp:
+	@$(PYTHON) $(REPO_ROOT)/scripts/check_pin.py --path "$(NUCLEO_BSP)" \
+	  --commit $(NUCLEO_BSP_COMMIT) --url $(NUCLEO_BSP_URL) \
+	  --what "the board support package" $(PIN_ANY)
 
 # ============================================================================ the host build
 
@@ -86,7 +121,7 @@ $(BUILD):
 # Every source and header is a prerequisite, which P01 and P02 learned the expensive way: a
 # rule that depended on the build directory alone never rebuilt, and a stale binary printed a
 # pass.
-$(BIN): $(HOST_ADAPTER_SRC) $(CORE_SRC) $(HEADERS) Makefile | $(BUILD)
+$(BIN): $(HOST_ADAPTER_SRC) $(CORE_SRC) $(HEADERS) Makefile | $(BUILD) check-pins
 	@test -d "$(FREERTOS_KERNEL)" || { echo "no kernel at $(FREERTOS_KERNEL); run: make fetch"; exit 1; }
 	$(CC) $(HOST_KERNEL_CFLAGS) -c $(KERNEL_SRC) $(POSIX_PORT_SRC)
 	mv *.o $(BUILD)/
@@ -211,7 +246,7 @@ $(BOARD_BUILD):
 
 board: $(BOARD_BIN)
 
-$(BOARD_ELF): $(BOARD_ADAPTER_SRC) $(CORE_SRC) $(BOARD_HEADERS) Makefile | $(BOARD_BUILD)
+$(BOARD_ELF): $(BOARD_ADAPTER_SRC) $(CORE_SRC) $(BOARD_HEADERS) Makefile | $(BOARD_BUILD) check-pins check-pins-bsp
 	@test -d "$(FREERTOS_KERNEL)" || { echo "no kernel at $(FREERTOS_KERNEL); run: make fetch"; exit 1; }
 	@test -d "$(NUCLEO_BSP)" || { echo "no board support at $(NUCLEO_BSP); run: make fetch-bsp"; exit 1; }
 	@command -v $(XCC) > /dev/null || { echo "no $(XCC) on PATH; in WSL: sudo apt install gcc-arm-none-eabi"; exit 1; }

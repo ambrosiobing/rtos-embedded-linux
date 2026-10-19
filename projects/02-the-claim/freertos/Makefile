@@ -71,7 +71,34 @@ LDFLAGS := -pthread
 BUILD := build
 BIN   := $(BUILD)/claim_freertos
 
-.PHONY: all run fetch clean
+# ================================================ the pin is checked, and not only written down
+#
+# WHY THIS RUNS ON A BUILD AND NOT ONLY ON `make fetch`. The fetch target clones the kernel at the
+# tag when the directory is absent and leaves it alone when it is not, so a clone that has moved
+# since is used without comment. Until Monday 19 October 2026 nothing compared what was checked
+# out against the tag above on an ordinary build, which made the tag a statement of intent rather
+# than a property of the image. P05 was fixed first, in cmake, and Joseph decided one rule should
+# apply across the set.
+#
+# THE CHECK IS A SCRIPT RATHER THAN SHELL IN THIS FILE, because three Makefiles clone this kernel
+# and three copies of the same twenty lines is three places for them to drift. It also makes the
+# rule testable away from the bench: scripts/test_check_pin.py builds temporary clones and moves
+# them off the pin on purpose.
+#
+# ORDER-ONLY, so the check runs before a build and does not make the binary out of date. A phony
+# prerequisite in the ordinary position would relink on every invocation.
+PYTHON    ?= python3
+REPO_ROOT := ../../..
+
+# Build against whatever is checked out, deliberately and loudly: make ALLOW_ANY_REVISION=1 run
+ALLOW_ANY_REVISION ?=
+PIN_ANY := $(if $(ALLOW_ANY_REVISION),--allow-any,)
+
+.PHONY: all run fetch check-pins clean
+
+check-pins:
+	@$(PYTHON) $(REPO_ROOT)/scripts/check_pin.py --path "$(FREERTOS_KERNEL)" \
+	  --tag $(FREERTOS_TAG) --url $(FREERTOS_URL) --what "the FreeRTOS kernel" $(PIN_ANY)
 
 all: $(BIN)
 
@@ -96,7 +123,7 @@ HEADERS := FreeRTOSConfig.h ../adapter/claim_adapter.h ../adapter/phases.h ../c/
 # ../adapter/phases.c was followed by a run of the binary from before the pull, and the
 # output looked like a pass. The headers are listed as well as the .c files, because a
 # change to the contract is exactly the kind that must not be skipped.
-$(BIN): $(ADAPTER_SRC) $(TABLE_SRC) $(HEADERS) Makefile | $(BUILD)
+$(BIN): $(ADAPTER_SRC) $(TABLE_SRC) $(HEADERS) Makefile | $(BUILD) check-pins
 	@test -d "$(FREERTOS_KERNEL)" || { echo "no kernel at $(FREERTOS_KERNEL); run: make fetch"; exit 1; }
 	$(CC) $(KERNEL_CFLAGS) -c $(CORE_SRC) $(PORT_SRC)
 	mv *.o $(BUILD)/

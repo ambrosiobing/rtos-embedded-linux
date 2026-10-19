@@ -174,6 +174,17 @@ def check_makefiles(problems: list[str]) -> int:
                     "ambiguous prefix does not resolve. Write all forty characters."
                     % (rel, name, value))
 
+        # AND THE PIN HAS TO BE CHECKED, not merely declared. A project can hold a perfectly good
+        # revision in a variable and never compare it against the clone, which is exactly what
+        # these three did until Monday 19 October 2026: one printed a note when its fetch target
+        # was run and the others compared nothing at all. Removing the dependency again would be
+        # a one-line change that nothing else would notice.
+        if "check_pin.py" not in code:
+            problems.append(
+                "%s: clones an external source and never calls scripts/check_pin.py, so the "
+                "revision above is a statement of intent rather than a property of the build."
+                % rel)
+
         # Each external source needs a pin that the build can read, by the same rule cmake gets.
         for name in [k for k in assigns if k.endswith("_URL")]:
             stem = name[: -len("_URL")]
