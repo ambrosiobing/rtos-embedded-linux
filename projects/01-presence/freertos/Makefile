@@ -86,6 +86,14 @@ BIN   := $(BUILD)/presence_freertos
 #
 # ORDER-ONLY, so the check runs before a build and does not make the binary out of date. A phony
 # prerequisite in the ordinary position would relink on every invocation.
+#
+# THE DEFAULT GOAL IS NAMED, and it is named because of a defect introduced on Monday 19 October
+# 2026. The pin check below was inserted above `all`, and **the first target in a makefile is the
+# default goal**, so a bare `make` ran the check, built nothing, and exited zero. On three
+# projects it printed one encouraging line and looked exactly like a successful build. An
+# explicit assignment cannot fail that way, where an ordering convention can and did.
+.DEFAULT_GOAL := all
+
 PYTHON    ?= python3
 REPO_ROOT := ../../..
 
