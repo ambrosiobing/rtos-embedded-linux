@@ -44,6 +44,7 @@ The second half of the chapter is the axis almost nobody builds until it is need
 | The ring buffer of the sibling firmware volume | The outbound spool, with its atomicity assumptions already stated | A bound on bytes. This chapter adds the bound, because a spool that grows without one is a device that stops | MIT |
 | Published scheduling and reservation protocols | A vocabulary for bookings and the useful observation that a no-show policy is a property of the room, not of the calendar | Anything that runs on a part of this size. They assume a server | Various |
 | The shell subsystem | Typed commands standing in for calendar messages, which is what makes this chapter demonstrable on a desk | A transport. P11 carries these messages for real | Apache-2.0 |
+| The anchor: this volume's own comparison, one cascade in three languages | The policy function exists three times, in C, C++ and Rust, and a gate on every push reads the three sources and compares the ordered list of guard names and reason codes arm for arm, which is why the C names its predicates rather than writing the conditions inline; the twenty-two cases run against each | A number from outside the volume, as in P01. The anchor is internal and replicable with the tree, and the claim it supports is that one policy, not three, produces the seven claim codes and the seven service codes | Apache-2.0 |
 
 *Table 2.1. Prior art for P02. The only substantial dependency is the chapter before it. The policy itself has no prior art worth the name, for the same reason the state machine in P01 had none: the application layer is where the product lives, and nobody publishes theirs.*
 
@@ -265,6 +266,7 @@ The console prints one line per decision in the volume's format, and it prints t
 - **An unactivated unit never shows itself free.** With the activation flag clear, no input sequence produces a free or walk-in claim. *Refuted if* any of the twenty-two does.
 - **The room works with the radio down.** With the link down for the whole of a case, the claim still changes, the lamps still follow and the spool holds the events. *Refuted if* any claim transition depends on the link.
 - **The spool is bounded and the loss is counted.** Driving a thousand events with the link down leaves the spool at its configured size and the discard counter at the difference exactly. *Refuted if* memory grows or the counter and the arithmetic disagree.
+- **The replicated claim: one cascade, three languages, the same arms in the same order and the same codes from the twenty-two cases. Met, and checked on every push.** *Refuted if* the gate finds an arm, a guard name or a code differing between the three sources, which it reports naming the arm, or if any of the twenty-two cases yields a different claim or service code in one language than in another, which would mean the three are three policies after all.
 
 ## Variants
 
@@ -315,6 +317,7 @@ which runs every case, prints the count for each of the fourteen reason codes, a
 - The shell subsystem, for the typed commands that stand in for a calendar. Read Friday 2 October 2026.
 - The ring buffer of the sibling firmware volume, chapter 2, for the spool's structure and its stated atomicity assumptions.
 - Published reservation and scheduling vocabularies, read for their terms rather than their implementations, which all assume a server.
+- This volume's own gate, `scripts/crosscheck_cascade.py`, named as the anchor's instrument on Tuesday 20 October 2026; the anchor is internal and the row says so.
 
 ---
 
