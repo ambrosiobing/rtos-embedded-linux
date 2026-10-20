@@ -44,9 +44,10 @@ The third reason is that this volume has two kinds of unit, and a process that w
 | P07, in this volume | The storage partition, deliberately placed above both image slots so that an update cannot erase a credential | Anything about identity | Apache-2.0 |
 | P09, in this volume | The serial path by which a microcontroller unit can be reached before it has any network credential at all | Identity | Apache-2.0 |
 | The sibling Linux volume, Project 18 | An authority and certificates issued once for a broker on this same bench | Rotation and revocation, which are the lifecycle rather than the issuance, and which are this chapter | Apache-2.0 |
+| The anchor: the certificate standard, and the operating system's credential storage | RFC 5280, the profile every certificate here follows, read on Tuesday 20 October 2026: a certificate is valid between its two dates and no other time, a verifier checks the current time against them, and a revocation list is the standard's own mechanism for withdrawing one before its second date, with the verifier obliged to consult it. The kernel's credential storage, which holds a certificate and a key by a tag and hands them to the secure sockets layer, and its backend choice, which on this part is the settings subsystem over P07's partition and not a protected store | A renewal rule. The standard says when a certificate stops being valid and nothing about when a device should ask for the next one; the third-of-life rule is this chapter's own and is stated as such. And no measured delay from a revocation to a refusal, which is this bench's to take | Published; Apache-2.0 |
 | Published guidance on device identity for constrained devices | The vocabulary, and the argument that a device should generate its own key | An implementation for a part of this size, and no opinion about enrolling over a serial port | Published |
 
-*Table 13.1. Prior art for P13. The tooling is mature and the gap is entirely in the device half: what a unit does on its first start, what it does ninety days later, and what happens at the moment somebody decides it should no longer be trusted.*
+*Table 13.1. Prior art for P13. The anchor was made concrete on Tuesday 20 October 2026 after a trusted-firmware anchor had been proposed and withdrawn: this part has no trust zone, so the isolation that framework provides is named as a stretch on the industrial sensor node in P14 and not claimed here. The tooling is mature and the gap is entirely in the device half: what a unit does on its first start, what it does ninety days later, and what happens at the moment somebody decides it should no longer be trusted.*
 
 ## Parts from the inventory
 
@@ -268,6 +269,7 @@ Enrolment over the serial path is slow and that is acceptable because it happens
 - **The time from revoking to first refusal is measured and stated.** *Refuted if* the chapter implies the refusal is immediate.
 - **A certificate without its key is useless.** *Refuted if* copying one onto a second unit produces a working connection.
 - **An update does not erase a credential.** Install an image through P08 and confirm the credential survives, which is P07's layout doing its job. *Refuted if* the unit has to re-enrol after an update.
+- **The replicated claim: the standard's two refusals, and this chapter's one rule, demonstrated rather than asserted. Not yet run.** The standard says an expired certificate is invalid and a revoked one is invalid once the list says so. Three demonstrations: the unit, with its clock set past the broker certificate's second date, refuses the broker and says why; the broker, with the unit's certificate on the list, refuses the unit at the handshake and the tunnel of P19 refuses it too; and a unit started with a certificate at two thirds of its life begins renewing before the first publish. *Refuted if* the unit accepts an expired certificate, which would mean the time was never set or never checked; if any checker accepts a revoked one, which would mean the list did not reach it; or if renewal begins later than a third of the life remaining, which would mean the rule is in the text and not in the code. The delay from revocation to first refusal is reported beside the result and is a measurement of the list's path, not of the standard.
 
 ## Variants
 
@@ -321,6 +323,8 @@ which revokes a unit, refreshes the list, and reports the elapsed time until the
 - P09 in this volume, for the serial path by which a unit with no network identity is reached.
 - The sibling Linux volume, Project 18, for an authority and certificates issued once on this same bench, which this chapter extends into a lifecycle rather than repeating.
 - Published guidance on identity for constrained devices, read for the argument that a device should generate its own key, and not for an implementation.
+- RFC 5280, the Internet X.509 public key infrastructure certificate and certificate revocation list profile, read on Tuesday 20 October 2026, for the validity period, the verifier's check of the current time against it, and the revocation list. The online status protocol of RFC 6960 is named in the honesty note as the thing this chapter does not build.
+- The kernel's credential storage documentation, read on Tuesday 20 October 2026, for the tag, the add and delete calls, and the backend choice between volatile memory, a protected store and the settings subsystem, of which only the last is available on this part.
 
 ---
 
