@@ -1629,3 +1629,49 @@ against printed left. **If that holds at a proper distance, the printed grid is 
 turn relative to the board**: the board's left end is the bottom of the grid, and the CN11 edge
 is the grid's right. Written here so the repeat can refute it, which a hand at 200 millimetres
 covering one clean block either will or will not.
+
+## Tuesday 20 October 2026 at 12:27 and 12:28: one finger, one zone, one reference point
+
+A single index finger over the field instead of a hand, held through four frames.
+
+### Towards the blue USER button: exactly one zone, four frames running
+
+| Frame | Zone 56, row 7 column 0 | Every other zone | Reduction |
+|---|---|---|---|
+| 1 | 426 mm, status 6 | about 2580, status 6 | no reading, as always on frame 1 |
+| 2 | 436 mm, status 5 | about 2580, status 5 | `436 mm from zone 56, 64 of 64 valid` |
+| 3 | 427 mm, status 5 | the same | `427 mm from zone 56` |
+| 4 | 438 mm, status 5 | the same | `438 mm from zone 56` |
+
+Sixty-three zones unchanged and one zone at the finger, in the order the part returns them the
+bottom left corner of the printed grid. The finger was at about 43 centimetres rather than the 10
+asked for, which is why it covered one zone and not six, and that is the distance to keep.
+
+**The hypothesis from the hand runs is refuted on its column half.** It said USER would land at
+the printed bottom right; it landed at the bottom left. The row half, that the board's left end is
+the bottom of the grid, survives this run but is not confirmed by it alone. The hand runs at 30
+millimetres were the wrong instrument and this is the right one, which is what the prediction said
+would decide between them.
+
+### Towards the black RESET button: no zone moved
+
+Four frames of the flat surface, 64 of 64 valid, the reduction picking far zones 24, 16 and 24 at
+about 2545 millimetres as on an empty field. One zone in frame 2 carried status 9, the vendor's
+other ranging OK value, seen here for the first time. The finger was outside the sensor's view:
+a null result about where the field is, not a result about that corner.
+
+### What one point fixes, and the two outcomes the next run chooses between
+
+With the board's long axis called X, positive towards the ST-LINK cable, and the across axis Y,
+positive towards the Pi, the USER direction is roughly minus X plus Y, and it landed at row 7,
+column 0. Two symmetries of the square send that direction there, and one more direction tells
+them apart:
+
+| Finger towards | If minus X is row plus and plus Y is column minus | If minus X is column minus and plus Y is row plus |
+|---|---|---|
+| the ST-LINK cable, plus X | the **top** rows, middle columns | the **right** columns, middle rows |
+| the Pi, plus Y | the **left** columns, middle rows | the **bottom** rows, middle columns |
+
+Either run alone decides; both together cross-check. The firmware is left exactly as it is through
+these runs, including the printed sentence that now says the status question is unresolved, so
+that nothing changes between measurements but the finger.
