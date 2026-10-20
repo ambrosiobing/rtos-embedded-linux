@@ -1585,3 +1585,47 @@ forty-eight near 2580, and the reduction will name a zone inside that block. Whi
 that block occupies is the orientation, and it is the thing not predicted, since predicting it is
 what the run is for. If more than one block moves, the hand is too close or too large for the
 field and the run is repeated further away rather than interpreted.
+
+## Tuesday 20 October 2026 at 12:18 and 12:21: a hand over the sensor, too close to read a quadrant
+
+Two runs, each with a hand over part of the sensor's view before reset and held through the four
+frames. The first with the hand towards the blue USER button, the second towards the black RESET
+button; both logs carry the first name because the command was reused, and the order is taken
+from the times. **The hand was about 30 millimetres from the sensor in both, not the 200 asked
+for**, and the prediction said what that would do: more than one four by four block moves, and
+the run is repeated rather than interpreted. So the orientation is not read from these.
+
+### What the two runs did establish, which is not nothing
+
+**The status field has a vocabulary and it tracks the scene.** Four days of grids had shown two
+values, 6 on a first frame and 5 after. With a hand in the field the frames carried 4, 5, 6, 10,
+13, 14 and 255. The one that can be read from the data alone is 255: in every zone that reported
+it, the targets grid reported zero, and in no other zone. **Status 255 is a zone that saw no
+target**, and the distance printed beside it, around 30 millimetres, is a number and not a
+measurement. That is the second acceptance criterion observed rather than argued: an empty zone
+and a measured zone both carry a distance, and only the status and the target count tell them
+apart. The other new values are not named here; the vendor's enumeration is still in a compiled
+help file.
+
+**The reduction behaved under a real near object.** With a hand at 30 millimetres in half the
+field, it reported the nearest zone the vendor calls a reading, 26 to 30 millimetres, and passed
+over every zone at 255, 10, 4 or 13 beside it, including ones with smaller numbers in them. `27 mm
+from zone 58, with 58 of 64 zones valid` is the sentence P01 would have been given, and it is
+right.
+
+**Frame 1 is status 6 on the uncovered zones and 13 on the covered ones**, in both runs, which is
+a sixth and seventh boot agreeing that the first frame is never 5.
+
+### What the shape of the covered zones suggests, as a hypothesis for the repeat and not a result
+
+| Hand towards | Covered in the printed grid |
+|---|---|
+| the blue USER button, at the board's left end, CN11 side | columns 4 to 7 in every row, spreading to column 3 in the bottom two rows |
+| the black RESET button, at the board's left end, CN12 side | column 0 in every row, and columns 0 to 3 in the bottom two rows |
+
+Both hands came in over the board's left end, and both runs show the bottom two printed rows
+covered; what differs between them, the CN11 side against the CN12 side, shows as printed right
+against printed left. **If that holds at a proper distance, the printed grid is rotated a quarter
+turn relative to the board**: the board's left end is the bottom of the grid, and the CN11 edge
+is the grid's right. Written here so the repeat can refute it, which a hand at 200 millimetres
+covering one clean block either will or will not.
