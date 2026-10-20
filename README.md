@@ -133,6 +133,7 @@ These run on a clone, with nothing but a Python interpreter:
 
     python scripts/lint.py               house rules, and the name scan
     python scripts/check_links.py        every relative link and anchor
+    python scripts/check_anchors.py      which chapters name a published claim they replicate
 
 `scripts/lint.py` checks prose for em and en dashes, non-ASCII characters and
 violent idioms, and code blocks for non-ASCII and over-long lines. It also runs

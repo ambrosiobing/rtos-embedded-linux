@@ -216,3 +216,14 @@ jobs:
       # be the same defect one level up.
       - name: The pin gate refuses what it is supposed to refuse
         run: python scripts/test_check_pin.py
+
+      # The refactor of Tuesday 20 October 2026, docs/REFACTOR_PLAN.md, as a gate. A chapter that
+      # has been brought level carries one prior-art row beginning "The anchor" and one acceptance
+      # item beginning "The replicated claim" with its refutation in the same item, and is listed
+      # in the script. The list and the tree are held to each other in both directions, so the
+      # count the script prints is the count in the tree. The gate was shown to refuse seven
+      # mutations before it was committed, and that proof runs here too.
+      - name: Every anchored chapter names its anchor and the claim it replicates
+        run: |
+          python scripts/test_check_anchors.py
+          python scripts/check_anchors.py
