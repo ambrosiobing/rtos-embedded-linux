@@ -13,10 +13,10 @@
 > - **Board:** NUCLEO-H7A3ZI-Q, supplied through the meter; a SIM7070G module powered from its own connector
 > - **Peripherals:** The device power management subsystem, the idle thread, one serial port to the module, one pin marking each phase for the meter
 > - **Toolchain:** As the front matter, plus the meter's host library and a short reduction script
-> - **Operating system:** One thread per phase, device runtime management on the peripherals that support it
+> - **Operating system:** One thread per phase, device runtime management on the peripherals that support it; and the idle floor taken under both kernels, the power management subsystem's idle policy on one side and tickless idle on the other, into the same low-power mode
 > - **Difficulty:** 5 of 5
 > - **Effort:** 5 evenings of about four hours
-> - **Deliverable:** One table of current per state, measured, with each row naming what was running; and the two link timers logged as granted rather than as requested
+> - **Deliverable:** One table of current per state, measured, with each row naming what was running, the idle floor under both kernels held against the datasheet's figure at the board's own current jumper; and the two link timers logged as granted rather than as requested
 
 ## Why this project
 
@@ -42,13 +42,15 @@ The third reason is that the two link sleep mechanisms are negotiated rather tha
 | Source | What it gives | What it does not | Licence |
 | --- | --- | --- | --- |
 | The power management documentation | Device runtime management, the idle policy, and the distinction between a device's own state and a system state | Confirmation that system states exist for this part in the pinned tree. The chapter checks rather than assumes | Apache-2.0 |
+| The anchor: the part's datasheet and the board's user manual | The datasheet, DS13139, read on Tuesday 20 October 2026, gives the two figures every sleep claim about this part is measured against: Stop mode down to 32 microamperes with the whole RAM retained, and Standby at 2.8 microamperes with the clock and its crystal running. The board's user manual, UM2408, gives the jumper, JP4, that puts an ammeter in the processor's own supply, and the list of components it says must be removed before a Standby figure is the processor's alone | A figure for a kernel. The datasheet's numbers are the silicon in a mode; what an operating system's idle path leaves awake on its way into that mode is the chapter's measurement, under both kernels | Vendor |
+| The other kernel's tickless idle | The hook that lets an idle period be spent in a low-power mode rather than in a ticking loop, with the port supplying the entry and the tick correction on exit | The mode itself. The port for this part is the chapter's to write, and whether it reaches the datasheet's floor is the chapter's to measure | MIT |
 | The power meter and its host library | Supply and ammeter in one instrument, with eight digital inputs on the same time base as the current trace, which is what makes per-phase accounting possible at all | A harness. Marking phases and reducing the trace into a table is written here | Permissive |
 | P04, in this volume | The timing method, the instrument floors, and the habit of naming the instrument in every row | Charge. It measures durations and says so | Apache-2.0 |
 | The sibling firmware volume, chapter 10 | Per-phase charge accounting on the same bench, bare metal, with marker pins | Anything about an operating system's power management, which is the subject here | Apache-2.0 |
 | The module's own documentation, for its two sleep mechanisms | The commands that request a sleep period, and the fact that the network grants rather than obeys | Numbers. Every published figure is for a different network and a different module | Vendor |
 | Published energy modelling of a low-power cellular link | The argument that a long life follows from the link timers being chosen rather than accepted, which is the idea this chapter acts on | A measurement. The result is analytic, the module here is different, and the number in the table is this bench's or it reads not measured | Published |
 
-*Table 10.1. Prior art for P10. The published energy model is the one source in this chapter that is used for its argument and explicitly not for its figures, which is a distinction worth making in writing because the figures are tempting.*
+*Table 10.1. Prior art for P10. The datasheet is the one source used for its figures, and only for the two the silicon owns. The published energy model is used for its argument and explicitly not for its figures, which is a distinction worth making in writing because the figures are tempting.*
 
 ## Parts from the inventory
 
@@ -58,6 +60,7 @@ The third reason is that the two link sleep mechanisms are negotiated rather tha
 | nRF Power Profiler Kit II | Supply and ammeter in one, with digital inputs on the current trace's own time base | Supply leads to the board, four marker leads, USB to the host |
 | SIM7070G expansion board | The radio. Powered from its own connector, never from the board, because it draws peaks of about two amperes | Three leads to the board's serial port, 3.3 V |
 | Build host | Runs the capture and the reduction | As the front matter |
+| The board's current jumper, JP4 | The second place the meter sits: in the processor's own supply, so that the floor is the part's and not the board's | Two leads across the jumper's pins, the jumper removed |
 
 *Table 10.2. Inventory for P10. The module's own supply is not measured by this meter, which is a real limitation and is stated in the honesty note of the results table rather than left for a reader to notice.*
 
@@ -103,6 +106,9 @@ Three leads to the module and no more. Flow control is left unconnected until a 
 | State or phase | Expected | Measured | What is awake |
 | --- | --- | --- | --- |
 | Idle, everything suspended | tens of uA | not measured | the real-time clock only |
+| Idle floor at JP4, Zephyr, Stop mode | 32 uA, the datasheet | not measured | the replicated claim |
+| Idle floor at JP4, FreeRTOS, tickless idle into Stop | 32 uA, the datasheet | not measured | the replicated claim |
+| The board's own loads: at the supply minus at JP4 | the user manual's list | not measured | what the two meter positions differ by |
 | Idle, console attached | far more | not measured | a serial peripheral, and the probe |
 | Sensing, one window | a few mA | not measured | one bus, the sensor, the processor |
 | Computing one feature | a few mA | not measured | the processor only |
@@ -111,7 +117,7 @@ Three leads to the module and no more. Flow control is left unconnected until a 
 | Module asleep, long period | tens of uA | not measured | the real-time clock only |
 | Wake, serve, sleep, one cycle | charge per cycle | not measured | the whole of the above, in order |
 
-*Table 10.3. The one current table of this volume. Two things it does not contain, deliberately. It contains no battery life, because the arithmetic from a current to a number of years needs a duty cycle nobody here has observed. And it contains no figure for the radio module itself, which has its own supply outside the meter's boundary; adding the module's datasheet numbers to these would be adding a specification to a measurement.*
+*Table 10.3. The one current table of this volume. The two JP4 rows are the replicated claim, the same mode entered by two kernels and held against one datasheet figure. Two things the table does not contain, deliberately. It contains no battery life, because the arithmetic from a current to a number of years needs a duty cycle nobody here has observed. And it contains no figure for the radio module itself, which has its own supply outside the meter's boundary; adding the module's datasheet numbers to these would be adding a specification to a measurement.*
 
 ## Software design (UML)
 
@@ -190,9 +196,13 @@ projects/P10-radio-sleeps/
 
 **Step 1.** **Measure the floor before measuring anything else.** An empty application, console off, everything suspended. If that number is not small, nothing measured afterwards is about the design.
 
-**Step 2.** **Measure the same floor with the console attached, and keep the number.** It is the cheapest demonstration in the volume of why the run reports over marker pins, and it is a figure most readers will not expect.
+**Step 2.** **Measure the floor twice: at the supply, and across the board's current jumper.** The difference is the board, the second figure is the part, and only the second is comparable with the datasheet. The user manual lists the components that still draw at JP4 in Standby; they are named in the results and not removed, so the Standby row is a bound and the Stop row is the comparison.
 
-**Step 3.** **Mark the phases with four pins, raised and lowered at the boundaries.** Four lines are enough for five phases because sleep is all of them low, which costs nothing and reads unambiguously.
+**Step 3.** **Build the same idle floor under the other kernel.** Tickless idle with the port's sleep hook entering Stop mode, the tick corrected from the low-power timer on exit, on the kernel P04 pinned. Two kernels into one mode, one meter position, one datasheet figure.
+
+**Step 4.** **Measure the same floor with the console attached, and keep the number.** It is the cheapest demonstration in the volume of why the run reports over marker pins, and it is a figure most readers will not expect.
+
+**Step 5.** **Mark the phases with four pins, raised and lowered at the boundaries.** Four lines are enough for five phases because sleep is all of them low, which costs nothing and reads unambiguously.
 
 ```c
 /* src/phases.c: cheap, and the whole table depends on it */
@@ -206,20 +216,20 @@ void phase_enter(phase_t p)
 }
 ```
 
-**Step 4.** **Turn on device runtime management and measure the difference.** Each peripheral that supports it suspends itself when nothing is using it. The figure worth reporting is the before and after on the same application, because that is the subsystem's actual contribution.
+**Step 6.** **Turn on device runtime management and measure the difference.** Each peripheral that supports it suspends itself when nothing is using it. The figure worth reporting is the before and after on the same application, because that is the subsystem's actual contribution.
 
-**Step 5.** **Check whether system states exist for this part before claiming them.** If they do, there is another row; if they do not, the chapter says so and stays with runtime management.
+**Step 7.** **Check whether system states exist for this part before claiming them.** If they do, there is another row; if they do not, the chapter says so and stays with runtime management.
 
 ```bash
 grep -rn "pm-states" zephyr/dts/arm/st/h7/ | head
 grep -rn "CONFIG_PM_S2RAM\|pm_state" zephyr/soc/st/stm32/stm32h7x/ | head
 ```
 
-**Step 6.** **Attach the module and read back the granted timers.** Not the requested ones. This is the single most important line in the chapter and it is one call.
+**Step 8.** **Attach the module and read back the granted timers.** Not the requested ones. This is the single most important line in the chapter and it is one call.
 
-**Step 7.** **Measure one whole cycle, wake to sleep, and report charge per phase.** The sum is the cycle; the division by the granted period gives an average. Neither is multiplied by a year.
+**Step 9.** **Measure one whole cycle, wake to sleep, and report charge per phase.** The sum is the cycle; the division by the granted period gives an average. Neither is multiplied by a year.
 
-**Step 8.** **Make the reduction script refuse to print a battery life.** It is three lines and it prevents the one mistake this chapter exists to avoid.
+**Step 10.** **Make the reduction script refuse to print a battery life.** It is three lines and it prevents the one mistake this chapter exists to avoid.
 
 ```python
 # host/checks.py
@@ -232,9 +242,9 @@ def refuse_battery_life(args):
             "Do the arithmetic yourself, with your own duty cycle.")
 ```
 
-**Step 9.** **Run the same cycle with the radio never sleeping, for contrast.** The ratio between the two is the chapter's result, and it is a ratio this bench can honestly produce because both halves were measured here.
+**Step 11.** **Run the same cycle with the radio never sleeping, for contrast.** The ratio between the two is the chapter's result, and it is a ratio this bench can honestly produce because both halves were measured here.
 
-**Step 10.** **Publish the trace with the four digital lines visible.** A current curve with its phase markers is the single most convincing artefact in the volume, and it is the evidence that the table was divided rather than guessed.
+**Step 12.** **Publish the trace with the four digital lines visible.** A current curve with its phase markers is the single most convincing artefact in the volume, and it is the evidence that the table was divided rather than guessed.
 
 ## Build, flash and debug
 
@@ -253,12 +263,14 @@ The second recurring problem is the probe. A board that is still connected to th
 - **The module's exclusion is stated where the numbers are, not only in the text.** *Refuted if* the table's caption does not say it.
 - **A trial with the probe attached is detected and discarded.** *Refuted if* such a capture is reduced into the table.
 - **The sleeping and never-sleeping cycles are both measured.** The ratio is reported. *Refuted if* only one is measured and the other is estimated.
+- **The replicated claim: the datasheet's Stop figure, reached by both kernels' idle paths. Not yet run.** The datasheet says 32 microamperes in Stop with the RAM retained. With the meter across JP4 and nothing but the clock awake, the idle floor is taken under the power management subsystem's idle policy and under tickless idle, each entering the same mode, and the figure at the supply is taken beside each so that the board's loads are a measured difference and not an excuse. *Refuted if* either kernel's floor at JP4 exceeds the datasheet's figure by more than the components the user manual lists can draw, which would mean that kernel's idle path leaves a peripheral or a clock awake, and the chapter names which by suspending them one at a time; refuted twice if the two kernels differ from each other by more than that, since the mode is the silicon's and not the kernel's.
 
 ## Variants
 
 | Axis | This chapter | The alternative | Cost | Built in full |
 | --- | --- | --- | --- | --- |
 | Power management | Device runtime, measured | Registers written directly | Already built, bare metal, next door | Sibling firmware volume, chapter 7 |
+| The kernel's idle path | The power management subsystem's policy | Tickless idle on the other kernel | Each has to reach the same datasheet figure, and the one that does not has left something awake | Both, at JP4 |
 | Phase accounting | Four marker pins | Inferring phases from the curve | A reading of a shape rather than a measurement | Here |
 | Link sleep | The granted timers, logged | The requested ones | A budget about an intention | Here |
 | Result | Charge per phase, and a ratio | A battery life in years | A duty cycle nobody observed | Here, by refusing |
@@ -266,7 +278,7 @@ The second recurring problem is the probe. A board that is still connected to th
 | The module's own draw | Outside the boundary, said so | Added from its datasheet | A specification added to a measurement | Here, by exclusion |
 | Timing of the phases | From P04's method | Measured again | Two methods, drifting apart | P04 |
 
-*Table 10.4. Variants touching P10. Two of the rows are built by refusing to do something, which is unusual in a table of this kind and is the point: the chapter's contribution is as much what it declines to compute as what it measures.*
+*Table 10.4. Variants touching P10. The idle path row is the two-kernel comparison the volume carries through from P04. Two of the rows are built by refusing to do something, which is unusual in a table of this kind and is the point: the chapter's contribution is as much what it declines to compute as what it measures.*
 
 ## Pitfalls
 
@@ -302,6 +314,9 @@ which captures the current with the four phase markers on one time base and prin
 
 - The power management documentation, for device runtime management and the idle policy, and the device tree for this processor family, checked for system states rather than assumed. Read Friday 2 October 2026.
 - The power meter's host library documentation, for the digital inputs that share the current trace's time base.
+- The datasheet for this part, DS13139, read on Tuesday 20 October 2026, for the Stop figure of 32 microamperes with full RAM retention and the Standby figure of 2.8 microamperes, which are the two numbers the replicated claim is held against.
+- The board's user manual, UM2408, read on Tuesday 20 October 2026, for jumper JP4 in the processor's supply and for the list of components that still draw across it in Standby, which is why the Standby row is a bound here and the Stop row is the comparison.
+- The other kernel's documentation of tickless idle and of the port's sleep hook, read on Tuesday 20 October 2026, for the entry and the tick correction the port for this part has to supply.
 - P04 in this volume, for the timing method and for the habit of naming an instrument in every row.
 - The sibling firmware volume, chapter 10, for per-phase charge accounting with marker pins on this same bench, bare metal.
 - Andres-Maldonado, Ameigeiras, Prados-Garzon, Navarro-Ortiz and Lopez-Soler, energy modelling of a low-power cellular link with its two sleep mechanisms, Computer Networks, 2023, used for its argument that the timers must be chosen rather than accepted. Its result is analytic and its module is not this one, so no figure of its is reproduced here.
