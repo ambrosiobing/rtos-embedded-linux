@@ -58,25 +58,30 @@ The result also carries `valid_zones`, because zero valid zones out of sixty-fou
 was never read both produce `found == false` and are different situations. A caller can only tell
 them apart if the count comes back.
 
-## The unresolved question this sits on top of
+## The question this sat on top of, and how the data answered it
 
-[docs/BENCH.md](BENCH.md) records it in full and it belongs here too, because it decides what this
-reduction does on real data. The vendor's own header says statuses 5 and 9 mean ranging OK. The
-only grid this project has ever recorded, a coherent surface at about 2.56 metres on Saturday 17
-October 2026 at 15:35, reported **status 6 in all sixty-four zones**, and so did the noise grid
-from the boot before it.
+When this page was written on Sunday 18 October 2026 the only grid this project had recorded, a
+coherent surface at about 2.56 metres, reported **status 6 in all sixty-four zones**, and so did
+the noise grid from the boot before it. The vendor's header calls 5 and 9 ranging OK, so on the
+only real data in existence this reduction returned no reading. Two readings fit and the page
+refused to pick between them.
 
-So on the only real data in existence, this reduction returns no reading. That is the correct
-behaviour under the rule as written, and it is reported rather than worked around:
+Seven boots on Tuesday 20 October 2026 picked, three of them after the prediction was written:
+**status 6 is the first frame after ranging starts, on every boot, and status 5 is every frame
+after it.** Both Saturday grids were first frames. A first frame can be a surface or sixty-four
+zones of noise and the status does not say which, so the vendor is right to exclude it, and this
+reduction handing P01 nothing on frame 1 is the behaviour wanted rather than a defect to work
+around.
 
-- either 6 is a sound state the vendor's parenthesis does not list, in which case the valid set
-  here is incomplete and will widen once a source says so;
-- or that parenthesis describes a different field or the generation before this one, in which case
-  the quotation is true and does not apply here.
+The same day exercised the refusal on the hardest case. With an object two to ten millimetres from
+the sensor face, every zone reported status 4, and the reduction returned no reading eight frames
+out of eight. **An object at the face was never turned into a presence at zero millimetres**,
+which is the failure the result structure was designed against. And with a hand at thirty
+millimetres across half the field, it reported the nearest zone the vendor calls a reading and
+passed over every 255, 10, 4 and 13 beside it, including ones holding smaller numbers.
 
-**Neither is settled by choosing whichever makes the output look right.** `src/zone_status.h` holds
-the one definition both the firmware and this reduction use, so widening it later is one edit in
-one place rather than a search.
+`src/zone_status.h` holds the one definition both the firmware and this reduction use, with the
+record of what each observed value accompanied. The valid set is still exactly the vendor's two.
 
 ## What proves it
 

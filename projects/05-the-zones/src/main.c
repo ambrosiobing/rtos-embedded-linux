@@ -126,18 +126,14 @@ static int scan_bus(void)
  * no source file in it enumerates the values. The number is therefore still printed as a number,
  * with the one distinction the vendor does state marked beside it and counted underneath.
  *
- * AND THAT QUOTATION COLLIDES WITH THE ONLY DATA THIS PROJECT HAS, which is why the marking is
- * presented as the vendor's claim rather than as a verdict. The grid of Saturday 17 October 2026
- * at 15:35 was a coherent surface at about 2.56 metres, flat across its rows and rising 52
- * millimetres across its columns, and **every one of its sixty-four zones reported status 6**. So
- * did the noise grid from the boot before it. Under the sentence above, the real surface would
- * carry no marks at all.
- *
- * Two readings fit and this project cannot choose between them from here: either 6 is a state the
- * header's parenthesis does not list and the measurement is sound anyway, or that parenthesis
- * describes a field or a generation other than this one. **Both are better than a mapping
- * invented to make the output look right.** The count is printed, the conflict is printed beside
- * it, and no unmarked zone is called invalid.
+ * THAT QUOTATION SEEMED TO COLLIDE WITH THE ONLY DATA THIS PROJECT HAD, and on Sunday 18 October
+ * 2026 this comment refused to choose between two readings of it. Seven boots on Tuesday 20
+ * October 2026 chose: status 6 is the first frame after ranging starts, every zone, every boot,
+ * and status 5 is every frame after it. Both Saturday grids were first frames. A first frame can
+ * be a coherent surface or sixty-four zones of noise and the status does not say which, so the
+ * vendor's exclusion of it is right and the zero this printer shows on frame 1 is the expected
+ * result. src/zone_status.h carries the full record, including 255 for a zone that saw no target
+ * and 4 for the whole field with an object at the sensor face.
  *
  * THE ORIENTATION IS UNESTABLISHED AND IS SAID TO BE. The grid is printed in the order the part
  * returns it, and which physical corner the first zone is has not been shown. That is the fifth
@@ -246,13 +242,11 @@ static void print_grid(int frame)
 	}
 	printf("# %d of %d zones are marked, which is this frame's count of statuses 5 and 9, the\n",
 	       ok, ZONES_TOTAL);
-	printf("# only two the vendor's header calls ranging OK.\n");
-	printf("# READ THAT COUNT AGAINST THIS: the only grid this project has recorded, a\n");
-	printf("# coherent surface at about 2.56 m on 17 October 2026 at 15:35, reported status 6\n");
-	printf("# in every zone, and so did the noise grid from the boot before it. A zero here is\n");
-	printf("# therefore expected and is not a fault in this printer. Whether 6 is a valid\n");
-	printf("# measurement the header does not list, or whether that comment describes another\n");
-	printf("# field, is unresolved, so an unmarked zone is not called anything.\n");
+	printf("# only two the vendor's header calls ranging OK. Zero on frame 1 is expected: the\n");
+	printf("# first frame after ranging starts is status 6 on every boot seen, and the vendor is\n");
+	printf("# right to exclude it, since a first frame can be a surface or noise and the status\n");
+	printf("# does not say which. 255 is a zone that saw no target; 4 is the whole field with\n");
+	printf("# something at the sensor face. src/zone_status.h carries the record.\n");
 
 	printf("# targets each zone saw, where zero means the zone saw nothing at all\n");
 	for (row = 0; row < ZONES_ACROSS; row++) {
