@@ -44,11 +44,12 @@ The chapter is also a boundary with a sibling volume, and the boundary is stated
 | The board support for this node, added upstream by its maker | A supported target with its sensors, its radio binding, its flash partitions and two flashing paths described | Any of this volume's application. The port is the chapter | Apache-2.0 |
 | P06, in this volume | The application being ported: the pipe, the features, the counters and the twin | Anything board-specific, which is the point | Apache-2.0 |
 | P03, in this volume | The boundary being tested: hardware in an overlay, the application naming what it wants | Proof that the boundary holds across families, which is this chapter | Apache-2.0 |
+| The anchor: P03's object-identity check, and the board support for this node as its maker added it upstream | P03 showed, on the other board, that the application's object is identical across two buses but for one devicetree ordinal, by a script that compares the compiled object and not the source. That script generalises: run on this board, whose motion sensors sit on two of its own buses, it asks the same question of a different processor family. The board support, read on Tuesday 20 October 2026, describes the sensors, the radio binding and the partitions the check needs | Identity of the object between the two boards, which cannot be asked: the cores execute different instruction sets and carry different floating-point units, so the same source compiles to different bytes by design. What crosses the boards is the source, and the first criterion holds that; what the object check can hold is identity within each board across its buses, and the replicated claim holds that | Apache-2.0 |
 | P07, in this volume | The flash layout for the other board, which does not transfer and has to be redone from this part's own geometry | A layout for this part | Apache-2.0 |
 | The kit volume, lab 4 | This board on this bench, as a USB device running its vendor firmware | Anything about this operating system on it | Apache-2.0 |
 | The sibling firmware volume's authoring guide | The statement that this board belongs to the condition-monitoring build, which is the boundary this chapter respects | Permission to use its vibration capability, which this chapter does not take | Apache-2.0 |
 
-*Table 14.1. Prior art for P14. Two of the six rows are boundaries rather than resources, which is unusual and is deliberate: a chapter about a board that another volume owns has to say what it is not doing before it says what it is.*
+*Table 14.1. Prior art for P14. The anchor row says which identity can be asked across the boards and which cannot, so that a reader does not expect a byte comparison between two cores. Two of the rows are boundaries rather than resources, which is unusual and is deliberate: a chapter about a board that another volume owns has to say what it is not doing before it says what it is.*
 
 ## Parts from the inventory
 
@@ -117,6 +118,7 @@ The flash layout is the one thing that genuinely has to be redone rather than ad
 | Memory total, this part | 768 kB | by construction | less than the other board |
 | Feature computation, one window | not measured | not measured | a different core |
 | Twin agreement, both boards | byte for byte | not measured | P06's acceptance test |
+| Application object across this board's two buses | identical but for one ordinal, as on the other board | not measured | the replicated claim |
 
 *Table 14.3. The budget for P14. The first and fourth rows together are the chapter: the application did not change and the flash layout could not be reused, which is a fair summary of what porting across two families of one processor family actually costs.*
 
@@ -228,6 +230,7 @@ The second obstacle is the sensor name. This board's inertial sensor is a differ
 - **The board's radio binding resolves.** Nothing more is claimed. *Refuted if* the chapter asserts a working radio without having used one.
 - **The flashing path is named.** *Refuted if* the chapter lists both as if either would do.
 - **No energy comparison with P10 appears.** *Refuted if* one does.
+- **The replicated claim: P03's object identity, on a second processor family. Not yet run.** On the other board the application's compiled object was identical across two buses but for one devicetree ordinal, and the script that showed it takes the object path as its argument. Here the same application is built twice, once naming a motion sensor on each of this board's two buses, and the script compares the two objects. *Refuted if* any instruction differs beyond the ordinal, which would mean the boundary P03 drew holds on one family and leaks on another, and the chapter names the instruction and what reached it. The comparison between the boards is of source and of the twin's bytes, as the first and fourth criteria say, and never of the object, since two cores with different instruction sets cannot share one.
 
 ## Variants
 
@@ -237,6 +240,7 @@ The second obstacle is the sensor name. This board's inertial sensor is a differ
 | Sharing | Sources included across projects | Copied in | The comparison proves nothing | Here |
 | Flash layout | Rewritten from this part | P07's, adjusted | A build that succeeds and a device that cannot store a setting | Here |
 | This board's strengths | Deliberately unused | Wideband vibration, on-board storage | Another volume owns that subject | Named, not built |
+| Isolation | None, as on the other board | The trusted-firmware framework's secure partition, which this core's trust zone allows and the other board's core cannot | A second image, a different build, and the credential of P13 behind a boundary the application cannot cross | Named as the stretch, not built |
 | Second radio | Binding confirmed only | Used properly | Duplication of P12 | P12 |
 | Second instruction set | Not the point here | A different architecture entirely | Already shown | P12 |
 | Energy | Not compared | A second table | An invalid comparison presented as a valid one | Here, by omission |
@@ -259,7 +263,7 @@ The reuse is made checkable by sharing sources rather than copying them, and the
 
 ## Stretch goals
 
-Port the presence application of P01 as well, which needs a range sensor this board does not have and would therefore test whether the stand-in source of that chapter is as separable as it claims. Measure the feature computation on both cores and report the ratio, which is a legitimate comparison because both are measured by the same method from P04. Try a third board and see whether the configuration difference stays at four lines, which is the only way to distinguish a portable design from one that happens to fit two cases.
+Port the presence application of P01 as well, which needs a range sensor this board does not have and would therefore test whether the stand-in source of that chapter is as separable as it claims. Measure the feature computation on both cores and report the ratio, which is a legitimate comparison because both are measured by the same method from P04. Try a third board and see whether the configuration difference stays at four lines, which is the only way to distinguish a portable design from one that happens to fit two cases. And the stretch this board alone allows: its core has a trust zone, so the trusted-firmware framework can run as the secure image with P13's credential in its protected storage and the application in the non-secure image, which is the isolation P13 could not claim on a Cortex-M7 and does not; named here on Tuesday 20 October 2026 as the one place in the volume it could be built, and not built.
 
 ## Roadmap and next steps
 
@@ -277,7 +281,8 @@ which lists every source file shared with the capture chapter, reports whether a
 
 - The board support for this node, read on Friday 2 October 2026, for its sensors, its radio binding, its partitions and its two flashing paths.
 - This part's own documentation, for the flash geometry that made a new partition table necessary rather than an adjusted one.
-- P03 and P06 in this volume, for the boundary being tested and the application being ported.
+- P03 and P06 in this volume, for the boundary being tested and the application being ported, and P03's object-identity script, which is the replicated claim's instrument on this board.
+- The trusted-firmware framework's documentation of its secure and non-secure images and its protected storage, read on Tuesday 20 October 2026 for the stretch goal, and only for that: nothing here is built on it.
 - The kit volume, lab 4, for this board on this bench as a USB device running its vendor firmware.
 - The sibling firmware volume's authoring guide, for the statement that this board is the committed subject of a condition-monitoring build, which is the boundary this chapter respects.
 
