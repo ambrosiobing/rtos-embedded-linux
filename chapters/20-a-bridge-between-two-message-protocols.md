@@ -43,11 +43,12 @@ So the chapter's content is the order of four operations and a test that proves 
 | --- | --- | --- | --- |
 | The second broker and its C client library | A different protocol with exchanges, queues and acknowledgements, and a client that links into a bridge | Any opinion about what happens when the bridge stops halfway, which is the chapter | MPL-2.0 for the broker, MIT for the client |
 | The first broker, from P09 | The source side, with its own acknowledgement and its own session semantics | The boundary. Two acknowledgement models meeting is what a bridge is | EPL-2.0 |
+| The anchor: the first protocol's specification, for what its middle guarantee says in normative words | The message protocol's specification, version 3.1.1 as the brokers here speak it, read on Tuesday 20 October 2026, defines its quality of service level one as at least once: a sender treats a publication as unacknowledged until the acknowledgement arrives, re-sends it with the duplicate flag set when the session resumes, and a receiver may therefore see it more than once and never fewer than once. The constrained-device protocol of RFC 7252 states the same contract for its confirmable messages, with a retransmission timeout and a count, and is named here as the device-side form of the same guarantee and not built, since this chapter has no device | The second protocol's side of the boundary, whose publisher confirmation is the broker's extension and not the specification's; and any statement about what the bridge may lose, which is the chapter's own and the replay's to test | The specification as published by its standards body; RFC 7252 as published |
 | Published work on message delivery guarantees | The vocabulary, the three guarantees and the standard argument that the strongest is expensive | An implementation, and no opinion about this pair of brokers | Published |
 | Existing bridges between these two protocols | Proof that it is a solved problem, and a reference for the mapping between the two naming schemes | A small one. The available bridges are substantial programs, and this chapter needs one file to reason about | Various |
 | P09, in this volume | The records being bridged, their topic tree and their sequence numbers, which turn out to be exactly what a deduplication store needs | Anything about a second protocol | Apache-2.0 |
 
-*Table 20.1. Prior art for P20. A bridge between these two protocols exists several times over, and the chapter says so plainly. What it offers instead is a small one whose delivery guarantee can be read in one sitting and proven in one test.*
+*Table 20.1. Prior art for P20. The anchor row is the specification's own normative sentence for the guarantee the chapter carries across the boundary, so that the replay tests a published contract and not a paraphrase. A bridge between these two protocols exists several times over, and the chapter says so plainly. What it offers instead is a small one whose delivery guarantee can be read in one sitting and proven in one test.*
 
 ## Parts from the inventory
 
@@ -105,7 +106,8 @@ The order of the four operations is the entire design and it is written as a com
 | In-flight window | 64 records | by construction | the duplication bound |
 | Bridge's own state | under 8 kB | by construction | no queue of its own |
 | Records forwarded in the replay | 10000 | by construction | the test's size |
-| Records lost | zero | not measured | the claim |
+| Records lost | zero | not measured | the claim, and the specification's |
+| Re-sent records carrying the duplicate flag | all of them | not measured | the replicated claim |
 | Records duplicated | bounded by the window | not measured | and counted |
 | Forwarding, one record | under 5 ms | not measured | not measured |
 | Recovery after a bridge restart | under 5 s | not measured | not measured |
@@ -239,6 +241,7 @@ The second recurring confusion is the confirmation. The far broker's confirmatio
 - **The far queue survives a broker restart.** *Refuted if* it does not, which would mean the delivery guarantee ends at the first restart.
 - **Exactly-once is sketched, not claimed.** *Refuted if* the chapter asserts it anywhere.
 - **The limits of the test are stated.** One machine, no network partition. *Refuted if* the chapter implies otherwise.
+- **The replicated claim: the specification's level-one contract, across a session restart mid-flight. Not yet run.** The specification says an unacknowledged publication is re-sent when the session resumes, with the duplicate flag set, and is never lost. The replay publishes ten thousand records at level one with a persistent session, stops the bridge with the window full, restarts it, and reads the source broker's re-deliveries in a capture. *Refuted if* any record is lost, which is the plan's condition and the second criterion's; or if any re-delivered record arrives without the duplicate flag, which would mean the source broker is not keeping the contract the specification states and the bridge's deduplication has nothing to key on; or if the count of duplicates exceeds the window, which the third criterion also refuses.
 
 ## Variants
 
@@ -289,6 +292,8 @@ which forwards ten thousand records through four failure scenarios and prints, f
 - The second broker and its C client library, for the exchanges, the routing keys and the publisher confirmation. Read Friday 2 October 2026.
 - The first broker, from P09 in this volume, for the source side and its own acknowledgement model.
 - Published work on message delivery guarantees, read for the vocabulary and for the standard argument that the strongest guarantee is expensive, and not for an implementation.
+- The message protocol's specification, version 3.1.1, read on Tuesday 20 October 2026 for the normative text of quality of service level one: the acknowledgement, the re-send on session resumption, and the duplicate flag.
+- RFC 7252, the constrained application protocol, read on Tuesday 20 October 2026 for its confirmable messages, the same contract on the device side, named and not built here.
 - Existing bridges between these two protocols, read for the mapping between the two naming schemes and noted as proof that this is a solved problem.
 - P09 in this volume, for the sequence numbers that a deduplication store would need, which were added for an unrelated reason.
 
