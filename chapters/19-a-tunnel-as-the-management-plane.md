@@ -42,12 +42,13 @@ The part that makes this chapter worth its place in a volume about devices is th
 | Source | What it gives | What it does not | Licence |
 | --- | --- | --- | --- |
 | The tunnel daemon and its own certificate tooling | Everything about the tunnel: the protocol, the server, the clients and a revocation list it will honour | A management plane. A flat network where every unit reaches every other is the default and is not what this chapter builds | GPL-2.0 |
+| The anchor: the tunnel with a peer-reviewed paper of its own, as the second arm | WireGuard, presented by Donenfeld at the Network and Distributed System Security Symposium in 2017 and in the kernel since 2020, GPL-2.0, read on Tuesday 20 October 2026. The paper states two things this chapter can hold it to: a handshake of one round trip, and silence, the server sending nothing in reply to a packet from a key it does not know. A revoked peer in that design is a key removed from the server's configuration, which is a different mechanism from the certificate daemon's list and is why both are built | A certificate, a list, or any place for P13's revocation to take effect by itself. Its refusal is the absence of a key, and the chapter has to carry P13's revocation into that absence by a script, which is the cost the comparison measures | GPL-2.0 |
 | P13, in this volume | The authority, the per-device credentials and the revocation list this tunnel checks | Anything about reachability | Apache-2.0 |
 | P16, in this volume | The layer that packages the daemon and its configuration, built for more than one program before this one existed | The configuration | Apache-2.0 |
 | The sibling Linux volume, Project 15 | A cellular router on this bench, with failover and position, built in full there | A tunnel, and anything about refusing a device | Apache-2.0 |
 | P09, in this volume | The broker that this chapter moves behind the tunnel, and the fleet view that then becomes unreachable from the building network | Reachability | Apache-2.0 |
 
-*Table 19.1. Prior art for P19. The daemon does all the work and the chapter's contribution is three configuration decisions and one measurement, which is an honest description of most tunnel work and is why the chapter is in the plus section.*
+*Table 19.1. Prior art for P19. The second daemon is the anchor because it is the one with a published, reviewed description of its handshake and its silence; the first is kept because it is where P13's list takes effect without translation. The daemons do all the work and the chapter's contribution is three configuration decisions and one measurement, which is an honest description of most tunnel work and is why the chapter is in the plus section.*
 
 ## Parts from the inventory
 
@@ -114,6 +115,8 @@ The first decision is made by leaving something out, which is the hardest kind t
 | Broker reachable from the building network | none, after the change | by construction | the point |
 | Broker reachable through the tunnel | by all three units | not measured | not measured |
 | Time from revoking to refusal here | measured, and compared with P13's | not measured | the chapter's result |
+| Handshake, the second daemon | one round trip, as its paper states | not measured | the replicated claim |
+| Reply to a removed peer's handshake, the second daemon | none, as its paper states | not measured | the replicated claim |
 | Units that can reach each other | zero | by construction | by an absent line |
 
 *Table 19.3. The budget for P19. The last two rows are the chapter. One is a measurement that is only meaningful because a second checker exists; the other is a property achieved by leaving a line out of a configuration file, which is the most easily lost decision in this chapter.*
@@ -240,6 +243,7 @@ The one failure that does not appear in the log is the absent line being restore
 - **The list is consulted per connection, not at start.** Revoke while the server is running and confirm the next attempt fails without a restart. *Refuted if* a restart is needed.
 - **A dropped link returns by itself, fifty times out of fifty.** *Refuted if* any drop leaves the unit unreachable, and the number is reported rather than the target.
 - **The time to refusal here is measured and compared with the broker's.** *Refuted if* only one is reported, because a single checker makes P13's measurement uninteresting.
+- **The replicated claim: the paper's handshake and its silence, on this bench, with the revoked unit as the unknown peer. Not yet run.** The second daemon is configured beside the first with the same three units. A packet capture at the server counts the round trips from a unit's first handshake message to its first data packet, which the paper puts at one; then the revoked unit's key is removed by the script that carries P13's revocation across, and the capture counts the server's replies to that unit's handshakes over a minute, which the paper puts at none. *Refuted if* a revoked peer completes a handshake, which is the plan's own condition and the one that matters; or if the server replies to the unknown key at all, which would mean this bench's build does not behave as the paper describes and the chapter reads the capture to say how; or if the handshake takes more than one round trip, which would mean the capture is seeing something the paper does not describe. The time from revocation to first refusal is reported for both daemons, beside P13's broker figure, which is the three-checker measurement that chapter exists to feed.
 
 ## Variants
 
@@ -288,6 +292,7 @@ which tries to reach one unit from another, tries to reach the broker from the b
 ## Sources
 
 - The tunnel daemon's documentation and its certificate tooling. Read Friday 2 October 2026. The daemon is used as a program and configured; nothing here is linked against it, which is why its licence is noted rather than evaluated.
+- Donenfeld, J. A., WireGuard: next generation kernel network tunnel, Proceedings of the Network and Distributed System Security Symposium, 2017, read on Tuesday 20 October 2026 for the one-round-trip handshake and the silence to unknown peers that the replicated claim holds the second daemon to on this bench.
 - P13 in this volume, for the authority, the credentials and the revocation list this tunnel consults.
 - P16 in this volume, for the layer that packages the daemon as its second recipe.
 - P09 in this volume, for the broker that moves behind the tunnel and the fleet view that becomes unreachable from the building network.
