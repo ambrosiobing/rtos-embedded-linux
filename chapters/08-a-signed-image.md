@@ -41,12 +41,13 @@ The signature is the second half and it answers a different question. Rollback p
 | --- | --- | --- | --- |
 | The bootloader project | Two slots, the swap, signature verification, the test-then-confirm sequence and the revert, all maintained and widely deployed | A partition layout, which P07 settled, and any opinion about when a device may restart, which is this chapter | Apache-2.0 |
 | Its image signing tool | Key generation, image signing and the header the bootloader expects | Key custody. The key here is a bench key and the chapter says so | Apache-2.0 |
+| The anchor: the bootloader's own design document, and the project behind it | MCUboot, Apache-2.0, 2.2 thousand stars, at release candidate 2.5.0 when read on Tuesday 20 October 2026; the one bootloader shared by this kernel and four others. Its design document states each upgrade mode's requirement of the slots and its cost: a swap through a scratch area needs a third region and equal slots and moves every sector three times; a swap using move needs the primary slot larger by exactly one sector plus the swap status area and performs two erase cycles on the primary slot and one on the secondary during each swap; a swap using offset puts the spare sector in the secondary slot instead. It states how a reset mid-swap is survived, three status records per sector through four states, and it states the revert in one sentence: if the new image crashes immediately, the bootloader reverts to the old working image at the next reset rather than booting the bad image again | A number for this part. The erase and copy counts are given per sector and per swap, and the time they take on this flash is the chapter's to measure. And it says nothing about when a device may restart, which is this chapter's own half | Apache-2.0 |
 | The build-system wrapper that builds both images together | One command that produces a bootloader and an application whose configurations cannot disagree, which removes the largest category of mistake in this chapter | Anything about the application. It is P01's, unchanged | Apache-2.0 |
 | The independent watchdog driver | A timer the application cannot stop once started, which is what makes a deadline a deadline | A policy. What counts as the application working is an application question, answered here | Apache-2.0 |
 | P07, in this volume | The two slots, the boot partition and the storage that sits above both | Anything about images | Apache-2.0 |
 | The survey of over-the-air update threats for connected devices | A classification of what can go wrong, including rollback to an older image and a device reached only through a gateway | A measured implementation on this part, and no slot layout. The threat list is cited; the revert is measured here | Published |
 
-*Table 8.1. Prior art for P08. The bootloader is the single largest piece of third-party code in the volume and none of it is rewritten. What is written here is the application's half of the contract: deciding when it may restart, and deciding what counts as working.*
+*Table 8.1. Prior art for P08. The bootloader is the single largest piece of third-party code in the volume and none of it is rewritten. What is written here is the application's half of the contract: deciding when it may restart, and deciding what counts as working. The anchor row, added on Tuesday 20 October 2026, is what turned the swap row of the budget from a guess into a prediction: the design document gives the erase and copy counts, and the time is this part's.*
 
 ## Parts from the inventory
 
@@ -108,6 +109,7 @@ The watchdog line is the one that matters and it is easy to get backwards. If th
 | Application image, signed | under 400 kB | not measured | of 896 kB |
 | Signature verification at boot | under 500 ms | not measured | not measured |
 | Swap, slot to slot | under 20 s | not measured | not measured |
+| Swap time against the design document's counts, scratch and move | predicted per mode before the run | not measured | the replicated claim |
 | Watchdog deadline | 60 s, a design choice | by construction | not a measurement |
 | Time from boot to confirm | under 10 s | not measured | not measured |
 | Revert after a failed image | one reboot | not measured | the chapter's result |
@@ -259,12 +261,14 @@ One habit is worth fixing here because it is the difference between a demonstrat
 - **A restart is refused while the room is in use.** With presence occupied, the reboot is deferred and the console says so; with the room free, it proceeds. *Refuted if* the device restarts during occupancy.
 - **The settings survive the update.** A threshold set before the update is the same threshold afterwards, which is P07's layout doing its job. *Refuted if* it reverts to a default.
 - **The swap time is stated.** *Refuted if* the chapter reports that it is quick.
+- **The replicated claim: the design document's cost per swap, and its revert sentence, on this part. Not yet run, and the first build has a decision to make first.** The document says a swap through a scratch area moves every sector three times and a swap using move erases the primary slot twice and the secondary once per swap. The prediction is written per mode from this part's sector size and its measured erase and write times, which P07 takes, and the swap is then timed under both modes with the same image. The revert is the document's one sentence: a new image that crashes is not booted again, the old one is, at the next reset. *Refuted if* the measured swap time departs from the prediction by more than the unmeasured bootloader overhead can explain, which would mean the document's counts are not this part's; or if, after the deliberately unhealthy image, the device runs anything but the previous image. The decision: P07's layout has two equal slots and no scratch partition, and the document allows neither mode on that. Either a scratch partition is carved from the storage sectors, or the primary slot grows by one sector for a swap using move, and P07's overlay changes with it. The chapter records the choice when the first build makes it, and the anchor row is what surfaced it.
 
 ## Variants
 
 | Axis | This chapter | The alternative | Cost | Built in full |
 | --- | --- | --- | --- | --- |
 | Update shape | Two slots and a swap | Overwrite in place | A failed image leaves nothing to go back to | Here |
+| Swap mode | Through a scratch area, as drawn | Using move, with the primary slot one sector larger; using offset, with the spare sector in the secondary; direct execution from either slot | The design document gives each its slot requirement and its erase and copy count, and the layout from P07 satisfies none of the swap modes as it stands | Scratch and move, timed |
 | Confirmation | Earned by a specific health check | Automatic on reaching main | Almost every realistic failure still confirms | Here |
 | Deadline | A watchdog started before the application | Started by the application | A broken application never starts it | Here |
 | Signature | Required, with the key on the bench | Checksum only | An image that was not meant to be there still runs | Here |
@@ -273,7 +277,7 @@ One habit is worth fixing here because it is the difference between a demonstrat
 | Key custody | A bench key, said plainly | A managed signing process | An organisational problem this volume does not model | Named, not built |
 | Linux side | Not here | Two root filesystems and a watchdog | Already built elsewhere | Linux volume, Project 19 |
 
-*Table 8.4. Variants touching P08. Five rows are built here. The last two are deliberately not: one is not a firmware problem, and the other is a chapter that exists in a sibling volume and is cited rather than rebuilt.*
+*Table 8.4. Variants touching P08. Six rows are built here, the swap mode twice. The last two are deliberately not: one is not a firmware problem, and the other is a chapter that exists in a sibling volume and is cited rather than rebuilt.*
 
 ## Pitfalls
 
@@ -282,6 +286,7 @@ One habit is worth fixing here because it is the difference between a demonstrat
 - **A watchdog the application starts.** The application that most needs the deadline is the one least able to set it.
 - **Confirming by hand after an update.** It disables the only protection while leaving every appearance of it.
 - **Expecting the swap to be quick.** It moves two images past each other through a scratch area, and whatever is watching needs to be told.
+- **A layout the swap mode cannot use.** Two equal slots and no scratch area is exactly what P07 drew, and the design document allows no swap on it. Read the mode's slot requirement before the layout is committed, not after the first swap fails.
 - **Committing the key.** Once in the history it is there permanently, and the ignore entry belongs in the same commit as the key generation.
 - **Restarting whenever an image arrives.** The room is sometimes in use, and the device knows, because P01 is already running.
 
@@ -308,6 +313,7 @@ which installs an image that boots and never becomes healthy, waits past the dea
 ## Sources
 
 - The bootloader project's documentation, its image signing tool, and the build-system wrapper that produces both images together. Read Friday 2 October 2026.
+- MCUboot, the mcu-tools repository, Apache-2.0, 2.2 thousand stars and release candidate 2.5.0 current on Tuesday 20 October 2026, when its `docs/design.md` was read for the upgrade modes and their slot requirements, the per-swap erase and copy counts, the three status records per sector that survive a reset mid-swap, the image trailer's image-ok and copy-done flags, and the revert sentence quoted in the anchor row.
 - The independent watchdog driver documentation, for the fact that it cannot be stopped once started, which is what makes the deadline meaningful.
 - P07 in this volume, for the two slots, the boot partition, and the storage that sits above both and therefore survives the swap.
 - El Jaouhari and Bouvet, a survey of secure firmware updates over the air for connected devices, Internet of Things, 2022, cited for its classification of what can go wrong. It is a survey rather than a measured implementation on this part and specifies no slot layout, so the threat list is taken and the revert is measured here.
