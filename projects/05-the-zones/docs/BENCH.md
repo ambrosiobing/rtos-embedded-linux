@@ -1733,3 +1733,49 @@ centimetres wide at that height depended on a height and an offset nobody could 
 pen protocol above is anchored at the window because of this, and it is his to run or to leave:
 nothing downstream needs the orientation yet, and the morning already gave the results that
 mattered.
+
+## Tuesday 20 October 2026 at 12:49 and 12:51: two pens, at the sensor face, and the series stops
+
+Two runs with an L of two pens. **The readings say the pens were two to ten millimetres from the
+sensor, not the 150 asked for.** In five of the eight frames every zone, or nearly every zone,
+reads single-digit millimetres with status 4; in the other three the field is partly covered and
+the covered shape has its corner at the printed bottom left, zone 56, with one arm up column 0
+and one along row 7. An L anchored over the window would put its corner at the centre of the
+grid. So either the corner was not over the window, or at a few millimetres the mapping is not
+the projection the protocol assumed. **It is not read either way**, and the orientation stays
+unestablished.
+
+### Three protocols, all mine, none of which placed the object where the instruction said
+
+| Protocol | Asked for | What the readings say was there |
+|---|---|---|
+| a hand, 12:18 and 12:21 | one quarter of the field at 200 mm | half the field at 30 mm |
+| a finger, 12:27 to 12:38 | one zone at 100 mm, four directions | one zone and a line at 430 mm, same column; two misses |
+| two pens as an L, 12:49 and 12:51 | a centred L at 150 mm | the whole field at 2 to 10 mm |
+
+Joseph's correction at 12:45 names the first fault, references to board features off the sensor's
+axis. The second fault is the one these runs add: **a distance named in a sentence is not a
+distance held by a hand**, and every protocol relied on one. An hour of his bench went to the
+smallest of the seven criteria and produced nothing a reader can use. The series stops here.
+
+### What the runs recorded on the way, which is not nothing
+
+- **Status 4 is what the whole field reports with an object at the sensor face**, two to ten
+  millimetres, in every frame after the first. A fourth status with a clear context, after 255 on
+  zones that saw no target, and 6 on first frames.
+- **One zone read negative in every frame of the first run**: zone 27, row 3 column 3, at minus
+  142, minus 132, minus 132 and minus 128 millimetres, status 4, with its neighbours at plus five.
+  The reduction was written on Sunday to report negatives rather than hide them, on the strength
+  of ten negative zones in Saturday's noise grid; this is a second, repeatable instance.
+- **The reduction refused every frame.** With nothing at status 5 or 9 in either run, it gave
+  P01 no reading eight times out of eight, and the object at the sensor face was never turned
+  into a presence at zero millimetres. That is the refusal the design argued for, exercised on
+  the hardest case there is.
+
+### How the orientation gets settled instead, next time
+
+Not by another series of hand-held guesses. The vendor documents the zone numbering relative to
+the package, the package's orientation on the shield is fixed by the shield's own drawing, and the
+photographs of this morning show how the shield sits on the board. That chain can be read at a
+desk and gives a predicted orientation for nothing. One confirming run, with a rigid object at a
+measured height on a stand rather than in a hand, then either agrees with it or does not.
