@@ -45,6 +45,7 @@ Starting here rather than with a tool installation is deliberate. The workspace 
 | The settings subsystem | A place to keep the thresholds so that changing one does not mean rebuilding | A schema. P07 owns the versioned schema and the migration; here the keys are simply read at start | Apache-2.0 |
 | A well-known hierarchical state machine framework and its course | The best teaching material on this subject anywhere, and a complete framework with modelling tools | A licence that permits it in a permissively published portfolio. Read it; do not paste it | Strong copyleft, or commercial |
 | Small permissive state machine libraries | A dispatcher, a table type, sometimes a generator | None of them is a standard, and the dispatcher below is a dozen lines. A dependency that replaces a dozen lines has to be argued for rather than assumed | Various |
+| The anchor: this volume's own comparison, one table in three languages under three kernel adapters | The transition table exists three times, in C, C++ and Rust, with adapters for the two kernels this volume carries and a third built before the decision of Saturday 3 October 2026 that fixed the two; a gate on every push compares the three row for row, in order, with totality and shadowing checked, and was shown to fail on four mutations before it was committed | A number from outside the volume. The anchor is internal and replicable by anyone with the tree, which is a weaker kind of anchor than the published figures later chapters carry and is said to be; the claim it supports is that one policy behaves identically under three languages and under the kernels it runs on, which P02 inherits | Apache-2.0 |
 
 *Table 1.1. Prior art for P01. Four rows are infrastructure that is taken as it stands. The two rows that would carry the chapter are a framework whose licence excludes it and a category of library too small to be worth a dependency, which is the finding rather than a gap to apologise for.*
 
@@ -319,6 +320,7 @@ The method is written before the run, and so is the result that would refute it.
 - **One lucky read does not clear a fault.** Recovery requires three consecutive good reads. *Refuted if* a single good read among failures returns the machine to free.
 - **An unhandled event is counted, not fatal.** Pressing the button in the occupied state logs one line and leaves the state alone.
 - **The dispatch does not allocate.** The build links no allocator; a call to one is a link error rather than a review comment.
+- **The replicated claim: one table, three languages, the same rows and the same behaviour under each kernel adapter. Met, and checked on every push.** The gate compares state, event, guard, action and destination for every row across the three sources, and the scripted sequences that take every row run under each adapter. *Refuted if* any row differs between the three sources, which the gate reports naming the row, or if any scripted sequence ends in a different state under two adapters, which would mean a kernel's queue or timer changed the policy and the chapter names which.
 
 ## Variants
 
@@ -367,6 +369,7 @@ which runs the four adapter phases through a real queue, a real dispatch thread 
 - The logging and shell subsystems, in particular deferred mode, which is why a transition does not wait for a console. Read Friday 2 October 2026.
 - The board's own devicetree, for the three indicators and the button, cross-checked against the board manual rather than against the convention of the family.
 - The hierarchical state machine framework and its course, read for the ideas and not used for code, for the licence reason stated in the prior-art table.
+- This volume's own gate, `scripts/crosscheck_table.py`, named as the anchor's instrument on Tuesday 20 October 2026, when every chapter was given a claim it can miss; this chapter's is internal and the row says so.
 
 ---
 
