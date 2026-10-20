@@ -41,11 +41,12 @@ The chapter is short because almost all of it already exists. That brevity is th
 | --- | --- | --- | --- |
 | P11, in this volume | The message client, the security layer configuration and the counters, all included unchanged | A wireless join. The link layer below differs and that difference is the chapter | Apache-2.0 |
 | The board support for this module | A supported target in the same tree, with its radio and its network interface already described | The binary support package, which is fetched separately and is a dependency rather than a part of the tree | Apache-2.0 |
+| The anchor: the kernel's own claim of one tree for two instruction sets, and its binary blobs policy | The module on this bench, the SBC-NodeMCU-ESP32 of the inventory, is an Xtensa target in the same tree as the Cortex-M7 board, with its radio behind the same network interface. The kernel's policy page, read on Tuesday 20 October 2026, states that the project does not host binary blobs in its repositories or anywhere else, that they are fetched from official third-party sources by the blobs command, that a build using one is marked tainted and warns at configuration, and that the project is not expected to maintain or support them | A guarantee that a given application builds unchanged on both. The tree makes that possible and the chapter's comparison is what makes it a fact; and the blob's contents are outside what anyone here can read | Apache-2.0; the blob as its vendor licenses it |
 | The wireless management interface | Scanning, joining, and the events that say what happened, with the same shape as every other network interface | Credentials for a network. Those are configuration, and where they live is a decision made here | Apache-2.0 |
 | P09, in this volume | The broker, the topic tree, and the shadow that this module publishes into exactly as the other board does | Anything about wireless | Apache-2.0 |
 | The kit volume's sidecar lab | This same module on this same bench, driven from a Linux host over a serial port with its vendor firmware | Anything about running this operating system on it, which is the whole difference | Apache-2.0 |
 
-*Table 12.1. Prior art for P12. The largest single dependency is a chapter of this volume, which is the intended outcome: a transport that needs rewriting for a second target was not a transport.*
+*Table 12.1. Prior art for P12. The hardware was confirmed against the bench inventory on Tuesday 20 October 2026 rather than assumed. The largest single dependency is a chapter of this volume, which is the intended outcome: a transport that needs rewriting for a second target was not a transport.*
 
 ## Parts from the inventory
 
@@ -226,6 +227,7 @@ When a join fails, the reason tells a reader which of four things to try, and th
 - **Each join failure produces its own reason.** Proven by causing all four. *Refuted if* two faults share a code.
 - **The credentials are changeable without a rebuild.** *Refuted if* a new password needs a flash.
 - **No energy figure is claimed.** *Refuted if* the chapter offers a current for this module, which P10's boundary does not cover.
+- **The replicated claim: one tree, two instruction sets, one client. Not yet run.** The kernel's claim is that an application written to its sockets and its network management interface builds for any supported target, and this chapter holds it to the narrowest form that can be checked by a script: P11's client, header and source, byte for byte identical in both builds, with the difference confined to the board and the link layer's configuration. The build's taint marker is read after configuration to confirm the blob was fetched and not bundled. *Refuted if* any shared file differs between the two builds, in which case the chapter names the file and the line and P11's claim of having written the transport once is withdrawn to that extent; or if the build proceeds without the taint marker, which would mean the blob reached the tree by a route the policy forbids.
 
 ## Variants
 
@@ -275,6 +277,8 @@ which lists every source file shared with the cellular chapter, reports whether 
 - P11 in this volume, for the transport this chapter includes and does not modify.
 - The board support for this module and the wireless management interface documentation. Read Friday 2 October 2026.
 - The module's binary hardware support package, fetched as a dependency and named as one; nothing here inspects it.
+- The kernel's binary blobs policy, read on Tuesday 20 October 2026, for the sentences quoted in the anchor row: not hosted by the project, fetched by the blobs command from the vendor, marked tainted at configuration, and outside the project's support.
+- The bench inventory of this catalogue, read on Tuesday 20 October 2026, which lists the SBC-NodeMCU-ESP32 and is why this chapter's hardware row changed from depending on a part to naming one.
 - P09 in this volume, for the broker, the topic tree and the shadow, none of which needed changing for a second kind of device.
 - The kit volume, lab 16, for this same module on this same bench running its vendor firmware, which is the arrangement this chapter deliberately does not repeat.
 
