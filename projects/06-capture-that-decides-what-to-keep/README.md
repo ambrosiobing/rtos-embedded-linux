@@ -11,14 +11,14 @@ complete. What is absent is the code.
 | Target | NUCLEO-H7A3ZI-Q with one motion and environment shield, and a twin on the host |
 | Board | NUCLEO-H7A3ZI-Q with the X-NUCLEO-IKS4A1, the only shield fitted |
 | Peripherals | The two-wire bus and one interrupt line, as P03 established; no transfer engine and no signal processing accelerator |
-| Toolchain | As the front matter, plus a host twin in Python that produces the input and checks the output |
-| Operating system | One thread on the trigger, fixed windows, no allocation after start |
+| Toolchain | As the front matter, under both kernels exactly as P04 built them, plus a host twin in Python that produces the input and checks the output |
+| Operating system | Three threads joined by two kernel objects, a message queue between sample and gate and a work queue between gate and record, under FreeRTOS and under Zephyr; fixed windows, no allocation after start |
 | Difficulty | 4 of 5 |
-| Effort | 4 evenings of about four hours |
+| Effort | 5 evenings of about four hours |
 
 ## What it would deliver
 
-A pipe with a stated bound on bytes per hour, a loss figure measured against the raw stream, and a test suite whose inputs include the ones the pipe has to refuse
+The cost of a sixteen-byte message through each kernel's queue on this board, replicated against the published Thread Metric figure before the pipe is built on it; then a pipe with a stated bound on bytes per hour, a loss figure measured against the raw stream, and a test suite whose inputs include the ones the pipe has to refuse
 
 ## Figures
 

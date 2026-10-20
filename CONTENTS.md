@@ -4,7 +4,7 @@
 | 2 | [The claim, and the service axis](chapters/02-the-claim.md) | Policy when the calendar and the body disagree |
 | 3 | [One sensor, two buses, zero code changes](chapters/03-one-sensor.md) | Devicetree, bindings, the sensor API |
 | 4 | [What the kernel primitives cost, by the cycle counter](chapters/04-what-the-kernel-primitives-cost.md) | Threads, queues, work queues, priority inheritance |
-| 5 | [The zones: an out-of-tree driver](chapters/05-the-zones.md) | A kernel driver with its own binding and module |
+| 5 | [The zones: an out-of-tree driver](chapters/05-the-zones.md) | A kernel driver with its own binding, and a vendor library cloned at a pin |
 | 6 | [Capture that decides what to keep](chapters/06-capture-that-decides-what-to-keep.md) | What may leave the device, and what it costs |
 | 7 | [Settings that survive a power cut](chapters/07-settings-that-survive-a-power-cut.md) | Flash partitions, non-volatile storage, a versioned schema |
 | 8 | [A signed image, confirm and revert](chapters/08-a-signed-image.md) | The bootloader, its signature and its rollback |
