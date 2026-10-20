@@ -44,9 +44,10 @@ The chapter also contains the only physical control in this volume, and that is 
 | P13, in this volume | The enrolment this chapter triggers, and the revocation that makes a decommission meaningful | Any opinion about when enrolment should happen | Apache-2.0 |
 | P16, in this volume | The layer that packages the two services written here | The services | Apache-2.0 |
 | The expansion board's documentation | The joystick's pins and its behaviour | A debounce, or a ten second hold, both of which are written here | Vendor |
+| The anchor: the platform firmware resiliency guideline, and the same edition of the build system as P16 | NIST Special Publication 800-193, the platform firmware resiliency guidelines of May 2018, read on Tuesday 20 October 2026, which states three principles a resilient platform must satisfy: protection of its firmware and critical data against unauthorised change, detection of a change that got past protection, and recovery to a known good state. The build is the scarthgap edition, 5.0, as P16 names it, and the read-only root, the two filesystems and the watchdog that stand under this chapter are the sibling volume's | A device of this size. The guideline is written for platform firmware on larger systems, and its clauses are taken as a framing for a unit's first and last day rather than as requirements it was written to meet; each is demonstrated on this unit or stated as not demonstrated | Public domain; CC-BY-2.0-UK |
 | Published guidance on sanitising storage | The vocabulary, and the finding that overwriting a file on flash with wear levelling does not reliably overwrite the blocks | A method that works on this hardware, which is why the chapter's answer is revocation as well as deletion | Published |
 
-*Table 17.1. Prior art for P17. The first row is the whole middle of a device's life and is cited in one line, which is the correct treatment: a chapter about the first and last days should not re-describe the years between them.*
+*Table 17.1. Prior art for P17. The anchor row gives the chapter a published shape to be held to, three clauses and a demonstration for each. The first row is the whole middle of a device's life and is cited in one line, which is the correct treatment: a chapter about the first and last days should not re-describe the years between them.*
 
 ## Parts from the inventory
 
@@ -249,6 +250,7 @@ The commonest failure is a first boot that runs on every boot, which happens whe
 - **A decommission removes the credential and revokes it.** Both, checked at the device and at the authority. *Refuted if* either half is missing.
 - **The limit of deletion is stated.** *Refuted if* the chapter claims the credential is unrecoverable from the storage.
 - **The layer of P16 accepted two more recipes unchanged.** *Refuted if* its configuration had to be edited, and then P16's claim is weakened and this chapter says so.
+- **The replicated claim: the guideline's three clauses, each with a demonstration on this unit. Not yet run.** Protection: the root is read-only and the first-boot marker and the credential live on the data partition, shown by attempting a write to the root and by an update that leaves both in place. Detection: a root that fails to boot is noticed by the watchdog and the other root is booted, shown by corrupting the active root deliberately. Recovery: the ten-second hold returns the unit to a known state that still has its identity, and the decommission removes and revokes the credential, both shown. *Refuted if* any clause has no demonstration that was run on this unit, in which case the chapter says which clause and does not claim the guideline's shape for a unit that only meets two of its three parts.
 
 ## Variants
 
@@ -302,6 +304,8 @@ which boots the first-boot service twice and checks that one certificate exists,
 - P16 in this volume, for the layer that packages the two services written here.
 - The expansion board's documentation, for the joystick's pins; the debounce and the hold are written in this chapter.
 - Published guidance on sanitising storage, for the finding that overwriting a file on flash with wear levelling does not reliably overwrite the blocks that held it.
+- NIST Special Publication 800-193, Platform Firmware Resiliency Guidelines, May 2018, read on Tuesday 20 October 2026 for its three principles, protect, detect and recover, which the replicated claim demonstrates one by one on this unit.
+- The build system's scarthgap edition, 5.0, as named and dated in P16, which this chapter builds with so that the catalogue has one edition.
 
 ---
 
