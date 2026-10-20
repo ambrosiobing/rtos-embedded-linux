@@ -1675,3 +1675,50 @@ them apart:
 Either run alone decides; both together cross-check. The firmware is left exactly as it is through
 these runs, including the printed sentence that now says the status question is unresolved, so
 that nothing changes between measurements but the finger.
+
+## Tuesday 20 October 2026 at 12:37 and 12:38: the finger protocol cannot place a finger
+
+Two more finger runs, towards the ST-LINK cable and towards the Pi, at the 43 centimetres that had
+given one clean zone.
+
+| Finger towards | What moved |
+|---|---|
+| the ST-LINK cable | a line in **column 0**, rows 1 to 6, at 367 to 421 mm: a finger seen lengthwise |
+| the Pi | nothing, 64 of 64 at the surface: outside the field |
+
+### Four runs, two hits in the same column, two misses, and what that says
+
+| Run | Direction asked | Result |
+|---|---|---|
+| 12:27 | USER button | one zone, row 7 column 0 |
+| 12:28 | RESET button | nothing |
+| 12:37 | ST-LINK cable | a line, rows 1 to 6, column 0 |
+| 12:38 | Pi | nothing |
+
+Two directions that differ by something like ninety degrees both landed in column 0, and two
+others landed nowhere. **A finger at arm's length, 43 centimetres up, aimed by eye at a feature on
+the board, cannot be placed to within the five centimetres a zone subtends at that height.** The
+two hits are consistent with the hand entering the field from the same side each time, and the
+misses with it being past the edge of a cone that is only about eighteen centimetres wide there.
+The prediction table of 12:28 offered two outcomes for the cable run; the result matched neither,
+which is the table being honest rather than the sensor being odd.
+
+**So nothing is read from column 0.** The orientation remains unestablished and the record says
+so. What these runs did add: status 4 appeared on the boundary zones of the finger in three
+frames, beside 5 on its body, which is a third value seen at an edge after 10 and 255 on Sunday's
+hand runs.
+
+### The protocol that replaces it, written before it is run
+
+The error is the standoff. An object anchored at the sensor cannot miss and cannot be misplaced:
+
+- **A pen held flat about 15 centimetres above the sensor window, one end directly over the
+  window, the pen extending towards the ST-LINK cable.** The sensor should see a line from the
+  centre of the printed grid to one edge. That edge is the cable's direction.
+- **The same, the pen extending towards the Pi.** A line from the centre to a different edge, at
+  right angles to the first. That edge is the Pi's direction.
+
+Two edges at right angles fix the orientation completely, and a line that reaches an edge from the
+centre cannot be confused with a line that happens to lie along one. If either run shows the pen
+along an edge rather than from the centre, the pen's near end was not over the window and the run
+is repeated rather than read.
