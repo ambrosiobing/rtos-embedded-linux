@@ -1437,3 +1437,89 @@ Two things stand between here and that check, and neither is a guess:
 
 Recording it here in that order so the next session reads the sibling before writing the copy,
 which is the rule this project has already been saved by twice.
+
+## Tuesday 20 October 2026 at 11:58: the part answers again, and the photographs exist
+
+**The photographs were taken before power was applied and before anything was touched**, which is
+the rule written the day before. Two views, both held by Joseph.
+
+### What the photographs show
+
+From above: the Raspberry Pi 4B with the MCC 118 on its header, and the NUCLEO-H7A3ZI-Q with the
+X-NUCLEO-53L8A1 stacked directly on its Arduino headers, no jumper leads on the shield. One blue
+lead runs from the MCC 118's green screw terminal block, at the CH0 end, down to the Nucleo.
+
+**Where that lead enters the Nucleo is the fact the record wanted.** It goes into the long double
+row of male pins along the Nucleo's top edge, the Morpho connector CN11, at its left third. That
+is outside the shield's footprint. **So the hypothesis named on Saturday morning, a ground lead
+occupying a Zio socket the shield seats into, is not supported by the pictures.** The lead was
+never under the shield.
+
+On the shield: the three current-measurement shunts at VDD, VDD and 1V8 are fitted, and jumpers
+sit at J7, J8 and J9. The side view was taken from above the table rather than at it, so flatness
+cannot be judged from the picture; the run below judges it instead.
+
+### The run, and why it is confounded
+
+    <inf> vl53l8cx: supply enable pulsed low then high on gpio@58020000 pin 7, 2 ms each
+    <inf> vl53l8cx: low power pulsed low then high on gpio@58020400 pin 1, 2 ms each
+    <inf> vl53l8cx: device 0xf0 revision 0x0c at 0x29
+    #   0x29 answers, which is the address the overlay names
+    READY vl53l8cx@29
+    <inf> vl53l8cx: initialised with this generation's own interface
+    <inf> vl53l8cx: ranging started at eight by eight
+
+Four frames, every zone one target, a flat surface at about 2.58 metres with the same left to
+right rise as on Saturday 17 October 2026, silicon at 23 then 22 degrees. Initialisation at 1.979
+seconds, which is within a hundredth of the 1.971 recorded before.
+
+**What brought it back cannot be said, and the record says so.** Between the last silent run and
+this one the bench was handled to photograph it: the two pictures show the boards in different
+positions relative to each other, so the shield may have been reseated by the handling, or not.
+This is the same shape as the 12:17 confound and it is named rather than resolved. What is not in
+doubt is that the configuration in the photographs is a working one, since it was photographed
+before power and then powered.
+
+### The image that ran was the previous day's, and the stamp could not say so
+
+The WSL build succeeded at 144344 bytes and the copy to the Windows desktop failed:
+
+    cp: cannot stat '/mnt/c/Users/skyhorizon/Desktop/p05-own.bin': Input/output error
+
+So the file flashed was the one already on the desktop, from the build of Saturday evening.
+The console confirms it in every line: the stamp is the old `built Oct 17 2026 15:42:20` form, the
+grid header still reads "what each value means has not been read from a source yet", there are no
+validity marks, and no reduction is printed. **The one run in which the generated stamp could have
+shown its worth did not contain it.** Nothing above is invalidated by this; the part, the pins, the
+bus and the initialisation are the same code. What is untested on hardware is everything added on
+Sunday 18 October 2026.
+
+### The status values, which this run answers and the next must confirm
+
+| Frame | Ready after | Since boot | Status, all sixty-four zones |
+|---|---|---|---|
+| 1 | 29 ms | 2448 ms | **6** |
+| 2 | 622 ms | 3169 ms | **5** |
+| 3 | 877 ms | 4145 ms | 5 |
+| 4 | 877 ms | 5121 ms | 5 |
+
+**Status 6 is the first frame after ranging starts, and status 5 is every frame after it.** The
+vendor's header says 5 and 9 mean ranging OK, and that is now consistent with data: the only grid
+recorded before this was a first frame, which is why it was 6 everywhere, and so was the noise
+grid before it. The reading this project could not choose between on Sunday, that 6 is a sound
+state the parenthesis does not list, is the one the data supports. The other reading, that the
+parenthesis is about a different field, is not.
+
+**Prediction for the next run, written before it:** with the current image, frame 1 reports
+status 6 in every zone and the reduction prints NO READING with 0 of 64 valid; frames 2 to 4
+report status 5 in every zone, carry an asterisk on every zone, and the reduction prints a
+distance from the nearest zone with 64 of 64 valid. The stamp reads a full date and the commit.
+If frame 1 is not 6, or any later frame is not 5, the pattern above is one observation and not a
+mechanism, and `zone_status.h` is not changed.
+
+### The ranging period is now a measured number
+
+Frames 2, 3 and 4 became ready at 3169, 4145 and 5121 milliseconds since boot: **976 ms between
+frames, twice**, which with 5 ms polling granularity is a ranging rate of about 1 Hz. The chapter's
+timing figure was left with "length not established" on Sunday rather than a guessed 66 ms, and
+this is what goes in its place once the next run repeats it.
