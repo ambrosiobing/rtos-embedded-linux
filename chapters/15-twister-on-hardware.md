@@ -41,11 +41,12 @@ That last distinction is the chapter's real content. A test that passes on a sim
 | --- | --- | --- | --- |
 | The framework's own test runner and its device-testing mode | Building a suite for a target, flashing it, running it and collecting the result, driven by a hardware map | A rig, a runner machine, or any opinion about which tests deserve hardware | Apache-2.0 |
 | The assertion library | Tests that run on the target itself, with setup and teardown and a readable report over the console | Anything about a host | Apache-2.0 |
+| The anchor: the runner's own documentation of device testing, in the tree this volume pins | The runner, in the kernel's own tree and replicable by definition, documents the device-testing mode this chapter uses: a hardware map naming each attached board by a stable identifier, its platform, its flashing runner and its serial console; a build per test, a flash, a run, and a verdict read from the console and written to a report. The runner is the instrument every other chapter's suite is held by, and it is the one piece of this volume with no measurement of its own to make | A verdict that is independent of the console it reads. The runner's report says what the console said, and the replicated claim holds the two to each other on this board | Apache-2.0 |
 | The sibling firmware volume, chapter 12 | **The self-hosted runner on a Raspberry Pi, the workflow file, the flashing step and a harness reading the board's console.** All of it, built in full there | The framework's test runner, which is this chapter | Apache-2.0 |
 | The sibling Linux volume, Project 4 | Console fixtures and a network-boot arrangement for hardware in the loop | Anything about a microcontroller target | Apache-2.0 |
 | The chapters of this volume | Fourteen acceptance criteria, each already written with its refutation | Automation. Turning a criterion into a test that can fail nightly is the work | Apache-2.0 |
 
-*Table 15.1. Prior art for P15. The third row is unusually large and is the point: almost all of the infrastructure exists, and a chapter that rebuilt it would have been longer and worth less.*
+*Table 15.1. Prior art for P15. The anchor is the runner itself, which is in the tree and needs no citation beyond its path; what the chapter can replicate is that its verdict on this board is the board's and not the report's. The runner row is unusually large and is the point: almost all of the infrastructure exists, and a chapter that rebuilt it would have been longer and worth less.*
 
 ## Parts from the inventory
 
@@ -240,6 +241,7 @@ The second commonest failure is a test that passes on the runner and fails for a
 - **The map survives a replug.** Using the stable identifier rather than a device name. *Refuted if* moving the cable breaks the suite.
 - **What is not automated is listed.** Three kinds, with reasons. *Refuted if* the list is absent, in which case a green suite is a misleading one.
 - **The runner itself is cited, not rebuilt.** *Refuted if* this chapter contains a second runner configuration.
+- **The replicated claim: the runner's verdict on this board is the board's verdict. Not yet run.** The runner's documentation says it flashes, runs and reads the result from the console; this chapter holds it to that on every push by keeping the raw console capture beside the report and comparing them. Three deliberate cases are run once before the first push: a test made to fail on the board, a board unplugged mid-run, and a suite whose binary does not fit the part. *Refuted if* the report says pass for a suite whose console shows a failure or no run at all, or if the unplugged board produces anything but an error naming the map entry, which would mean the suite's green is the runner's and not the hardware's, and every claim it is supposed to keep true would be unguarded.
 
 ## Variants
 
@@ -287,7 +289,7 @@ run once with a chapter's claim deliberately broken, so that the output names th
 
 ## Sources
 
-- The framework's own test runner and its device-testing mode, and the assertion library. Read Friday 2 October 2026.
+- The framework's own test runner and its device-testing mode, and the assertion library. Read Friday 2 October 2026, and the device-testing documentation again on Tuesday 20 October 2026 for the hardware map's fields and for the report the replicated claim holds against the console.
 - The sibling firmware volume, chapter 12, for the self-hosted runner, the workflow file, the flashing step and the console harness, all of which this chapter uses and none of which it rebuilds.
 - The sibling Linux volume, Project 4, for the console fixtures.
 - The fourteen chapters of this volume that precede it, for the acceptance criteria this suite automates and for the three it cannot.
