@@ -35,7 +35,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 # Chapter numbers brought level with the rule, in the order the plan gives. A chapter joins this
 # set in the same commit that gives it its two halves, and in no other.
-ANCHORED = {4, 5, 6}
+ANCHORED = {4, 5, 6, 7}
 
 PRIOR_ART = "## Prior art and what to reuse"
 CRITERIA = "## Verification and acceptance criteria"

@@ -43,9 +43,10 @@ The third reason is that this is the chapter where the power meter stops being a
 | The flash map and partition documentation | The way a layout is described so that the bootloader, the application and the tools all agree on it | A layout for this board, which defines none | Apache-2.0 |
 | The reference manual for this part | The sector geometry and the write granularity, which decide what a partition can be | Anything about the storage subsystem. The two have to be read together | Vendor |
 | The power meter's host library | Supply control and current capture in one instrument, with digital inputs aligned to the current trace | A harness. Cutting power at a chosen moment a thousand times and counting survivors is written here | Permissive |
+| The anchor: the one embedded filesystem whose power-loss claim is written down and tested in its own tree | LittleFS, BSD-3-Clause, seven thousand stars, read on Tuesday 20 October 2026. Its README states that all file operations have strong copy-on-write guarantees and that if power is lost the filesystem falls back to the last known good state; its design document says how, two-block metadata logs committed by a checksum so that an interrupted write leaves the previous commit readable; and its test runner injects power loss through its emulated block device on a schedule, `-P` with `none`, `log`, `linear` or `exhaustive`, re-running each case to the next loss. The kernel carries it as an in-tree module. Beside it, the non-volatile storage backend's own page states its order, data first and then metadata, and that data lacking metadata is ignored at initialisation | A trial on real flash. Every loss in that test suite is simulated at a block-device call on a host against emulated memory; none is a supply falling on a part mid-erase. That is the gap this chapter's thousand aimed cuts close, with the claim run on this board against both stores | BSD-3-Clause; Apache-2.0 |
 | Published work on power-loss robustness in embedded key and value stores | The failure modes to test for: a torn write, a lost erase, and a record that reads back as valid but is not | An implementation. The storage backend is given; what is written here is the test | Published |
 
-*Table 7.1. Prior art for P07. The storage backend is used as it stands, which is correct: a volume that wrote its own would be asserting something about reliability that it could not then measure independently. The measurement is the contribution.*
+*Table 7.1. Prior art for P07. The storage backend is used as it stands, which is correct: a volume that wrote its own would be asserting something about reliability that it could not then measure independently. The measurement is the contribution, and from Tuesday 20 October 2026 it has a published claim to be measured against: the anchor row's filesystem guarantees a last known good state after any power loss, proven in its tree on an emulated device, and this chapter puts that guarantee on real flash under a real supply.*
 
 ## Parts from the inventory
 
@@ -129,6 +130,7 @@ Removing the programming cable during the run is not fastidiousness. The debug p
 | Erase of one sector | under 400 ms | not measured | not measured |
 | Load at start | under 50 ms | not measured | not measured |
 | Survival over 1000 cuts | stated, not assumed | not measured | the chapter's result |
+| Survival over 1000 cuts, the filesystem arm | zero corrupt and zero unmountable, as the anchor claims | not measured | the replicated claim |
 | Corrupt-record detections | counted, published | not measured | not measured |
 
 *Table 7.3. The budget for P07. The erase row matters more than its size suggests: it is by far the longest operation in the chapter and therefore the window during which a cut does the most damage, which is why the harness aims cuts at it specifically rather than at random.*
@@ -204,6 +206,7 @@ projects/P07-settings/
   src/cfg.c                       # the schema, the migration, the handlers
   src/cfg.h                       # the struct, and CFG_VERSION
   src/marker.c                    # the pin the meter watches
+  src/store_lfs.c                 # the anchor's filesystem on the same partition, second arm
   src/main.c                      # save on a schedule, report on load
   host/cut.py                     # the meter: supply, cut, restore, repeat
   host/tally.py                   # what survived, counted per cut moment
@@ -287,6 +290,7 @@ When a trial comes back corrupt, the first question is whether the board was ful
 - **A corrupt record is detected and counted.** With a record deliberately corrupted, the next load skips it and the counter rises. *Refuted if* it is used.
 - **Every migration pair is covered, and a newer version is refused.** *Refuted if* a record from a future version is interpreted rather than refused.
 - **An update cannot reach the storage partition.** The layout places it above both slots, which is checked by reading the generated flash map rather than by inspecting the overlay. *Refuted if* the addresses overlap.
+- **The replicated claim: the filesystem's last-known-good-state guarantee, on real flash, under aimed cuts. Not yet run, and the refutation is written first.** The anchor's test suite loses power at a block-device call on an emulated device and asserts that the filesystem comes back to its last commit; its README states the guarantee for random power failures. This chapter runs the same thousand cuts, aimed at the append and at the erase, against that filesystem mounted on the storage partition through the in-tree module, one record rewritten per trial, and reports the same three verdicts beside the non-volatile store's. The number the anchor claims is zero: no corrupt record and no failed mount. *Refuted if* any trial reads back a value never written, or comes back unable to mount, which would say that a guarantee proven on an emulated block device does not hold on this part's flash under a supply falling mid-erase, and the chapter reports which moment did it. Held apart: the store the chapter builds on is the non-volatile backend, whose page makes the narrower claim that data without metadata is ignored at initialisation, and the first criterion already holds it to that.
 
 ## Variants
 
@@ -294,13 +298,14 @@ When a trial comes back corrupt, the first question is whether the board was ful
 | --- | --- | --- | --- | --- |
 | Where settings live | Above both image slots | Inside the application's slot | An update erases the building's thresholds | Here |
 | Store | Append with two sectors | A single fixed record, rewritten | An interrupted rewrite has no older copy | Here |
+| Backend | The non-volatile store, the settings subsystem's default | The filesystem that is the anchor, mounted on the same partition; or the kernel's newer memory store for memories without an erase | The filesystem is the replicated claim and is built as a second arm under the same cuts; the memory store's own page recommends the non-volatile store for flash of this kind, so it is named and not built | The first two, measured |
 | Versioning | From the first commit | Added when first needed | Every later migration special-cases the unversioned records | Here |
 | A newer record | Refused | Interpreted as best it can | A downgrade becomes a silent misconfiguration | Here |
 | When cuts happen | Aimed at three moments | Random | Mostly measures the idle state, which survives trivially | Here |
 | The instrument | The meter as supply and witness | A person with a lead | A thousand trials is not a person's afternoon | Here |
 | Image slots | Defined, unused | Deferred to P08 | Two chapters claiming the same sectors | Defined here, used in P08 |
 
-*Table 7.4. Variants touching P07. Six rows are built here. The last is the chapter's quiet contribution: the slots exist from this point even though nothing writes them for two more chapters, which is what keeps the map coherent.*
+*Table 7.4. Variants touching P07. Seven rows are built here, the backend twice. The last is the chapter's quiet contribution: the slots exist from this point even though nothing writes them for two more chapters, which is what keeps the map coherent.*
 
 ## Pitfalls
 
@@ -338,6 +343,9 @@ which runs a thousand aimed power cuts across three moments and prints the survi
 - The reference manual for this part, which is RM0455, for the sector geometry and write granularity that decide what a partition can be.
 - The power meter's host library documentation, for supply control and for the digital inputs that are aligned to the current trace.
 - Published work on power-loss robustness in embedded key and value stores, read for the failure modes to aim at rather than for an implementation.
+- LittleFS, the littlefs-project repository, BSD-3-Clause, seven thousand stars on Tuesday 20 October 2026 when its README, its design document and its test runner were read: the README for the power-loss guarantee quoted in the anchor row, the design document for the two-block metadata logs and the checksum commit that carry it, and `runners/test_runner.c` for the `-P` power-loss schedules injected through the emulated block device. The kernel's in-tree module of it is the arm this chapter mounts.
+- The kernel's non-volatile storage documentation, read on Tuesday 20 October 2026 for the write order, data then metadata, the rule that data without metadata is ignored at initialisation, the two-sector minimum, and the optional data checksum.
+- The kernel's memory storage documentation, read on Tuesday 20 October 2026, for its own recommendation of the non-volatile store on flash of this kind, which is why the newer store is named in the variants and not built.
 - P03 in this volume, for the pattern of describing hardware in an overlay that the build checks.
 
 ---
