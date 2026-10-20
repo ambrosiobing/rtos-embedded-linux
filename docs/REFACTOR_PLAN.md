@@ -115,6 +115,34 @@ scarthgap, Yocto 5.0 LTS, and P16 and P17 take the same edition so the catalogue
 Each step is one commit, run through every gate, and the chapter's figures are regenerated only
 where a figure's caption or labels state something the refactor changed.
 
+## Where it stands, Tuesday 20 October 2026, evening
+
+Every step above has run. `scripts/check_anchors.py` lists all twenty chapters and prints 20 of
+20, its self-test refuses seven mutations, and every other gate is green; the catalogue mirror
+renders identically to the clone. Each chapter is one commit, in the plan's order, with P03,
+P01 and P02 after P20 so that the gate reaches every chapter rather than seventeen.
+
+Three things the reading surfaced, each now written into its chapter rather than smoothed over:
+
+- **P04's first replication half fails.** The direction of the gap between the kernels is
+  reproduced on all three comparable operations; the size of the context switch gap is not,
+  1.10 on this board against 2.35 published, with three candidate reasons and none asserted.
+- **P08's layout cannot swap.** P07 drew two equal slots and no scratch partition, and the
+  bootloader's design document allows no swap mode on that. The first build has a decision to
+  make, and the chapter says which two it is between.
+- **P09's host client already existed.** The chapter had set out to write one in C; the
+  kernel's documentation lists five. The chapter moved its work to the unit, which is where the
+  operating system is.
+
+Two anchors turned out stronger than this page had them: the kernel's own tree has carried a
+port of the Thread Metric suite since Tuesday 19 November 2024, so P06's replication is one
+option on the pinned tree; and the peer-reviewed paper named above reproduces the laboratory's
+chart and reads it the other way round, which is why P04 cites it for no number.
+
+Two anchors are internal and their rows say so: P01 and P02 rest on this volume's own
+three-language gates, which anyone with the tree can rerun, and that is a weaker kind of anchor
+than the published figures the other eighteen carry.
+
 ## What this plan does not do
 
 It does not add a runtime. It does not rename a chapter, since the filenames carry the structure
