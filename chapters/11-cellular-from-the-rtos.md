@@ -13,10 +13,10 @@
 > - **Board:** NUCLEO-H7A3ZI-Q, a SIM7070G expansion board on its own supply, a Raspberry Pi 4 running the broker
 > - **Peripherals:** One serial port to the module; no flow control, deliberately, and the cost of that is counted
 > - **Toolchain:** As the front matter; the module's own command set read from its documentation rather than from the driver
-> - **Operating system:** The modem subsystem, a point-to-point link layer, sockets, and the message client
+> - **Operating system:** The modem subsystem, a point-to-point link layer, sockets, and the message client; and the same record sent a second way, through the module's own stack by command, with the bytes on the serial port counted for both
 > - **Difficulty:** 5 of 5
 > - **Effort:** 5 evenings of about four hours
-> - **Deliverable:** A device that attaches to a network by itself, publishes one record over an authenticated connection, and logs every counter that would let somebody at a distance tell why it did not
+> - **Deliverable:** A device that attaches to a network by itself, publishes one record over an authenticated connection, and logs every counter that would let somebody at a distance tell why it did not; and the price of owning the stack, as bytes on the serial port per record and seconds from attach to first publish, against the module doing the same by command
 
 ## Why this project
 
@@ -45,9 +45,10 @@ The second reason for the chapter is honesty about the hardware. The driver upst
 | The point-to-point link layer | A way to turn a serial port into a network interface, which is what makes sockets possible on a board with no network controller | A peer. On a live network the module is the peer; on this bench the variant uses a host, and the chapter labels which | Apache-2.0 |
 | The secure sockets layer and the message client | A client small enough for this part, with certificate verification and a documented keep-alive | Credentials, which are P13's, and a topic tree, which is P09's | Apache-2.0 |
 | The module's own documentation | The command set, the attach sequence, and the two sleep mechanisms whose granted values P10 logs | Agreement with the driver. Reading both and recording the differences is the work | Vendor |
+| The anchor: the modem subsystem's own documentation and the generic cellular driver's list of what it supports, against the module's own stack | The subsystem is documented as layers, a pipe over a serial backend, a chat layer for command scripts, a multiplexer, and a point-to-point layer that turns the module into a network interface so that the kernel's own sockets, security layer and message client run over it. The generic cellular driver, read on Tuesday 20 October 2026, names the modems it supports, and the SIM7080 is on that list while this bench's SIM7070G and SIM7600E-H are not. The module's manual documents the other way to send the same record: its own stack, driven by command, with the security handshake and the message protocol inside the module | A cost. The subsystem's documentation says what it provides and not what it costs on the wire or in time against the module doing the work itself, and that comparison, on this module, is the replicated claim | Apache-2.0; the manual as published |
 | P06, P09 and P02 in this volume | What is to be sent, the topic tree it goes to, and the spool it waits in when the link is down | Transport | Apache-2.0 |
 
-*Table 11.1. Prior art for P11. The modem subsystem is close to what is needed and not identical to it, which is the most common and least documented situation in embedded work, and the chapter treats recording the gap as a deliverable rather than as an inconvenience.*
+*Table 11.1. Prior art for P11. The anchor row is the volume's one comparison of a kernel subsystem against the alternative of not using it, since the module can do the whole job by command. The modem subsystem is close to what is needed and not identical to it, which is the most common and least documented situation in embedded work, and the chapter treats recording the gap as a deliverable rather than as an inconvenience.*
 
 ## Parts from the inventory
 
@@ -112,6 +113,9 @@ The last line is the one that is usually missing. A publish with no send timeout
 | Time to first publish after attach | under 10 s | not measured | not measured |
 | Retries caused by no flow control | counted, published | not measured | the cost of three leads |
 | Publish failures, by reason | counted, published | not measured | the chapter's real output |
+| Bytes on the serial port per record, the subsystem path | predicted from the headers the stack adds | not measured | the replicated claim |
+| Bytes on the serial port per record, the command path | the manual's command sequence | not measured | the replicated claim |
+| Attach to first publish, both paths | stated, as a ratio | not measured | the replicated claim |
 
 *Table 11.3. The budget for P11. The last two rows are the chapter's actual deliverable. A device that attaches is unremarkable; a device that can say precisely why it did not is the one a technician can help, and these counters are what make that possible.*
 
@@ -236,9 +240,11 @@ void msg_counters(struct link_counters *out);
 
 **Step 8.** **Make each failure reason happen on purpose.** Remove the subscription card, shield the antenna, point the client at a broker with the wrong certificate, and set the clock a year out. Four deliberate faults, four distinct reason codes, and the counters prove it.
 
-**Step 9.** **Count the serial overruns and report them.** They are the price of not connecting flow control, and the number turns a silent choice into a measured one.
+**Step 9.** **Send the same record the other way, by command, and count the bytes both ways.** The module's own stack takes the broker, the credential and the payload by command and does the handshake inside; the serial port carries only the commands. A capture of the port under each path, for one attach and one record, gives the two byte counts and the two times, and the prediction for the subsystem path is written first from the headers the link, network, security and message layers each add.
 
-**Step 10.** **Run the lab variant and label it in the log itself.** The host as the link peer, over the same port, so that the whole stack above runs on a bench with no subscription. The log line says which arrangement is in use, so a capture cannot later be mistaken for a live one.
+**Step 10.** **Count the serial overruns and report them.** They are the price of not connecting flow control, and the number turns a silent choice into a measured one.
+
+**Step 11.** **Run the lab variant and label it in the log itself.** The host as the link peer, over the same port, so that the whole stack above runs on a bench with no subscription. The log line says which arrangement is in use, so a capture cannot later be mistaken for a live one.
 
 ## Build, flash and debug
 
@@ -257,12 +263,14 @@ When an attach fails, the log says which of the four reasons applied, and the re
 - **Serial overruns are counted and published.** *Refuted if* the chapter asserts that flow control is unnecessary without the number.
 - **The lab variant is labelled in the log.** Every line from a bench run says so. *Refuted if* a capture cannot be told apart from a live one afterwards.
 - **The client is unchanged by P12.** Checked when that chapter is built: the header and the source are identical. *Refuted if* either had to be edited.
+- **The replicated claim: the subsystem turns the module into a network interface at a cost the chapter can state against the module doing the same by command. Not yet run, and the prediction is written first.** One record, one attach, each path, captured on the serial port. The subsystem path's bytes are predicted from the headers its layers add, the point-to-point framing per packet, the network and transport headers, the security layer's record overhead, and the message protocol's own, plus the handshake once; the command path's bytes are the manual's command sequence. *Refuted if* the subsystem path costs more bytes on the serial port than the command path by more than its documented headers explain, or more seconds from attach to first publish than its handshake explains, which would mean the subsystem does something per record that is not in its documentation and the chapter reads the capture to find what. The ratio between the two paths is reported either way, as the price of owning the stack, and the chapter does not pretend the price is zero.
 
 ## Variants
 
 | Axis | This chapter | The alternative | Cost | Built in full |
 | --- | --- | --- | --- | --- |
 | Who drives the module | The microcontroller | A Linux host with the module | A different chapter, in a sibling volume | Sibling Linux volume, Project 16 |
+| Who owns the stack | The kernel, through the modem subsystem | The module, driven by command | Bytes on the port and seconds to the first publish, which the replicated claim measures both ways; and a client the module owns cannot be the one P12 reuses | Both, captured |
 | Where the stack forks | At the link layer | At a mock client | The bench variant would test nothing | Here |
 | Flow control | Not connected | Two more leads | Overruns, which are counted here | Here, with the count |
 | Failure reporting | Four reasons, each actionable | One failure code | A technician guesses | Here |
@@ -271,7 +279,7 @@ When an attach fails, the log says which of the four reasons applied, and the re
 | Second protocol | Not here | A bridge between two | A chapter of its own, and the weaker of the two | P20 |
 | Second architecture | Not here | The same client, different silicon | Proof that the client was written once | P12 |
 
-*Table 11.4. Variants touching P11. Five rows are built here. The row about where the stack forks is the chapter's main design decision and the one most worth arguing with, which is why its cost is stated rather than implied.*
+*Table 11.4. Variants touching P11. Six rows are built here, the stack's owner twice. The row about where the stack forks is the chapter's main design decision and the one most worth arguing with, which is why its cost is stated rather than implied.*
 
 ## Pitfalls
 
@@ -305,7 +313,8 @@ which attaches, publishes one record, and then causes each of the four attach fa
 
 ## Sources
 
-- The modem subsystem and its cellular driver, read on Friday 2 October 2026. The driver names a sibling of the module on this bench, and the differences are recorded in the chapter's own document.
+- The modem subsystem and its cellular driver, read on Friday 2 October 2026 and again on Tuesday 20 October 2026, when the generic cellular driver's configuration was read for the list of modems it names: the SIM7080 among them, and neither of this bench's SIM7070G and SIM7600E-H. The driver names a sibling of the module on this bench, and the differences are recorded in the chapter's own document.
+- The module's manual for its own message application by command, read on Tuesday 20 October 2026 as the other path of the replicated claim: the broker, the credential and the payload given by command and the handshake done inside the module.
 - The point-to-point link layer, the secure sockets layer and the message client documentation. Read Friday 2 October 2026.
 - The module's own documentation, for the command set and the attach sequence, read alongside the driver rather than instead of it.
 - P06, P09 and P02 in this volume, for what is sent, where it goes and where it waits when the link is down.
