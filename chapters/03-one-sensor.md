@@ -44,6 +44,7 @@ The chapter is placed third, after the two that show the device deciding somethi
 | The board's own devicetree source | The authoritative statement of what is enabled, which is the finding that shapes the chapter | Pin assignments for the buses, which come from the board manual and the processor's reference manual | Apache-2.0 |
 | The breakout's datasheet | The address on the two-wire bus, which has two possible values, and the mode the four-wire bus needs | Anything about this board. The two documents have to be read together | Vendor |
 | The devicetree compiler's generated header | A way to see what the build actually concluded, which settles an argument faster than reading three overlays | A readable overlay. It is generated output and is used for checking, never for editing | Apache-2.0 |
+| The anchor: the sensor subsystem's own model, and this chapter's object-identity check | The subsystem's documentation states the model this chapter tests: an application obtains a device by what it is, through the devicetree, and reads it through one interface whatever bus it sits on, so the overlay and not the application names the bus. The check written here compares the compiled application object across the two-wire and four-wire builds instruction by instruction, and it is the instrument P14 takes to a second processor family | A promise about the object. The documentation describes an interface; whether the application compiles to the same instructions when only the overlay changes is what the check establishes, and it established it on Tuesday 6 October 2026 with one symbol's name as the whole difference | Apache-2.0 |
 
 *Table 3.1. Prior art for P03. Unusually, the driver is entirely reused and the chapter's own work is the hardware description plus the demonstration that the application does not change. That ratio is the point rather than a shortcut.*
 
@@ -290,6 +291,8 @@ When a device does not come up, the order of checking is fixed and short. Read t
 
 - **Two devices on one bus do not interfere.** From Monday 5 October 2026, with both devices described, each reads correctly and neither disturbs the other. *Not yet run*, and the figure says so.
 
+- **The replicated claim: the subsystem's model, held at the object. Met on Tuesday 6 October 2026, and carried to a second board by P14.** The model says the application does not change when the bus does; the first criterion holds that at the level of the compiled object, where the two builds differ only in the devicetree ordinal of the one device they name, and the check runs on every push. *Refuted if* any instruction differs beyond that ordinal, which the first criterion also refuses, or if the same check on the second board in P14 finds a difference this board did not, which would mean the model holds on one family and leaks on another.
+
 ## Variants
 
 | Axis | This chapter | The alternative | Cost | Built in full |
@@ -339,6 +342,7 @@ which builds the application for both buses and reports whether the two applicat
 - The devicetree bindings documentation and the sensor interface documentation. Read Friday 2 October 2026.
 - The in-tree accelerometer driver and its binding, used unmodified.
 - The breakout's datasheet, for the two possible addresses and the four-wire mode, read together with the board manual rather than on its own.
+- This chapter's own object-identity check, `scripts/check_object_identity.py`, named as the anchor's instrument on Tuesday 20 October 2026, when the volume's every chapter was given a published claim to be held to and this chapter's turned out to be the one it had already met.
 
 ---
 
