@@ -1523,3 +1523,65 @@ Frames 2, 3 and 4 became ready at 3169, 4145 and 5121 milliseconds since boot: *
 frames, twice**, which with 5 ms polling granularity is a ranging rate of about 1 Hz. The chapter's
 timing figure was left with "length not established" on Sunday rather than a guessed 66 ms, and
 this is what goes in its place once the next run repeats it.
+
+## Tuesday 20 October 2026 at 12:07: the prediction holds, twice, and the stamp proves itself
+
+Between 11:58 and this run the Windows drive disappeared from WSL: `ls -ld /mnt/c/Users/skyhorizon/Desktop`
+itself returned input/output error 5, which is why both earlier copies had failed and the stale
+image had been flashed twice. The image went to the board the other way, read from WSL over
+`\\wsl.localhost\` by PowerShell and written straight to the board's drive, 144344 bytes, with the
+size printed before anything was run.
+
+**The stamp, on hardware, for the first time:**
+
+    # built Tuesday 20 October 2026, 11:57:44
+    # from f2cdf51, and a stamp older than your last edit means a stale flash
+
+A full date and a commit, as designed on Sunday, and the stale runs of 11:58 and 12:01 are
+exactly the case it exists for: both read `Oct 17 2026 15:42:20`, and that was true of them.
+
+### Every element of the written prediction, against the run
+
+| Predicted before the run | Observed, boot one | Observed, boot two |
+|---|---|---|
+| frame 1 status 6, no marks, `NO READING, 0 of 64` | yes | yes |
+| frames 2 to 4 status 5, 64 of 64 marked | yes | yes |
+| a distance from the nearest zone, near 2550 mm, left columns | 2545 mm zone 10; 2551 zone 24; 2551 zone 17 | 2547 mm zone 9; and the same two after |
+| stamp a full date and the commit | yes | yes |
+
+Zones 9, 10, 17 and 24 are rows 1 to 3, columns 0 to 2 in the order the part returns them, which
+is the near side of the same left-to-right rise seen on every grid since Saturday.
+
+**That is five boots out of five with status 6 on the first frame and status 5 on every frame
+after, three of them after the prediction was written.** The reading this project could not choose
+between on Sunday is chosen by the data: 6 is the state of the first frame after ranging starts,
+and the vendor's 5 and 9 are consistent with every frame from the second on.
+
+**And the first frame is not to be trusted, which makes the refusal protective.** The noise grid
+of Saturday 17 October 2026, sixty-four zones reading between minus two and plus five millimetres,
+was also status 6. A first frame can be a coherent surface, as above, or garbage, as then, and the
+status does not distinguish those two; what it does is mark both as not a reading, which is the
+vendor's rule and now the right one. `reduce_nearest_valid` giving P01 nothing on frame 1 is the
+behaviour wanted.
+
+One zone is worth a note and no conclusion: in frame 2 of the second boot, the bottom right zone
+read 2711 mm against about 2600 around it, status 5. A single outlier in one frame of one boot.
+
+### Measured, replacing figures the chapter left blank on Sunday
+
+| Quantity | Value | From |
+|---|---|---|
+| ranging period, vendor default at eight by eight | 976 to 982 ms, about 1 Hz | frames 2, 3 and 4 of both boots, and of the 11:58 and 12:01 runs |
+| initialisation, image upload included | 1.981 s | both boots, against 1.979 and 1.971 before |
+| first frame after start | 2453 ms since boot, 29 ms of waiting | both boots |
+| silicon temperature | 26 C on the first frame, 22 C after | both boots |
+
+### Prediction for the orientation run, criterion 5, written before it
+
+With the bench untouched and a hand held about twenty centimetres above the sensor so that it
+covers roughly the quarter of the sensor's view nearest the blue USER button, frames 2 to 4 will
+show **one four by four block** of zones at a few hundred millimetres with status 5, the other
+forty-eight near 2580, and the reduction will name a zone inside that block. Which printed corner
+that block occupies is the orientation, and it is the thing not predicted, since predicting it is
+what the run is for. If more than one block moves, the hand is too close or too large for the
+field and the run is repeated further away rather than interpreted.
