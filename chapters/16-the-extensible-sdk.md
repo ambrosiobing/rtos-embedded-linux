@@ -41,11 +41,12 @@ The second half is making continuous integration use the same kit. A build that 
 | --- | --- | --- | --- |
 | The sibling Linux volume, Project 1 | **The image and the standard kit**, built in full, including the step that installs the kit and compiles against it | The extensible kit and the development tool workflow, which are this chapter | Apache-2.0 |
 | The build system's manual, the kit chapters | How a kit is produced, what it contains, and the difference between the standard and the extensible one | A recipe for this volume's gateway software, and any opinion about continuous integration | CC-BY-2.0-UK |
+| The anchor: one named edition of the build system, and its own reproducibility claim | The edition is scarthgap, 5.0, the long-term support release of April 2024 supported until April 2028, at point release 5.0.18 of June 2026 when read on Tuesday 20 October 2026; the sibling Linux volume builds with it and this chapter and P17 take the same one so the catalogue has one edition. The newer long-term release of April 2026 is named here and not adopted. The project's documentation for that edition covers the extensible kit and the development tool, and its reproducible-build testing claims that a package built twice from the same inputs is the same package, bit for bit, with the documented exclusions. The public training material against the same release is the second reading of the same workflow | A statement about a package built through the kit against one built by the full build. The reproducibility claim is made for two full builds; whether it holds across the boundary this chapter stands on is the replicated claim | CC-BY-2.0-UK; the training material as its author licenses it |
 | The development tool that accompanies the extensible kit | Modifying a recipe, building one program, and deploying it to a running target without rebuilding an image | Discipline. It is easy to use in a way that leaves a device nobody can reproduce, and the chapter says how to avoid that | MIT |
 | P09, in this volume | The software the recipe packages: the broker configuration, the image store layout and the host client in C | Packaging | Apache-2.0 |
 | P19, in this volume | A tunnel daemon that the same layer eventually packages, which is why the layer is built for more than one program from the start | Anything about this chapter | GPL-2.0 for the daemon |
 
-*Table 16.1. Prior art for P16. The first row is most of the infrastructure and is cited precisely, because the boundary between an image build and a kit consumed outside it is exactly where this chapter begins.*
+*Table 16.1. Prior art for P16. The edition is named in the anchor row because no chapter of this volume had named one before Tuesday 20 October 2026. The first row is most of the infrastructure and is cited precisely, because the boundary between an image build and a kit consumed outside it is exactly where this chapter begins.*
 
 ## Parts from the inventory
 
@@ -239,6 +240,7 @@ The second commonest is a development tool workspace left in place. The tool tak
 - **The cache is shown to matter.** Cleared once, the job takes measurably longer. *Refuted if* the difference is negligible, in which case the cache is complexity for nothing.
 - **A device that has had a program pushed onto it is rebuilt before measurement.** Checked by procedure rather than by code, and the document says so. *Refuted if* any measurement in this volume was taken on a device in that state.
 - **The layer holds more than one recipe.** *Refuted if* it holds one, which means the next program will get its own layer and a copy of this one's configuration.
+- **The replicated claim: the project's reproducibility, across the kit boundary. Not yet run.** The project tests that a package built twice from the same inputs is bit for bit the same. This chapter builds the gateway's package twice, once by the full build on the build machine and once through the extensible kit on a machine that cannot build an image, at the same recipe commit and the same edition, and compares the two packages file by file with the project's own comparison tool and its documented exclusions. *Refuted if* any file differs outside the exclusions, which would mean the kit builds something other than the image contains and every deployment through it is a slightly different program; the differing file is named and its cause found before the kit is used for anything in this volume.
 
 ## Variants
 
@@ -287,7 +289,8 @@ which installs the kit on a machine that cannot build an image, prints the image
 ## Sources
 
 - The sibling Linux volume, Project 1, for the image and the standard kit, both built in full there and cited here.
-- The build system's manual, the chapters on the standard and extensible kits and on the development tool workflow. Read Friday 2 October 2026.
+- The build system's manual for the scarthgap edition, 5.0, the chapters on the standard and extensible kits, on the development tool workflow and on reproducible builds. Read Friday 2 October 2026 and again on Tuesday 20 October 2026, when the project's release table gave the edition's dates: April 2024, long-term support to April 2028, point release 5.0.18 in June 2026.
+- The public training material on the build system against the same release, read on Tuesday 20 October 2026 as a second account of the kit workflow and not as a source of figures.
 - P09 in this volume, for the gateway software that this chapter packages.
 - P19 in this volume, for the second program the layer is built to hold before that program exists.
 
