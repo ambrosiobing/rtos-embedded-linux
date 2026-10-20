@@ -1722,3 +1722,14 @@ Two edges at right angles fix the orientation completely, and a line that reache
 centre cannot be confused with a line that happens to lie along one. If either run shows the pen
 along an edge rather than from the centre, the pen's near end was not over the window and the run
 is repeated rather than read.
+
+### Joseph, at 12:45: the sensor is in the middle of the shield
+
+His words, on the four finger runs: the sensor is at the middle of the shield, of course it cannot
+see a finger at the RESET button or the USB cable, these are nonsense. He is right and it is the
+correction the entry above should have made itself. Every finger instruction named a feature that
+sits off the sensor's axis and far from it, and whether any fell inside a cone about eighteen
+centimetres wide at that height depended on a height and an offset nobody could judge by eye. The
+pen protocol above is anchored at the window because of this, and it is his to run or to leave:
+nothing downstream needs the orientation yet, and the morning already gave the results that
+mattered.
