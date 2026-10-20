@@ -42,13 +42,14 @@ The second reason the chapter is worth writing is the arrangement rather than th
 | Source | What it gives | What it does not | Licence |
 | --- | --- | --- | --- |
 | The open implementation of the standard device profile, as a module | An object dictionary, network management, heartbeat, service data objects and process data mapping, with a sample that builds | A transceiver, and any opinion about what a silent node means to a product | Apache-2.0 |
+| The anchor: that implementation by name, and the standard it implements | CANopenNode, Apache-2.0, two thousand stars when read on Tuesday 20 October 2026, which states that it implements the application layer and communication profile, CiA 301, with the heartbeat producer and consumer, network management, service and process data objects, synchronisation, emergency and layer setting services. CiA 301 itself, for the heartbeat: a producer sends its state at the period held in one dictionary entry, in milliseconds, and a consumer declares a node missing when its own entry's time passes without one; and for the network management state machine the node walks when the wire is pulled and returned | A figure on a wire. The standard gives the period as a configured number and the stack sends at it; how far the frames on this wire are from that number, seen by an instrument that is not the node, is the replicated claim | Apache-2.0; the standard as published by its association |
 | The operating system's bus interface and its driver for this processor | A standard interface to the controller, and timing calculated rather than guessed | An enabled controller on this board. The description enables none | Apache-2.0 |
 | The host-side stack in Python | A master that can read a dictionary and drive a node, so the node is tested against something that is not itself | Conformance. One master is interoperation, not a certificate | MIT |
 | The simulated target's host bus driver | A way to run the whole profile with no silicon, on the runner, before any part arrives | A real wire. It proves the logic and not the timing, and the chapter separates the two claims | Apache-2.0 |
 | The sibling robotics volume, chapters 9 to 13 | A bus brought up in loopback, a host side, an own protocol and its network management, all on this bench | The standard profile, which is this chapter: an object dictionary rather than four message types of one's own | Apache-2.0 |
 | P02, in this volume | The service axis that consumes the one reason code this chapter can produce honestly | Anything about a bus | Apache-2.0 |
 
-*Table 18.1. Prior art for P18. The robotics volume is the closest neighbour and the boundary is sharp: that volume designed a protocol for a problem, and this one implements a standard that somebody else designed, which is a different exercise with different value.*
+*Table 18.1. Prior art for P18. The anchor row names the stack and the standard it implements, so that the heartbeat row of the budget is a published number before it is a measured one. The robotics volume is the closest neighbour and the boundary is sharp: that volume designed a protocol for a problem, and this one implements a standard that somebody else designed, which is a different exercise with different value.*
 
 ## Parts from the inventory
 
@@ -121,6 +122,7 @@ Termination deserves its sentence. A bus needs it at both physical ends and nowh
 | Profile's own state | under 1 kB | not measured | not measured |
 | Bus rate | 125 kbit per second | by construction | classic mode |
 | Heartbeat period | 1000 ms | by construction | a settings key |
+| Heartbeat period on the wire, by the witness | 1000 ms, within the witness's resolution | not measured | the replicated claim |
 | Heartbeat miss to reason code | under 3 s | not measured | three periods |
 | Dictionary read, one entry | not measured | not measured | needs the wire |
 | Logic suite on the simulated target | under 30 s | not measured | no wire needed |
@@ -249,6 +251,7 @@ The one failure that is specific to this bench is the interface name. The simula
 - **Termination is fitted at one end and recorded.** *Refuted if* the chapter does not say which.
 - **The two claims are kept apart.** The document says what the simulated run proved and what the wire proved. *Refuted if* the chapter presents one set of results.
 - **Nothing claims conformance.** One master is interoperation. *Refuted if* the word appears.
+- **The replicated claim: the standard's heartbeat period, on this wire, by an instrument that is not the node. Not yet run.** The dictionary entry says one thousand milliseconds and the stack sends at it. The acquisition board of P04 is wired to the bus through its transceiver's receive line and samples it at a hundred thousand per second on one channel, which resolves a frame's start to ten microseconds; a hundred consecutive heartbeat frames give a hundred periods. The same capture, with the wire pulled and returned, times the node's walk through the states the standard names, against the consumer's own missing-node time. *Refuted if* the measured period departs from the configured one by more than the witness's ten microseconds plus the kernel's tick, which would mean the stack's timer is not the standard's period and the chapter names what is between them; or if the state walk after a pulled wire is not the standard's, which the fourth criterion also refuses.
 
 ## Variants
 
@@ -297,7 +300,9 @@ which runs the whole profile with no silicon at all and reads every required dic
 
 ## Sources
 
-- The open implementation of the standard device profile, carried as a module, and its sample. Read Friday 2 October 2026.
+- The open implementation of the standard device profile, carried as a module, and its sample. Read Friday 2 October 2026, and its repository on Tuesday 20 October 2026 for its statement of what it implements, its licence and its standing.
+- CiA 301, the application layer and communication profile, read on Tuesday 20 October 2026 for the heartbeat producer and consumer entries and the network management state machine the replicated claim times on the wire.
+- P04 in this volume, for the acquisition board as a witness and its ten microsecond resolution on one channel, which is the instrument the replicated claim names.
 - The operating system's bus interface and its driver for this processor family; the board's own description, which enables no controller; and this part's reference manual, which is RM0455, for the clock selector.
 - The host-side stack in Python, used as a master that is not this node.
 - The simulated target's host bus driver, including the interface name it expects, which differs from the one most published examples use.
