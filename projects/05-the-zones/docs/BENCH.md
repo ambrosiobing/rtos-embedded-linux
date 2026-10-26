@@ -1807,3 +1807,92 @@ vendor's own manual did not answer from its server, and one public mirror refuse
 that measure the orientation outright, each covering half the field along one axis through the
 lens window's own axis, from a clamp rather than a hand and with the board standing so that
 gravity supplies the second reference. Eight maps are possible and the two runs select one.
+
+## Monday 26 October 2026, in the evening: four captures, no runs, and the stamp was the one lying
+
+The two runs of [ORIENTATION.md](ORIENTATION.md) were handed over and the board was flashed from
+a tree at `50ffade`, image 144212 bytes, the size read before the copy as always. Four captures
+came back, labelled "without cover", "with cover", "now for vertical / without cover" and "with
+cover". **None of the four is a run of the protocol**, and the reason the session nearly reached
+the wrong conclusion is worth more than the runs would have been.
+
+**Every one of the four printed `built Tuesday 20 October 2026, 11:57:44` and `from f2cdf51`.**
+The tree was at `50ffade` and `fd059cf` had changed this project's own source since `f2cdf51`, so
+the first reading was the obvious one: a stale flash, four void captures, reflash and repeat.
+That reading was wrong, and the evidence that it was wrong is in the captures themselves. The
+sentence `255 is a zone that saw no target` does not exist in `src/main.c` at `f2cdf51` and does
+exist at `50ffade`, and it printed in all four. **The image on the board was the one just built.
+The flash was good, the build was good, and the stamp was the only thing that was wrong.**
+
+`build-p05-own/build_stamp.c` had modification time Tuesday 20 October 2026, 11:57:44, which is
+the moment that build directory was first built. The wiring in this project's `CMakeLists.txt`
+depended on a custom target carrying no output, on the reasoning that such a target is always out
+of date so a command depending on one is never skipped. **That reasoning is about make and this
+volume builds with ninja**, where cmake turns a target named in `DEPENDS` into a dependency on
+that target's phony edge and a phony edge with no inputs is already satisfied. So the stamp was
+written once per build directory and never again, and every reading taken from an incremental
+build in `build-p05-own` since Tuesday 20 October 2026 carried a stamp that was not its own.
+
+**This corrects the entry of Tuesday 20 October 2026 at 12:07**, whose heading says the stamp
+proved itself. It did not prove itself there. It was correct there because that build directory
+had been made minutes earlier, which is the one circumstance in which a stamp written once is
+also a stamp written now. The figures of that morning stand, because the image and the stamp
+genuinely matched; what does not stand is the inference that the guard had been exercised.
+
+**A guard that cries stale about a correct image is the worse of the two failures**, and
+`scripts/stamp.py`'s own docstring says so: the first wastes a build and the second discards a
+real result. This one came within a reply of discarding four captures and sending the bench back
+to repeat them.
+
+### The fix was measured rather than reasoned, because the reasoning had already failed once
+
+`scripts/test_build_stamp.py`, written today, configures four wirings under ninja and builds each
+twice. With ninja 1.13.2 and cmake 4.4.2:
+
+| wiring | result |
+|---|---|
+| a target with no output, named in `DEPENDS` | stamps once only, which was the defect |
+| an output that is never created | stamps once only, which was the surprise |
+| the same output, declared `SYMBOLIC` | regenerates at every build |
+| `add_custom_target(... ALL COMMAND ...)` | regenerates at every build |
+
+**The second row is the one to carry forward.** A rule whose output does not exist after it runs
+is widely held to be unconditional, and under this generator it is not. That was the first fix
+written today and it would have shipped as a second silent failure if it had not been built
+twice. The third row is what this project now uses, because it keeps one real generated file as
+the compile's own dependency, so the first build cannot race its generator. Two rows are expected
+to stamp once only and the gate refuses if they ever stop doing so, since a gate for an
+unconditional rule that has never been shown to fail is the same defect one level up.
+
+The gate runs in both workflows and the pair is deliberate: `checks.yml` checks only that the
+project carries the wiring that was measured to work, and says in its own output that it cannot
+tell whether that wiring works, while `code.yml` builds twice and decides. It was also shown to
+refuse the fix being removed, with the file restored byte for byte afterwards.
+
+### What the four captures do and do not show
+
+| capture | what it shows |
+|---|---|
+| horizontal, without cover | a flat surface, all 64 zones between 2555 and 2625 mm at status 5. This is a clean far field and it is the only one of the four that is good for anything |
+| horizontal, with cover | every zone between 5 mm and -3 mm at status 4, and `NO READING` from the reduction. The card was at the lens, not at the 300 to 700 mm the protocol names, and a uniformly blind field says nothing about orientation |
+| vertical, without cover | a close sloped scene: printed row 7 near 110 mm, row 6 near 190 mm, the upper rows between 250 and 860 mm with one zone near 3800 mm. Not a flat surface at 1.5 to 2.5 metres, and not a four and four split on either axis |
+| vertical, with cover | identical to the capture above, number for number, including frame times at 2448, 3166, 4143 and 5114 ms. One run happened, not two |
+
+A fifth read returned nothing over 30 seconds, which is the honest result of reading the port
+again without a reset: the firmware prints its frames once and stops. **That is a second reason
+for the reflash before every run rule**, beyond the board being shared between two projects.
+
+So runs 1 and 2 of [ORIENTATION.md](ORIENTATION.md) have not been performed, and the page's own
+rule applies as written: anything that is not a clean four and four is repeated rather than
+interpreted. Three things change before the repeat, and none of them is about the firmware:
+
+1. **A flat surface at 1.5 to 2.5 metres in the direction the sensor now looks.** The horizontal
+   arrangement had one at 2.58 metres and the vertical arrangement has nothing beyond 0.9 metres
+   except a single zone. Without it the uncovered half has no clean field to be read against.
+2. **The card at 300 to 700 millimetres from the lens window, measured.** At the face it reads
+   status 4 across the whole field, which is what the second capture did.
+3. **A reset or a reflash immediately before each of the two runs, and the two captures kept
+   separate.** The third and fourth captures are one run recorded twice.
+
+The orientation remains unestablished, and the state of this criterion is unchanged by the
+evening: no reading of it has been taken that the page would accept.

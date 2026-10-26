@@ -227,3 +227,14 @@ jobs:
         run: |
           python scripts/test_check_anchors.py
           python scripts/check_anchors.py
+
+      # THE HALF OF THE STAMP GATE THAT NEEDS NO BUILD. On Monday 26 October 2026 four bench
+      # captures were read as a stale flash and nearly discarded because P05's build stamp had
+      # been written once, when its build directory was new, and never again: the wiring depended
+      # on a custom target with no output, which is unconditional under make and already up to
+      # date under ninja. This step checks only that the project carries the wiring that was
+      # measured to work. **It cannot tell whether that wiring works**, and says so in its own
+      # output, because the generator is what decides and no generator runs in this workflow. The
+      # step in code.yml named below is the real test, and the two are a pair on purpose.
+      - name: The build stamp is wired the way it was proved to work
+        run: python scripts/test_build_stamp.py --static-only

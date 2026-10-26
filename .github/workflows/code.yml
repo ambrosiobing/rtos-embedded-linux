@@ -608,6 +608,15 @@ jobs:
           cd ~/zephyrproject
           west sdk install -t arm-zephyr-eabi
 
+      # THE BUILD STAMP, PROVED BY BUILDING TWICE, which is the only way to know. It needs
+      # cmake and ninja and no toolchain at all, so it rides in this job for the two tools rather
+      # than for anything to do with this part. Four wirings are configured and built twice each,
+      # and two of them are expected to stamp once only: a gate for an unconditional rule that
+      # had never been shown to fail is the defect it was written about, one level up. See
+      # scripts/test_build_stamp.py for what the afternoon of Monday 26 October 2026 cost.
+      - name: The build stamp regenerates at every build, and the wirings that do not are shown
+        run: python3 scripts/test_build_stamp.py
+
       - name: The two-wire build
         run: |
           cmake -B build-i2c -GNinja -DBOARD=nucleo_h7a3zi_q \

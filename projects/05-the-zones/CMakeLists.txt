@@ -27,7 +27,8 @@
 # THE SECOND DESCRIPTION, which points the part at this project's own driver and binding, is
 # built the same way with a different overlay and its own build directory:
 #
-#   cmake -B build-p05-own -GNinja -DBOARD=nucleo_h7a3zi_q #         -DDTC_OVERLAY_FILE=overlays/own_driver.overlay -S projects/05-the-zones
+#   cmake -B build-p05-own -GNinja -DBOARD=nucleo_h7a3zi_q \
+#         -DDTC_OVERLAY_FILE=overlays/own_driver.overlay -S projects/05-the-zones
 #   ninja -C build-p05-own
 #
 # THE FIRMWARE IMAGE IS NOT IN THE TREE and the part cannot range without it. The vendor's
@@ -182,10 +183,11 @@ set_source_files_properties("${VL53L8CX_ULD}/vl53l8cx_api.c" PROPERTIES COMPILE_
 # edit to the driver printed a stamp 69 minutes old. The reading that followed was nearly thrown
 # away as a stale flash, which is the dangerous direction for a guard to fail in.
 #
-# THE COMMAND RUNS EVERY BUILD, BY CONSTRUCTION. A custom target with no output is always out of
-# date, so a command that depends on one is never skipped. The generated file therefore changes
-# on every build, its translation unit recompiles, and the image is relinked. That cost is one
-# small compile and one link, paid so the console cannot claim an age the image does not have.
+# THE COMMAND RUNS EVERY BUILD, BY CONSTRUCTION, and the construction is written further down
+# rather than here, because the first attempt at it was wrong in a way worth keeping. The
+# generated file changes on every build, its translation unit recompiles, and the image is
+# relinked. That cost is one small compile and one link, paid so the console cannot claim an
+# age the image does not have.
 # `ninja` in this project is consequently never a no-op, which is the intended arrangement.
 #
 # THE OUTPUT FORM IS USED RATHER THAN A BYPRODUCT, so the build system has a real rule producing
@@ -202,14 +204,62 @@ if(NOT DEFINED PYTHON_EXECUTABLE)
   set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
 endif()
 
-add_custom_target(stamp_always)
+# AND THE ARRANGEMENT ABOVE DID NOT WORK, WHICH IS WHY IT IS DESCRIBED IN THE PAST TENSE. It
+# read
+#
+#   add_custom_target(stamp_always)
+#   add_custom_command(OUTPUT ... DEPENDS stamp_always ...)
+#
+# on the reasoning quoted above, that "a custom target with no output is always out of date, so
+# a command that depends on one is never skipped". **That reasoning is about make, and this
+# volume builds with ninja.** CMake turns a target named in DEPENDS into a dependency on that
+# target's phony edge, and ninja treats a phony edge with no inputs as already up to date. So the
+# stamp was written once, when the build directory was new, and never again.
+#
+# FOUND ON MONDAY 26 OCTOBER 2026 AT THE BENCH, and it cost most of a session. Four captures
+# were taken for the orientation runs of docs/ORIENTATION.md and all four printed `built Tuesday
+# 20 October 2026, 11:57:44` and `from f2cdf51` from a tree at 50ffade. They were read as a stale
+# flash and nearly discarded. The flash was good every time, the build was good every time, and
+# `build-p05-own/build_stamp.c` had the modification time of the first build in that directory.
+# **A guard that cries stale about a correct image discards real results**, which is the failure
+# scripts/stamp.py's own docstring names as the worse of the two directions.
+#
+# WHAT WORKS WAS MEASURED RATHER THAN REASONED, because the reasoning is what failed the first
+# time. scripts/test_build_stamp.py configures four wirings under ninja, builds each twice and
+# reads the generated file, and it is the authority for this paragraph rather than this paragraph
+# being the authority for it. On Monday 26 October 2026, with ninja 1.13.2 and cmake 4.4.2:
+#
+#   a target with no output, named in DEPENDS          stamps once only, which was the defect
+#   an output that is never created                    stamps once only, which is the surprise
+#   the same output, declared SYMBOLIC                 regenerates at every build
+#   add_custom_target(... ALL COMMAND ...)             regenerates at every build
+#
+# THE SECOND LINE IS THE ONE TO REMEMBER. A rule whose output does not exist after it runs is
+# widely held to be unconditional, and under this generator it is not: ninja is told the file is
+# expected and does not reconsider the rule that makes it. The property below is what tells cmake
+# the name is not a file at all, and only then does the edge stay dirty.
+#
+# THE FOURTH LINE WOULD ALSO HAVE WORKED and is not used, because a custom target reaches the
+# compile through a target-level ordering rather than through the generated file itself, and the
+# paragraph above about the output form rather than a byproduct is still the right preference:
+# the one real file is what the compile depends on, so the first build cannot race its generator.
+set(STAMP_NEVER_MADE "${CMAKE_CURRENT_BINARY_DIR}/stamp.never-made")
+
+add_custom_command(
+  OUTPUT "${STAMP_NEVER_MADE}"
+  COMMAND "${CMAKE_COMMAND}" -E true
+  COMMENT "the dependency that is never satisfied, so that the stamp is never skipped"
+  VERBATIM)
+
+# AND THIS LINE IS THE WHOLE FIX. Without it the rule above is skipped from the second build on.
+set_source_files_properties("${STAMP_NEVER_MADE}" PROPERTIES SYMBOLIC TRUE)
 
 add_custom_command(
   OUTPUT "${BUILD_STAMP_C}"
   COMMAND "${PYTHON_EXECUTABLE}" "${REPO_ROOT}/scripts/stamp.py"
           --out "${BUILD_STAMP_C}"
           --scope "projects/05-the-zones"
-  DEPENDS stamp_always "${REPO_ROOT}/scripts/stamp.py"
+  DEPENDS "${STAMP_NEVER_MADE}" "${REPO_ROOT}/scripts/stamp.py"
   COMMENT "stamping the image with the time and the commit"
   VERBATIM)
 
