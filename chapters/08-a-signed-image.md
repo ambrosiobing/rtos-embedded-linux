@@ -104,9 +104,9 @@ The watchdog line is the one that matters and it is easy to get backwards. If th
 
 | Quantity | Budget | Measured | Margin |
 | --- | --- | --- | --- |
-| Bootloader in its partition | under 64 kB | not measured | of 128 kB |
+| Bootloader in its partition | under 64 kB | not measured | of 112 kB |
 | Image trailer, each slot | as the tool reports | not measured | not measured |
-| Application image, signed | under 400 kB | not measured | of 896 kB |
+| Application image, signed | under 400 kB | not measured | of 896 kB under move, 888 under scratch |
 | Signature verification at boot | under 500 ms | not measured | not measured |
 | Swap, slot to slot | under 20 s | not measured | not measured |
 | Swap time against the design document's counts, scratch and move | predicted per mode before the run | not measured | the replicated claim |
@@ -261,14 +261,14 @@ One habit is worth fixing here because it is the difference between a demonstrat
 - **A restart is refused while the room is in use.** With presence occupied, the reboot is deferred and the console says so; with the room free, it proceeds. *Refuted if* the device restarts during occupancy.
 - **The settings survive the update.** A threshold set before the update is the same threshold afterwards, which is P07's layout doing its job. *Refuted if* it reverts to a default.
 - **The swap time is stated.** *Refuted if* the chapter reports that it is quick.
-- **The replicated claim: the design document's cost per swap, and its revert sentence, on this part. Not yet run, and the first build has a decision to make first.** The document says a swap through a scratch area moves every sector three times and a swap using move erases the primary slot twice and the secondary once per swap. The prediction is written per mode from this part's sector size and its measured erase and write times, which P07 takes, and the swap is then timed under both modes with the same image. The revert is the document's one sentence: a new image that crashes is not booted again, the old one is, at the next reset. *Refuted if* the measured swap time departs from the prediction by more than the unmeasured bootloader overhead can explain, which would mean the document's counts are not this part's; or if, after the deliberately unhealthy image, the device runs anything but the previous image. The decision: P07's layout has two equal slots and no scratch partition, and the document allows neither mode on that. Either a scratch partition is carved from the storage sectors, or the primary slot grows by one sector for a swap using move, and P07's overlay changes with it. The chapter records the choice when the first build makes it, and the anchor row is what surfaced it.
+- **The replicated claim: the design document's cost per swap, and its revert sentence, on this part. Not yet run, and the first build has a decision to make first.** The document says a swap through a scratch area moves every sector three times and a swap using move erases the primary slot twice and the secondary once per swap. The prediction is written per mode from this part's sector size and its measured erase and write times, which P07 takes, and the swap is then timed under both modes with the same image. The revert is the document's one sentence: a new image that crashes is not booted again, the old one is, at the next reset. *Refuted if* the measured swap time departs from the prediction by more than the unmeasured bootloader overhead can explain, which would mean the document's counts are not this part's; or if, after the deliberately unhealthy image, the device runs anything but the previous image. The decision, taken on Monday 26 October 2026 before any build: P07's layout had two equal slots and no scratch partition, and the document allows neither mode on that. Its map now carries both, the boot partition giving two 8 kB sectors to slot 0, which is exactly what a swap using move needs on this part, and the storage partition giving half of itself to a 64 kB scratch area, so that the two timings above differ in the mode and in nothing else. P07's `docs/layout.md` has the arithmetic, and the anchor row is what surfaced it.
 
 ## Variants
 
 | Axis | This chapter | The alternative | Cost | Built in full |
 | --- | --- | --- | --- | --- |
 | Update shape | Two slots and a swap | Overwrite in place | A failed image leaves nothing to go back to | Here |
-| Swap mode | Through a scratch area, as drawn | Using move, with the primary slot one sector larger; using offset, with the spare sector in the secondary; direct execution from either slot | The design document gives each its slot requirement and its erase and copy count, and the layout from P07 satisfies none of the swap modes as it stands | Scratch and move, timed |
+| Swap mode | Through a scratch area, as drawn, and using move, with the primary slot two sectors larger; one map serves both | Using offset, with the spare sector in the secondary; direct execution from either slot | The design document gives each its slot requirement and its erase and copy count; the bootloader's own readme does not recommend scratch, which is one reason to time it against move rather than take it on trust | Scratch and move, timed |
 | Confirmation | Earned by a specific health check | Automatic on reaching main | Almost every realistic failure still confirms | Here |
 | Deadline | A watchdog started before the application | Started by the application | A broken application never starts it | Here |
 | Signature | Required, with the key on the bench | Checksum only | An image that was not meant to be there still runs | Here |
@@ -286,7 +286,7 @@ One habit is worth fixing here because it is the difference between a demonstrat
 - **A watchdog the application starts.** The application that most needs the deadline is the one least able to set it.
 - **Confirming by hand after an update.** It disables the only protection while leaving every appearance of it.
 - **Expecting the swap to be quick.** It moves two images past each other through a scratch area, and whatever is watching needs to be told.
-- **A layout the swap mode cannot use.** Two equal slots and no scratch area is exactly what P07 drew, and the design document allows no swap on it. Read the mode's slot requirement before the layout is committed, not after the first swap fails.
+- **A layout the swap mode cannot use.** Two equal slots and no scratch area is exactly what P07 first drew, and the design document allows no swap on it. Read the mode's slot requirement before the layout is committed, not after the first swap fails; here it was read before any build, and the map changed by two sectors and one partition.
 - **Committing the key.** Once in the history it is there permanently, and the ignore entry belongs in the same commit as the key generation.
 - **Restarting whenever an image arrives.** The room is sometimes in use, and the device knows, because P01 is already running.
 

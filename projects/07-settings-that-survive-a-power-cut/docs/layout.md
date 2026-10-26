@@ -5,7 +5,7 @@ Tuesday 20 October 2026 read the bootloader's design document against the map ch
 and found that no swap mode can run on it. This page carries the part's real geometry, the
 arithmetic for each option, one map that serves both of P08's arms, and what in chapter 07 the
 geometry corrects. Nothing here is measured; every number is read from a named source or
-computed from one, and the chapters change only when the decision at the end is taken.
+computed from one. The decision was taken on Monday 26 October 2026, option A below, and the chapters and figures changed in that one commit.
 
 ## The part, from the tree this volume pins
 
@@ -92,7 +92,7 @@ Sum: 14 + 114 + 112 + 8 + 8 = 256 sectors, 2048 kB. Under move the largest image
 slot minus its trailer, 888 kB; the application budget is under 400 kB. Eight scratch sectors
 rather than one means about seven scratch erases per swap of a 400 kB image instead of fifty,
 which is the design document's own argument for a larger scratch. Sixty-four kB of storage is
-two store sectors of 32 kB, which is eight flash sectors each and still two, against a settings
+two store sectors of 32 kB, which is four flash sectors each and still two, against a settings
 budget under 512 bytes and a credential under 2 kB in P13; for the filesystem arm of P07 it is
 eight blocks of 8 kB, four times the filesystem's minimum.
 
@@ -153,7 +153,7 @@ found it.
    sized by it; the chapter's record structure of 16 bytes fits one write block exactly, which
    is worth saying because a record of 17 bytes would cost two.
 
-These become chapter edits in the commit that takes the decision, and in no other.
+These became chapter edits in the commit that took the decision, on Monday 26 October 2026, and in no other.
 
 ## Sources
 

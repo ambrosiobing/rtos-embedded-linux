@@ -31,7 +31,7 @@ The third reason is that this is the chapter where the power meter stops being a
 >
 > The survival rate below is not yet measured. The harness is written, the method is written and the refutation is written, and the result reads `not measured` on Friday 2 October 2026.
 >
-> The partition layout is a design for this part, checked against its reference manual, which is RM0455 and not the manual most material is written for. The sector geometry stated here comes from that manual. If the bench disagrees with it, the bench is right and the chapter is wrong, and the first build is where that is found out.
+> The partition layout is a design for this part, checked against the kernel's own description of it, which gives 8 kB sectors and a 16-byte write block, and not against the manual most material is written for, whose part has 128 kB sectors. If the bench disagrees with it, the bench is right and the chapter is wrong, and the first build is where that is found out. The map changed once before any build, on Monday 26 October 2026, when P08 read the bootloader's requirements against it: the project's [docs/layout.md](../projects/07-settings-that-survive-a-power-cut/docs/layout.md) carries the geometry, the arithmetic and the two options, and the overlay below is the one taken.
 >
 > Nothing here claims power-loss safety as a property of the storage subsystem. What is claimed is a measured survival rate for one configuration on one part, which is a smaller and checkable claim.
 
@@ -72,7 +72,10 @@ The layout has one property worth defending. The storage partition sits at the t
 /* overlays/partitions.overlay: the whole volume's flash map, settled here.
  * The board's own description defines no partitions at all, so this file is
  * not an adjustment to a default; it is the first statement of the layout.
- * Sector geometry is from RM0455 for this part, not from the popular sibling.
+ * Sector geometry is the kernel's for this part, 8 kB, not the sibling's 128 kB.
+ * Boot gives two sectors to slot 0 for the bootloader's swap using move, and
+ * storage gives half of itself to a scratch area for its swap using scratch,
+ * so that P08 can time both modes on one map. docs/layout.md has the arithmetic.
  */
 &flash0 {
     partitions {
@@ -81,13 +84,15 @@ The layout has one property worth defending. The storage partition sits at the t
         #size-cells = <1>;
 
         boot_partition:    partition@0        { label = "mcuboot";
-                                                reg = <0x00000000 0x00020000>; };
-        slot0_partition:   partition@20000    { label = "image-0";
-                                                reg = <0x00020000 0x000e0000>; };
+                                                reg = <0x00000000 0x0001c000>; };
+        slot0_partition:   partition@1c000    { label = "image-0";
+                                                reg = <0x0001c000 0x000e4000>; };
         slot1_partition:   partition@100000   { label = "image-1";
                                                 reg = <0x00100000 0x000e0000>; };
-        storage_partition: partition@1e0000   { label = "storage";
-                                                reg = <0x001e0000 0x00020000>; };
+        scratch_partition: partition@1e0000   { label = "image-scratch";
+                                                reg = <0x001e0000 0x00010000>; };
+        storage_partition: partition@1f0000   { label = "storage";
+                                                reg = <0x001f0000 0x00010000>; };
     };
 };
 ```
@@ -104,7 +109,7 @@ CONFIG_SETTINGS_DYNAMIC_HANDLERS=n   # every handler is known at build time
 CONFIG_REBOOT=y                      # the harness needs it
 ```
 
-The storage partition is two sectors rather than one, and the reason is the backend rather than the data. A store that can only erase the sector it is writing has nowhere to put the surviving records while it does so; two sectors let it copy forward and erase behind, which is what makes an interrupted erase recoverable at all.
+The storage partition is two store sectors rather than one, and the reason is the backend rather than the data. A store that can only erase the sector it is writing has nowhere to put the surviving records while it does so; two sectors let it copy forward and erase behind, which is what makes an interrupted erase recoverable at all. Whose sectors matters on this part: the flash sector is 8 kB, so the 64 kB partition is eight of them and each store sector is four, and the erase the harness aims at is four flash erases of at most 3 ms each, not one long one. The partition was 128 kB until P08's requirements took half of it for a scratch area; a settings budget under 512 bytes and a credential under 2 kB in P13 do not notice.
 
 ## Wiring
 
@@ -122,12 +127,14 @@ Removing the programming cable during the run is not fastidiousness. The debug p
 
 | Quantity | Budget | Measured | Margin |
 | --- | --- | --- | --- |
-| Boot partition | 128 kB | by construction | for P08 |
-| Each image slot | 896 kB | by construction | for P08 |
-| Storage partition | 128 kB, two sectors | by construction | this chapter |
+| Boot partition | 112 kB, fourteen sectors | by construction | for P08 |
+| Image slot 0 | 912 kB, two sectors more than slot 1 | by construction | P08's swap using move |
+| Image slot 1 | 896 kB, at the bank boundary | by construction | for P08 |
+| Scratch area | 64 kB, eight sectors | by construction | P08's swap using scratch |
+| Storage partition | 64 kB, two store sectors of four flash sectors | by construction | this chapter |
 | Settings in use | under 512 B of records | not measured | not measured |
 | One save, start to finish | under 20 ms | not measured | not measured |
-| Erase of one sector | under 400 ms | not measured | not measured |
+| Erase of one store sector, four flash sectors | under 12 ms, from 3 ms per flash sector | not measured | the window the harness aims at |
 | Load at start | under 50 ms | not measured | not measured |
 | Survival over 1000 cuts | stated, not assumed | not measured | the chapter's result |
 | Survival over 1000 cuts, the filesystem arm | zero corrupt and zero unmountable, as the anchor claims | not measured | the replicated claim |
@@ -217,7 +224,7 @@ projects/P07-settings/
 
 ## Steps
 
-**Step 1.** **Read the sector geometry out of the reference manual for this part, not for its popular sibling.** The two differ, and a partition that straddles a sector boundary the manual did not describe fails in a way that looks like a storage bug.
+**Step 1.** **Read the sector geometry out of the kernel's description of this part, not out of material for its popular sibling.** The two differ, 8 kB against 128 kB, and a partition that straddles a sector boundary the manual did not describe fails in a way that looks like a storage bug.
 
 **Step 2.** **Write the partition overlay for the whole volume, not for this chapter.** P08 needs two slots and a boot area; P13 needs storage that an update cannot reach. Deciding all of it once is the only way those requirements stay compatible.
 
@@ -340,7 +347,8 @@ which runs a thousand aimed power cuts across three moments and prints the survi
 ## Sources
 
 - The settings subsystem and the non-volatile storage backend documentation, and the flash map and partition documentation. Read Friday 2 October 2026.
-- The reference manual for this part, which is RM0455, for the sector geometry and write granularity that decide what a partition can be.
+- The kernel's description of this part, `dts/arm/st/h7/stm32h7a3.dtsi` at the pinned tree, read on Sunday 25 October 2026 for the 8 kB erase block, the 16-byte write block and the 3 ms maximum erase time, which decide what a partition can be and how long a cut window is; and the reference manual for this part, RM0455, behind it.
+- This project's `docs/layout.md`, written on Sunday 25 October 2026, for the bootloader's requirements of the map, the two options and the arithmetic of the one taken on Monday 26 October 2026.
 - The power meter's host library documentation, for supply control and for the digital inputs that are aligned to the current trace.
 - Published work on power-loss robustness in embedded key and value stores, read for the failure modes to aim at rather than for an implementation.
 - LittleFS, the littlefs-project repository, BSD-3-Clause, seven thousand stars on Tuesday 20 October 2026 when its README, its design document and its test runner were read: the README for the power-loss guarantee quoted in the anchor row, the design document for the two-block metadata logs and the checksum commit that carry it, and `runners/test_runner.c` for the `-P` power-loss schedules injected through the emulated block device. The kernel's in-tree module of it is the arm this chapter mounts.
