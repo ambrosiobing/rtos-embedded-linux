@@ -68,7 +68,9 @@ REPO_ROOT := ../../..
 ALLOW_ANY_REVISION ?=
 PIN_ANY := $(if $(ALLOW_ANY_REVISION),--allow-any,)
 
-.PHONY: all run check fetch fetch-bsp board check-pins check-pins-bsp clean
+.PHONY: all run check fetch fetch-bsp board check-pins check-pins-bsp clean FORCE
+
+FORCE:
 
 check-pins:
 	@$(PYTHON) $(REPO_ROOT)/scripts/check_pin.py --path "$(FREERTOS_KERNEL)" \
@@ -222,6 +224,20 @@ BOARD_BUILD := $(BUILD)/board
 BOARD_ELF   := $(BOARD_BUILD)/measure_freertos.elf
 BOARD_BIN   := $(BOARD_BUILD)/measure_freertos.bin
 
+# THE IMAGE DEPENDS ON WHICH REVISION OF THE TWO CLONES IT WAS BUILT FROM, and until Monday 26
+# October 2026 it did not. That afternoon this kernel's V10.4.4 and V11.1.0 were measured against
+# each other, which means moving the clone between builds, and moving it back then rebuilding
+# printed the two pin lines and recompiled nothing: no source listed below had changed, so make
+# had nothing to do, and the image left in this directory was the other version's. The pin check
+# passed throughout, because it reads the clone and not the objects. A reader would have flashed
+# one kernel while every line of output named the other.
+#
+# The stamp holds the resolved revision of both clones. Its recipe runs on every build because of
+# FORCE, and it is rewritten only when the content differs, so the image rebuilds when a revision
+# moves and not otherwise. The idiom is the one P05's mutation harness uses for the same reason:
+# a file whose timestamp carries a fact that no source file carries.
+PIN_STAMP := $(BOARD_BUILD)/pins.stamp
+
 # nano.specs and nosys.specs as the sibling links: the reduced newlib, with its syscalls
 # satisfied by retarget.c first and by nosys for anything retarget.c does not define. The map
 # file is written because the no-allocator check reads the binary and a reader reads the map.
@@ -254,7 +270,18 @@ $(BOARD_BUILD):
 
 board: $(BOARD_BIN)
 
-$(BOARD_ELF): $(BOARD_ADAPTER_SRC) $(CORE_SRC) $(BOARD_HEADERS) Makefile | $(BOARD_BUILD) check-pins check-pins-bsp
+$(PIN_STAMP): FORCE | $(BOARD_BUILD)
+	@{ echo "kernel $(FREERTOS_TAG) $$(git -C "$(FREERTOS_KERNEL)" rev-parse HEAD 2>/dev/null)"; \
+	   echo "bsp    $(NUCLEO_BSP_COMMIT) $$(git -C "$(NUCLEO_BSP)" rev-parse HEAD 2>/dev/null)"; \
+	 } > $@.new
+	@if cmp -s $@.new $@; then rm -f $@.new; \
+	elif [ -f $@ ]; then \
+	  mv $@.new $@; \
+	  echo "the revision of a clone changed, so the image is rebuilt rather than left stale:"; \
+	  sed 's/^/  /' $@; \
+	else mv $@.new $@; fi
+
+$(BOARD_ELF): $(BOARD_ADAPTER_SRC) $(CORE_SRC) $(BOARD_HEADERS) $(PIN_STAMP) Makefile | $(BOARD_BUILD) check-pins check-pins-bsp
 	@test -d "$(FREERTOS_KERNEL)" || { echo "no kernel at $(FREERTOS_KERNEL); run: make fetch"; exit 1; }
 	@test -d "$(NUCLEO_BSP)" || { echo "no board support at $(NUCLEO_BSP); run: make fetch-bsp"; exit 1; }
 	@command -v $(XCC) > /dev/null || { echo "no $(XCC) on PATH; in WSL: sudo apt install gcc-arm-none-eabi"; exit 1; }
