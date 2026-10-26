@@ -59,26 +59,39 @@ void vApplicationStackOverflowHook(TaskHandle_t task, char *name)
 	}
 }
 
+/* V10.4.4 declares these two hooks with uint32_t and V11.1.0 with configSTACK_DEPTH_TYPE,
+ * so an application that provides them cannot compile against both without saying which.
+ * Found on Monday 26 October 2026 by the run that measures this kernel's own two versions
+ * against each other; it is the only difference that stood in the way. The pinned build is
+ * byte for byte what it was without this block, 27148 bytes, which is the control that says
+ * the guard changes nothing for the version this project publishes figures against.
+ * tskKERNEL_VERSION_MAJOR comes from task.h, included above. */
+#if (tskKERNEL_VERSION_MAJOR >= 11)
+#define BENCH_STACK_DEPTH_T configSTACK_DEPTH_TYPE
+#else
+#define BENCH_STACK_DEPTH_T uint32_t
+#endif
+
 static StaticTask_t idle_control;
 static StackType_t idle_stack[configMINIMAL_STACK_SIZE];
 
 void vApplicationGetIdleTaskMemory(StaticTask_t **ppxTaskTCB, StackType_t **ppxTaskStack,
-				   configSTACK_DEPTH_TYPE *puxTaskStackSize)
+				   BENCH_STACK_DEPTH_T *puxTaskStackSize)
 {
 	*ppxTaskTCB = &idle_control;
 	*ppxTaskStack = idle_stack;
-	*puxTaskStackSize = (configSTACK_DEPTH_TYPE)configMINIMAL_STACK_SIZE;
+	*puxTaskStackSize = (BENCH_STACK_DEPTH_T)configMINIMAL_STACK_SIZE;
 }
 
 static StaticTask_t timer_control;
 static StackType_t timer_stack[configTIMER_TASK_STACK_DEPTH];
 
 void vApplicationGetTimerTaskMemory(StaticTask_t **ppxTimerTCB, StackType_t **ppxTimerStack,
-				    configSTACK_DEPTH_TYPE *puxTimerStackSize)
+				    BENCH_STACK_DEPTH_T *puxTimerStackSize)
 {
 	*ppxTimerTCB = &timer_control;
 	*ppxTimerStack = timer_stack;
-	*puxTimerStackSize = (configSTACK_DEPTH_TYPE)configTIMER_TASK_STACK_DEPTH;
+	*puxTimerStackSize = (BENCH_STACK_DEPTH_T)configTIMER_TASK_STACK_DEPTH;
 }
 
 /* ------------------------------------------------------------------ the campaign's hooks */

@@ -75,8 +75,8 @@ in the same commit as this page.
 
 | Arm | What it settles | What it costs | Can this bench run it |
 |---|---|---|---|
-| A. The FreeRTOS per-switch check, on and off | the one unmeasured term in the comparison, which is what makes a matched ratio possible for the first time | one setting changed, two runs, the board; no new code and no new tooling | yes |
-| B. FreeRTOS 10.4.4 against 11.1.0 | the FreeRTOS half of the version candidate, in full, because this project carries its own board port and does not depend on the kernel supporting the board | one checkout and the pin stated on the command line | yes |
+| A. The FreeRTOS per-switch check, on and off | the one unmeasured term in the comparison, which is what makes a matched ratio possible for the first time | one setting changed, two runs, the board; no new code and no new tooling | **run on Monday 26 October 2026** |
+| B. FreeRTOS 10.4.4 against 11.1.0 | the FreeRTOS half of the version candidate, in full, because this project carries its own board port and does not depend on the kernel supporting the board | one checkout, the pin stated on the command line, and one version guard | **run on Monday 26 October 2026** |
 | C. Zephyr 3.0.0 against the pinned 4.5.0-rc1 | the Zephyr half of the version candidate, partly: it cannot reach 2.6.0, where neither the board nor the part exists | a second workspace and the development kit of that era | partly |
 | D. The laboratory's own suite on this board | whether its span is the span the kernel's own benchmark measures, and the first independent check of the FreeRTOS figure | a build for the Zephyr half; a porting layer, a configuration header and one file, for the FreeRTOS half | yes for one half, after work for the other |
 | E. The laboratory's board, a Cortex-M4 at 168 MHz | the core candidate | a board the bench does not have | no |
@@ -84,7 +84,26 @@ in the same commit as this page.
 Arms A and B need one bench session between them and no new tooling, which is why they are first.
 Arm E is named so that the chapter cannot later imply the decomposition was complete.
 
-## The predictions, and what refutes each
+## What arms A and B measured, on Monday 26 October 2026
+
+Both predictions below were written before either ran. The full record of the four builds and three captures is in [BENCH.md](BENCH.md).
+
+**Arm A is refuted, and the bound is worth more than the value would have been.** Removing the check did not lower the yield row, it raised it by 4 counts to 630. All six rows moved by small amounts in both directions, none beyond the build bound, and the image shrank by 112 bytes so every address after the removal moved. The yield row has now read 626, 626, 626 and 630 across four builds, a spread of 4 counts, so a per-switch cost would have pulled it down by twice itself and did not. **The check costs a few counts per switch at most, against the guard's measured 178 on the other kernel.** The two-run method has a floor and this quantity is under it; the arm's own refutation clause called that outcome a path not reached, and the better reading is a quantity too small for the method.
+
+**Arm B's prediction is met: the FreeRTOS kernel version is not a term.** On the four rows that are not layout-dominated the two versions agree to within a few tenths of a per cent, the yield row reading 622 at V10.4.4 against 626 at V11.1.0. Before it could be measured the build stopped on the one portability difference between the two versions that this project's code meets: the two static-allocation hooks are declared with `uint32_t` in V10.4.4 and with `configSTACK_DEPTH_TYPE` in V11.1.0, so an application providing them needs a version guard. The guard is committed, and its control is that the pinned image is 27148 bytes again, byte for byte what it was before the guard existed.
+
+**What the two leave is one candidate rather than four.** Per switch, this board gives 311 counts at the laboratory's own kernel version where the laboratory measured 223. Both kernels were measured here on one board with one bracket, so neither the board nor the bracket can explain a difference between them:
+
+| Kernel | published | this board | ratio to published |
+|---|---|---|---|
+| FreeRTOS, the laboratory's own version | 223 | 311 | 1.39 |
+| Zephyr, three versions newer, guard off | 524 | 185 | 0.35 |
+
+The published 2.35 did not dissolve on the FreeRTOS side. It dissolved on the Zephyr side, and the candidate left there is the kernel version, which is arm C. That makes arm C the one worth the second workspace it costs, where before today it was third in the order.
+
+**One defect came out of the session and it is in the build rather than in a figure.** The image did not depend on which revision of the two clones it was built from, so moving the kernel clone back and rebuilding recompiled nothing and left the other version's image in place with the pin check passing. No figure of the day is affected, because each build printed its own size and each banner its own stamp. The fix, a stamp file holding both resolved revisions with the image depending on it, is written and has not been run.
+
+## The predictions as they were written, and what refutes each
 
 **Arm A, the FreeRTOS per-switch check.** The setting is `configCHECK_FOR_STACK_OVERFLOW`, which
 the board build carries at 2 and the host build at 0. Method 2 compares a short fixed pattern at

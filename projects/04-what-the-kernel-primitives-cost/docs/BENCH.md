@@ -1518,3 +1518,136 @@ brackets touch.
 | 5 | two instruments agree on the period | met, 0.504 us | met, 0.531 us |
 | 6 | the disagreement is detectable | met, and it needs no kernel | met, the same reduction |
 | 7 | no row claims an instrument that cannot see it | met, checked on every push | met, the same check |
+
+---
+
+## Monday 26 October 2026: the two arms the settling page put first, and one defect in the build
+
+Four builds and three captures, all FreeRTOS, all on the pinned board support at
+`1d6d10f8`. [SETTLING.md](SETTLING.md) wrote the prediction and the refutation for each arm
+before any of them ran, which is what makes the two outcomes below readable as results rather
+than as observations.
+
+The board support clone refused the first build and was right to: the working clone of the
+sibling firmware volume had moved to `b4dd316` while this project is written against
+`1d6d10f8`. The fix stayed inside this volume rather than moving another volume's checkout:
+`NUCLEO_BSP` is overridable and `fetch-bsp` creates a clone at the pin, so this project now has
+its own copy at `~/src/firmware-nucleo-h7-pinned`. **The default path is the flaw**, because it
+names a tree somebody is editing, and it is the only such default in the volume.
+
+| Build | Kernel | Stack check | Image | Capture |
+|---|---|---|---|---|
+| 10:12:35 | V11.1.0 | 2 | 27148 B | yes, arm A run 1 |
+| 13:17:29 | V11.1.0 | 0 | 27036 B | yes, arm A run 2 |
+| 17:59:41 | V10.4.4 | 2 | 26976 B | yes, arm B |
+| after the clean | V11.1.0 | 2 | 27148 B | no, the control |
+
+### The 10:12 run reproduces the run of 10:06 on Saturday 17 October 2026, cell for cell
+
+All twelve cells: warm 626, 840, 990, 1158, 16054, 69890 and cold 1000, 2144, 2316, 3144, 18550,
+72164. Nine days, two sessions, a different board support clone at the same commit, and the same
+twelve numbers.
+
+**[RESULTS.md](RESULTS.md) takes two of its six warm FreeRTOS cells from the 08:48 build of that
+day rather than from 10:06**, at 986 and 1142 where 10:06 and today both read 990 and 1158. The
+difference is the build bound already recorded above and neither figure is wrong. Whether the
+published column should come from one build is a decision about measured numbers and is left
+where such decisions belong.
+
+### Arm A: the FreeRTOS per-switch stack check costs less than this method can see
+
+`configCHECK_FOR_STACK_OVERFLOW` at 2 against 0, one setting, everything else held. The
+prediction was 10 to 80 counts per switch, by the same two-run method that measured Zephyr's
+stack guard at 178 on Friday 9 October 2026.
+
+| Warm minimum | check at 2 | check at 0 | change |
+|---|---|---|---|
+| yield | 626 | 630 | +4 |
+| block on one object | 840 | 868 | +28 |
+| block on several objects | 990 | 988 | -2 |
+| hand work to a queue | 1158 | 1126 | -32 |
+| contended mutex, inheritance on | 16054 | 16082 | +28 |
+| contended mutex, inheritance off | 69890 | 69948 | +58 |
+
+**The prediction is refuted and the bound is the result.** Removing the check did not lower the
+yield row, it raised it by 4. The changes go both ways, none exceeds the build bound, the cold
+rows moved by up to 304 counts in both directions, and the image shrank by 112 bytes so every
+address after the removal moved. These numbers are layout.
+
+The yield row has now read 626, 626, 626 and 630 across four builds, a spread of 4 counts, and
+is the most stable row in the table. A per-switch cost would have pulled it down by twice that
+cost and it did not move down at all, so **the check costs a few counts per switch at most,
+against the guard's measured 178 on the other kernel.** The two-run method has a floor and this
+quantity is under it.
+
+What that settles is the comparison rather than the check. The 1.10 of the eighth criterion puts
+a Zephyr that reprograms a protection region at every switch against a FreeRTOS that compares a
+stack pattern at every switch, and only one of those two costs had ever been measured:
+
+| Pairing | Zephyr | FreeRTOS | Ratio |
+|---|---|---|---|
+| each kernel's default | 345.5 | 313 | 1.10, Zephyr dearer, the published direction |
+| both per-switch checks off | 185 | about 313 | 0.59, Zephyr cheaper, the direction reversed |
+
+### Arm B: the FreeRTOS kernel version is not a term, and one API difference stood in the way
+
+V10.4.4 against the pinned V11.1.0, same board, same bracket, the check at 2 under both.
+
+**The build stopped before it measured anything**, on a real portability fact worth as much as
+the figure: V10.4.4 declares `vApplicationGetIdleTaskMemory` and `vApplicationGetTimerTaskMemory`
+with `uint32_t` and V11.1.0 with `configSTACK_DEPTH_TYPE`, so an application that provides those
+hooks cannot compile against both without a version guard. One guard, keyed on
+`tskKERNEL_VERSION_MAJOR`, was the only difference between the two versions this project's code
+met. The control for it is the fourth build in the table: the pinned image is 27148 bytes again,
+byte for byte what it was before the guard existed.
+
+| Warm minimum | V11.1.0 | V10.4.4 | change |
+|---|---|---|---|
+| yield | 626 | 622 | -0.6 per cent |
+| block on one object | 840 | 820 | -2.4 |
+| block on several objects | 990 | 920 | -7.1 |
+| hand work to a queue | 1158 | 1078 | -6.9 |
+| contended mutex, inheritance on | 16054 | 16018 | -0.2 |
+| contended mutex, inheritance off | 69890 | 69798 | -0.1 |
+
+The prediction was agreement within 10 per cent and it is met. The two rows that moved most are
+the poll and the work queue, which this log named as the most build-sensitive before today, and
+the image changed size by 172 bytes. On the four rows that are not layout-dominated the two
+versions agree to within a few tenths of a per cent.
+
+### What the two arms leave, and it is one candidate rather than four
+
+Per switch, this board gives 311 counts at V10.4.4 where the laboratory measured 223 at the same
+kernel version. The version is excluded on this side.
+
+**The asymmetry is the finding**, and neither the board nor the bracket can explain it because
+both kernels were measured here with both:
+
+| Kernel | published | this board | ratio to published |
+|---|---|---|---|
+| FreeRTOS, the laboratory's own version | 223 | 311 | 1.39 |
+| Zephyr, three versions newer, guard off | 524 | 185 | 0.35 |
+
+The published 2.35 did not dissolve on the FreeRTOS side. It dissolved on the Zephyr side, and
+the candidate left there is the kernel version, which is arm C of the settling page: Zephyr 3.0.0
+against the pinned 4.5.0-rc1, the oldest release this board exists in.
+
+### The defect: the image did not depend on which revision it was built from
+
+Moving the clone back to V11.1.0 and rebuilding printed the two pin lines and **recompiled
+nothing.** No listed prerequisite had changed, so make had nothing to do, and the image sitting
+in the build directory was still V10.4.4's. The pin check passed throughout, because it reads the
+clone and not the objects. A reader would have flashed one kernel while every line of output
+named the other.
+
+**No figure of today is affected and the evidence is in the captures rather than in the claim.**
+Each build printed its own size and each banner its own stamp: 10:12:35 at 27148, 13:17:29 at
+27036, 17:59:41 at 26976, three sizes and three stamps, each flashed with the size read first.
+The defect would have bitten on the control and not before, which is the one place in the day
+where nothing would have been measured.
+
+The fix is a stamp file holding the resolved revision of both clones, rewritten only when the
+content differs, with the image depending on it. A revision that moves then changes the stamp and
+the image rebuilds; a revision that does not leaves the build alone. It is written and **it has
+not been run**, because the authoring laptop has no make and no cross compiler, and the first
+test of it belongs on the build machine like every other build change in this volume.
