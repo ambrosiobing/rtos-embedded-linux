@@ -1779,3 +1779,31 @@ the package, the package's orientation on the shield is fixed by the shield's ow
 photographs of this morning show how the shield sits on the board. That chain can be read at a
 desk and gives a predicted orientation for nothing. One confirming run, with a rigid object at a
 measured height on a stand rather than in a hand, then either agrees with it or does not.
+---
+
+## Monday 26 October 2026, at a desk: one of criterion 6's two blockers is gone, and criterion 5 changes method
+
+No run, no board, and nothing measured. Two pieces of desk work that the bench log of Tuesday 20
+October 2026 named as next.
+
+**The object checker now takes the object path, which was the first of the two things standing
+between here and criterion 6's remaining half.** It was a constant, `CMakeFiles/app.dir/src/main.c.obj`,
+and that entry above called the change small and said it would strengthen the script for every
+later chapter. It did both: P14's replicated claim, written on Tuesday 20 October 2026, already
+described the script as taking the object path, so the chapter was describing a capability the
+code did not have. The default is unchanged, so P03's invocation and the mutation run recorded
+above behave exactly as they did, and a third argument now overrides it and says in the output
+that it has. The four argument counts were each exercised: none, two, three and four.
+
+**The second blocker stands untouched.** P01's machine still has no build fed from this part
+through the reduction, that integration is the real work, and it needs the development kit rather
+than the board.
+
+**Criterion 5 stops waiting for a document.** The method named above, reading the vendor's zone
+numbering at a desk, was attempted today and cannot be done from this bench: the vendor's
+interface and its implementation carry no statement of zone ordering at the pinned commit, the
+vendor's own manual did not answer from its server, and one public mirror refused.
+[ORIENTATION.md](ORIENTATION.md) replaces the reading and the single confirming run with two runs
+that measure the orientation outright, each covering half the field along one axis through the
+lens window's own axis, from a clamp rather than a hand and with the board standing so that
+gravity supplies the second reference. Eight maps are possible and the two runs select one.

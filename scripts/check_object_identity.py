@@ -2,6 +2,7 @@
 """P03's first criterion: one application, two buses, the same instructions.
 
     python scripts/check_object_identity.py build-i2c build-spi
+    python scripts/check_object_identity.py build-a build-b CMakeFiles/app.dir/src/pipe.c.obj
 
 WHAT IT CHECKS, and why it is not `cmp`. The chapter asks that the application object be byte
 for byte identical between the two-wire and the four-wire build. Both builds were made on
@@ -28,6 +29,13 @@ the ordinal, so the original test would have failed for reasons unconnected to t
 
 AN OBJECT WHOSE INSTRUCTIONS DIFFER is the real refutation, and this reports the
 disassembly diff when it happens, because that names the line.
+
+THE OBJECT PATH IS AN ARGUMENT, with P03's as the default. It was a constant until Monday
+26 October 2026, when P14's replicated claim was found to describe it as an argument: that
+chapter takes this check to a second processor family, where the application being compared
+is P06's pipe rather than P03's, so the object it must read is not this one. A chapter that
+describes a capability the code does not have is the defect, whichever of the two is changed,
+and here the code was the easier half and the chapter was right about what the check is for.
 """
 
 import re
@@ -35,7 +43,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-OBJ = "CMakeFiles/app.dir/src/main.c.obj"
+OBJ = "CMakeFiles/app.dir/src/main.c.obj"   # P03's, and the default when none is given
 ORD = re.compile(r"__device_dts_ord_(\d+)")
 
 
@@ -66,12 +74,16 @@ def disassembly(path):
 
 
 def main(argv):
-    if len(argv) != 3:
-        print(__doc__.splitlines()[2].strip())
+    if len(argv) not in (3, 4):
+        for line in __doc__.splitlines()[2:4]:
+            print(line.strip())
         return 2
 
-    a = Path(argv[1]) / OBJ
-    b = Path(argv[2]) / OBJ
+    obj = argv[3] if len(argv) == 4 else OBJ
+    if len(argv) == 4:
+        print("reading %s in each build, rather than the default %s" % (obj, OBJ))
+    a = Path(argv[1]) / obj
+    b = Path(argv[2]) / obj
     for p in (a, b):
         if not p.is_file():
             print("FAIL no object at %s" % p)
