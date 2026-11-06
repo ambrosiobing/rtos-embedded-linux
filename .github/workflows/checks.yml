@@ -238,3 +238,17 @@ jobs:
       # step in code.yml named below is the real test, and the two are a pair on purpose.
       - name: The build stamp is wired the way it was proved to work
         run: python scripts/test_build_stamp.py --static-only
+
+      # THE CHECKER THAT DECIDES WHETHER ARM C IS WORTH ITS WORKSPACE. P04's settling page makes
+      # arm C first in the order, and arm C costs a second Zephyr tree and the development kit of
+      # its era. scripts/check_arm_c_surface.py answers, from a tag in a clone with no toolchain,
+      # whether this project's harness can be built against that release without becoming a
+      # different harness, which is the ground the originally proposed run was refused on.
+      #
+      # Its verdict will be acted on, so its refusals are exercised here: a tree that satisfies
+      # it, the same tree missing one name used inside a bracket, a tag the clone does not carry,
+      # a path that is not a clone, and no arguments at all. The third of those is the one worth
+      # having, since a checker answering about a tag it cannot see would call every name absent
+      # and read as a catastrophe.
+      - name: The arm C surface checker refuses what it is supposed to refuse
+        run: python scripts/test_check_arm_c_surface.py

@@ -159,6 +159,89 @@ This volume pins every external source to a full revision that the build compare
 `scripts/check_pin.py`. The suite of arm D is an external source like the vendor driver of P05,
 so its build file carries a URL, a commit and the call, and the clone stays where it lies.
 
+## What arm C must settle before a second workspace is built
+
+Written on Friday 6 November 2026, with nothing measured and no board involved. Arm C is now
+first in the order because the published 2.35 dissolved on the Zephyr side, so it is worth asking
+what it costs before paying for it. The answer is not the workspace. **It is whether the harness
+can be built against 3.0.0 without becoming a different harness**, which is the ground the
+originally proposed run was refused on: `sections/z04.tex` rejects that run partly because "it
+also moved the harness and the kernel version together, which this volume refuses elsewhere". Arm
+C inherits that objection unless the line between an allowed change and a disallowed one is drawn
+first.
+
+### The rule this page adopts for arm C
+
+**An include path or a Kconfig spelling may change. A line inside a bracket may not.**
+
+The reason is what each kind of change can do to a number. The cold pass calls
+`SCB_InvalidateICache()`, `__DSB()` and `__ISB()`, and reads `SCB->CCR` with `SCB_CCR_IC_Msk` and
+`SCB_CCR_DC_Msk`. **None of those six is Zephyr's.** They are CMSIS-Core definitions from ARM,
+they compile to the same instructions whichever Zephyr includes them, and the header that reaches
+them is not in any bracket. Changing how that header is spelled changes no measured quantity and
+can be verified by eye. Changing a `k_*` call, or what one of them does, changes the thing being
+measured, and arm C is then two changes wide and is refused.
+
+### The hazard is a false line, not a failed build
+
+`main.c` prints its own provenance with `IS_ENABLED(CONFIG_ICACHE)` and
+`IS_ENABLED(CONFIG_DCACHE)`, beside what the control register actually reports. **`IS_ENABLED` on
+a Kconfig symbol that does not exist is 0, with no diagnostic from the preprocessor or the build.**
+So a symbol renamed between the two releases does not stop the build. It prints
+`the build asked for CONFIG_ICACHE n` under a hardware line reading `instruction cache ON`, and a
+reader comparing two captures would see the caches differ between the releases when only the
+spelling did. That is the direction this project has been caught by twice already, a guard or a
+label asserting something the hardware contradicts, and it is why the table below lists every
+symbol the harness names rather than only the ones that would fail to compile.
+
+### Every Zephyr-facing name the harness uses, with a prediction written before the check
+
+Taken from `zephyr/src/main.c`, `zephyr/src/mutex_case.c`, `zephyr/src/port.h` and
+`adapter/`, which is the whole of this application's surface. **Predicted** is what this page
+expects at tag v3.0.0 and is recorded before anything was read, so the check can refute it.
+
+| name | where it is used | predicted at v3.0.0 |
+|---|---|---|
+| `zephyr/kernel.h` | every file | present |
+| `zephyr/sys/util.h` | `main.c` | present |
+| `zephyr/drivers/gpio.h` | `main.c`, the marker pin | present |
+| `zephyr/timing/timing.h` | `main.c`, the stopwatch | present |
+| `cmsis_core.h` | `main.c`, the cold pass and the cache report | **absent**, the unified spelling is later; the arch-specific path is expected instead |
+| `timing_init`, `timing_start`, `timing_counter_get`, `timing_freq_get` | the stopwatch | present |
+| `k_cycle_get_32`, `sys_clock_hw_cycles_per_sec` | the second stopwatch | present |
+| `k_sem_take`, `k_sem_give`, `k_mutex_lock`, `k_mutex_unlock` | inside brackets | present and unchanged |
+| `k_yield`, `k_thread_suspend`, `k_thread_resume`, `k_current_get` | inside brackets | present and unchanged |
+| `k_thread_create`, `k_thread_priority_set`, `k_msleep`, `k_uptime_get` | setup, outside brackets | present and unchanged |
+| `k_poll`, `k_poll_event`, `k_poll_event_init` | the several-objects row | present and unchanged |
+| `k_work`, `k_work_submit` | the deferred row | present and unchanged |
+| `DT_PATH`, `DT_GPIO_CTLR` | the marker pin | present |
+| `DT_NODE_FULL_NAME` | the provenance line | present, and this is the least certain of the macros |
+| `CONFIG_POLL`, `CONFIG_ASSERT`, `CONFIG_TIMESLICING`, `CONFIG_TIMESLICE_SIZE` | `prj.conf` and the provenance lines | present |
+| `CONFIG_HW_STACK_PROTECTION`, `CONFIG_ARM_MPU`, `CONFIG_FPU_SHARING`, `CONFIG_PM` | the provenance lines | present |
+| `CONFIG_TIMING_FUNCTIONS` | `prj.conf` | present |
+| `CONFIG_ICACHE`, `CONFIG_DCACHE` | the cache report | **absent**, and this is the one that goes wrong quietly rather than loudly |
+| `CONFIG_BOARD_NUCLEO_H7A3ZI_Q` | the provenance line | present, since the board is present at this tag |
+
+*Refuted if* any name used **inside a bracket** is absent at v3.0.0 or has changed what it does,
+in which case arm C moves the harness and the kernel version together, it is refused on the same
+ground as the run it replaced, and this page says so rather than running it anyway.
+
+*Also refuted if* the two predicted absences turn out to be present, which would mean the
+preparation below is unnecessary and the arm is cheaper than this section claims.
+
+### What the check is, and it needs no toolchain
+
+The Zephyr clone on the demo laptop is at v4.5.0-rc1. With its tags fetched, every row above is a
+question about one tag's tree and one tag's Kconfig, answered by `git cat-file` and `git grep`
+against `v3.0.0` without configuring or building anything. Only after the table is settled is a
+second workspace worth creating, and only then does the development kit of that era matter.
+
+**And one outcome would stop arm C here**, which is worth naming so the section can end badly:
+if the stopwatch itself is not available at 3.0.0 in the form this harness uses, then the two
+releases cannot be measured with one instrument, and that is the same defect as comparing two
+kernels with two stopwatches. The project already knows what that costs; criterion 2 failed by a
+factor of five to seven for exactly that reason until Friday 9 October 2026.
+
 ## Sources
 
 - This project's own `RESULTS.md` and `CRITERION2.md`, for every measured figure above, including
