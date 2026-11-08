@@ -252,3 +252,14 @@ jobs:
       # and read as a catastrophe.
       - name: The arm C surface checker refuses what it is supposed to refuse
         run: python scripts/test_check_arm_c_surface.py
+
+      # EVERY README STILL DESCRIBES ITS OWN DIRECTORY. On Sunday 8 November 2026 the front page
+      # carried a section headed "There is no code here yet" over a tree with 36 C files, three
+      # parts that had run on the board, and nineteen scripts where it named four. Not one of
+      # those sentences was a lie when written; each was falsified by work with no reason to
+      # touch a README. Four mechanical rules, and the self-test breaks each on purpose,
+      # including the case where the gate refused the very commit that fixed the page.
+      - name: Every README still describes its own directory
+        run: |
+          python scripts/test_check_readmes.py
+          python scripts/check_readmes.py

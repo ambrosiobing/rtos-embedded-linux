@@ -1,10 +1,16 @@
 # P07. Settings that survive a power cut
 
-Status: not started. Nothing in this directory has been built, and no
-number here has been measured.
+Status: not built, one decision recorded. Nothing in this directory has been
+compiled and no number here has been measured.
 
 The written design is [chapter 07](../../chapters/07-settings-that-survive-a-power-cut.md), which is
 complete. What is absent is the code.
+
+**The one thing decided rather than written** is the flash map, in
+[docs/layout.md](docs/layout.md): the part's own geometry, what each MCUboot swap mode
+requires of the slots, the two candidate maps and which was taken. It is here rather than
+in P08 because the storage partition is this chapter's, and one map serves both swap modes,
+so P08's replicated claim changes only the mode between its two runs.
 
 | | |
 |---|---|

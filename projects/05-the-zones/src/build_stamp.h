@@ -11,6 +11,20 @@
  * because main.c had not been recompiled and did not need to be. The image was new and the
  * stamp said it was not, so the guard against reading stale output became a reason to discard a
  * real result. scripts/stamp.py carries the full reasoning.
+ *
+ * AND "AT EVERY BUILD" WAS NOT TRUE UNTIL FRIDAY 6 NOVEMBER 2026, which is recorded here
+ * because this file is where a reader comes to find out what the stamp guarantees. The rule
+ * depended on a custom target carrying no output, which is unconditional under make and already
+ * satisfied under ninja, so the generated file was written once when a build directory was
+ * created and never again. On Monday 26 October 2026 four bench captures printed a stamp eleven
+ * hours old from images that were all correct, and the first reading of them was that the flash
+ * was stale. **The same failure as the one above, one layer down**, and in the same direction:
+ * what a false stale report throws away is a real result.
+ *
+ * The fix is the SYMBOLIC property in the project's CMakeLists.txt, which is measured rather
+ * than reasoned, because the obvious fix was also wrong. scripts/test_build_stamp.py builds four
+ * wirings twice each and keeps two of them failing on purpose, so the guarantee this header
+ * describes is checked instead of asserted.
  */
 #ifndef P05_BUILD_STAMP_H
 #define P05_BUILD_STAMP_H

@@ -77,18 +77,30 @@ without losing the argument.
 - Twelve things a reader might look for here are built in a sibling volume and
   are cited rather than described twice.
 
-## There is no code here yet, and the READMEs say so
+## Five parts carry code, fifteen do not, and each README says which
 
-This volume is twenty written chapters. **No project has been built**, and each
-of the twenty `projects/NN-slug/README.md` files says that in its first line,
-names what it would need on the bench, and links to the chapter that designs it.
+This section read "There is no code here yet" from Friday 2 October 2026 until
+Sunday 8 November 2026, and by then it was false in both directions: five parts
+had code and three had run on hardware. **A front page that understates what has
+been done is the same defect as one that overstates it**, because a reader
+cannot tell which sentences to trust, so the state lives in one place and is
+derived from the tree rather than remembered.
+
+- **P01 to P05 carry code.** Of those, **P03, P04 and P05 have run on the
+  board**, and their numbers are in their own `docs/`, each beside the instrument
+  it was taken with. P04 carries two kernels on one application; P05 carries an
+  out-of-tree driver, a reduction with its own host suite, and captures from the
+  part itself.
+- **P06 and P08 to P20 are written and not started.** Each of those
+  `projects/NN-slug/README.md` files says so in its first line, names what it
+  would need on the bench, and links to the chapter that designs it.
+- **P07 is written, not built, and has one decision recorded**, the flash map in
+  its `docs/layout.md`, which also serves P08.
 
 The directories exist anyway, all twenty from the start, so the shape of the
 volume is visible in the repository rather than only in the book. A missing
 directory would let a reader assume work was coming; a README that implied work
-had started would be a claim with nothing behind it. Every figure in this volume
-was rendered and looked at, and that is the only thing here that has been done
-rather than designed.
+had started would be a claim with nothing behind it.
 
 ## Building
 
@@ -131,9 +143,33 @@ and so does the `checks` workflow.
 
 These run on a clone, with nothing but a Python interpreter:
 
-    python scripts/lint.py               house rules, and the name scan
-    python scripts/check_links.py        every relative link and anchor
-    python scripts/check_anchors.py      which chapters name a published claim they replicate
+    python scripts/lint.py                 house rules, and the name scan
+    python scripts/check_links.py          every relative link and anchor
+    python scripts/check_anchors.py        which chapters name a published claim they replicate
+    python scripts/check_string_literals.py  a C string that spans lines without joining
+    python scripts/check_tree.py           what kinds of file this repository admits
+    python scripts/check_vendoring.py      nothing third-party copied in, every external source pinned
+    python scripts/check_instruments.py    every measurement names its instrument or reads not measured
+    python scripts/crosscheck_table.py     the chapter tables against each other
+    python scripts/crosscheck_cascade.py   the claim cascade
+    python scripts/test_check_pin.py       the pin gate refuses what it should
+    python scripts/test_check_anchors.py   the anchor gate refuses seven mutations
+    python scripts/test_build_stamp.py     the build stamp regenerates at every build
+    python scripts/test_check_arm_c_surface.py  the arm C surface checker refuses what it should
+    python scripts/check_readmes.py        every README still describes its own directory
+    python scripts/test_check_readmes.py   the README gate refuses what it should
+
+The five `test_` scripts are there because a gate that has only ever passed is
+not a gate. Each builds the state it is supposed to catch and fails if the
+checker lets it through. `test_build_stamp.py` needs cmake and ninja for its
+second half and says in its own output when it has not run them; the other three
+need only this interpreter.
+
+Two scripts answer a question rather than guarding a rule, so they take arguments
+and are not run by a workflow on their own: `check_object_identity.py` compares
+two builds of one application, and `check_arm_c_surface.py` asks whether P04's
+harness can be built against an older Zephyr without becoming a different
+harness.
 
 `scripts/lint.py` checks prose for em and en dashes, non-ASCII characters and
 violent idioms, and code blocks for non-ASCII and over-long lines. It also runs
@@ -147,10 +183,14 @@ before prose is examined, because a double dash inside a command is correct.
 they are. The linter reads words and the name scan reads words; neither looks at
 a link, and a wrong rewrite would be a page of broken images.
 
-Two more checks are structural and live in
-[`.github/workflows/checks.yml`](.github/workflows/checks.yml): twenty chapters
-with twenty projects and five figures each as both SVG and TikZ, and no LaTeX
-committed outside a figure directory.
+[`.github/workflows/checks.yml`](.github/workflows/checks.yml) runs those on
+every push, with the structural checks beside them: twenty chapters with twenty
+projects and five figures each, and no LaTeX committed outside a figure
+directory. [`.github/workflows/code.yml`](.github/workflows/code.yml) is the
+second workflow and builds what can be built without the bench: C at four
+standards and C++ at four under two compilers, Rust at three editions, the host
+suites, and the Zephyr and FreeRTOS images for this board, including two builds
+of one application that must differ only in the bus they name.
 
 The authoring machine has three more that a clone does not need, because they
 read the LaTeX: `python lint.py`, `python crosscheck.py`, and
@@ -161,14 +201,20 @@ read the LaTeX: `python lint.py`, `python crosscheck.py`, and
 | Path | What it is |
 |---|---|
 | `chapters/NN-slug.md` | the volume, one file per chapter, 00 to 21. Written only by `scripts/publish.py` |
-| `projects/NN-slug/README.md` | that project's state, which today is not started |
+| `projects/NN-slug/README.md` | that project's state, which is one of started, one decision recorded, or not started |
 | `projects/NN-slug/docs/figures/` | that chapter's five figures, as SVG |
 | `docs/figures/front_stack.svg` | the one figure belonging to no single project |
-| `scripts/` | `publish.py`, `make_projects.py`, `lint.py`, `check_links.py` |
+| `projects/NN-slug/{zephyr,freertos,host,...}/` | that part's code, where it has any |
+| `scripts/` | nineteen Python files: the two that publish, the gates, and the four that test the gates |
 
-Every file in this repository is Markdown, SVG, one of those four Python scripts,
-the workflow, the licence or the citation file. Nothing else, and the workflow
-checks it.
+**What kinds of file this repository admits is checked rather than described**,
+by `scripts/check_tree.py`, because this list was wrong for a month after the
+first code landed. It said every file was Markdown, SVG, one of four Python
+scripts, the workflow, the licence or the citation file, which stopped being true
+with the first C file and was still being published afterwards. Read the checker
+for the current answer; as of Sunday 8 November 2026 the tree also carries C,
+C++, Rust, headers, Kconfig fragments, devicetree overlays, Makefiles and cargo
+manifests.
 
 `AUTHORING.md` is the contract every chapter follows. `SOURCE.md` is the
 prior-art pool, with a licence and a reading date on every row, and with the

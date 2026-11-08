@@ -29,6 +29,18 @@ first grid after a cold start was ten negative millimetres with the same status 
 [docs/BENCH.md](docs/BENCH.md) records that run and, written before the hardware is powered, the
 four outcomes the identification run can return and what each one changes.
 
+**What is in this directory, beyond the driver.** The nearest valid zone is reduced in
+[src/reduce_nearest_valid.c](src/reduce_nearest_valid.c), which names no operating system
+and so has a host suite of its own in [host/](host): `make check` builds and runs it and
+`make mutants` breaks it four ways and fails unless the suite notices each.
+[docs/REDUCTION.md](docs/REDUCTION.md) says what it reduces and why a zone that saw nothing
+is not a zone at range zero. [src/zone_status.h](src/zone_status.h) is the record of which
+status values the vendor's own header calls ranging OK, which the pinned tree documents only
+in a compiled help file. [docs/ORIENTATION.md](docs/ORIENTATION.md) is criterion 5: two runs
+that measure which way up the printed grid is, written because the documentary chain for it
+cannot be read from this bench, with the eight possible maps and what refutes each run.
+Those two runs have not yet been performed.
+
 [docs/DESIGN.md](docs/DESIGN.md) sorts the chapter's seven acceptance criteria by what each
 costs, and **two of them need no hardware at all**: that P01's application object is byte for
 byte what it was with only its range source changed, and that the vendor's licence travels with

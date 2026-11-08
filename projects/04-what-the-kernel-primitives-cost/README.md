@@ -6,6 +6,12 @@ upstream benchmark suite, is Zephyr's alone and cannot be posed under FreeRTOS, 
 ships no such suite; [docs/DESIGN.md](docs/DESIGN.md) says so rather than leaving a reader to
 notice. The figures are in [docs/RESULTS.md](docs/RESULTS.md), the record of every run in
 [docs/BENCH.md](docs/BENCH.md), and the second kernel in [freertos/README.md](freertos/README.md).
+The bench arrangement is in [docs/WIRING.md](docs/WIRING.md) and the one criterion that
+needed a page of its own, because it failed and the residual pointed outside the
+operation, is in [docs/CRITERION2.md](docs/CRITERION2.md).
+What the chapter's one unsettled figure would take is in [docs/SETTLING.md](docs/SETTLING.md):
+five arms, each moving one thing, with every prediction and its refutation written before
+the run. Two of the five have been measured and they narrowed four candidates to one.
 
 On Thursday 8 October 2026 this line read: the design page exists and no code does. The sections
 below are in the order they were written, and the two that carry figures from the first evening
