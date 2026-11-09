@@ -1,8 +1,12 @@
 # What each language version actually changes for a cascade
 
-Filled from the compiler's own report on Tuesday 6 October 2026, in WSL on the demo
-laptop, not from a standards table. The test prints which additions the compiler in front
-of it provided, and this page is that log. Where the two disagree the log is right.
+Filled from the compiler's own report, in WSL on the demo laptop, not from a standards
+table. The test prints which additions the compiler in front of it provided, and this page
+is that log. Where the two disagree the log is right.
+
+**Taken twice: Tuesday 6 October 2026 and again on Monday 9 November 2026.** The second run
+exists because two cells of the first were wrong and because the first named no compiler,
+and both of those are recorded below rather than quietly replaced.
 
 The shape being compared matters. [P01](../../01-presence/docs/LANGUAGE_IDIOMS.md) compares
 versions against a **transition table**. This project compares them against a **cascade**:
@@ -14,16 +18,50 @@ Different shapes reward different additions, and most of what follows is about t
 Six combinations, all green, `-Werror -Wpedantic -Wshadow -Wconversion -fno-exceptions
 -fno-rtti`.
 
+**Monday 9 November 2026, g++ 15.2.0 and clang++ 21.1.8.** Every column is the standard it
+names; neither compiler fell back.
+
 | Feature | g++ 17 | g++ 23 | g++ 2c | clang++ 17 | clang++ 23 | clang++ 2c |
 |---|---|---|---|---|---|---|
 | `std::expected` | no | **yes** | **yes** | no | **yes** | **yes** |
 | `std::to_underlying` | no | **yes** | **yes** | no | **yes** | **yes** |
 | `consteval` | no | **yes** | **yes** | no | **yes** | **yes** |
 | `std::inplace_vector` | no | no | no | no | no | no |
-| `static_assert` with a computed message | no | no | **yes** | **yes** | **yes** | **yes** |
+| `static_assert` with a computed message | no | no | **yes** | no | no | **yes** |
 
 `__cplusplus` read 201703, 202302 and 202400 for the three standards, identically under
-both compilers.
+both compilers, in both runs.
+
+**Tuesday 6 October 2026 differed in exactly two cells, and the difference is this page
+answering two questions in one column.** It read `static_assert` with a computed message as
+**yes** at clang++ 17 and clang++ 23. That was a true report of what clang provides and a
+false answer to what this column is read as asking, which is whether the code here can use
+it. Those two questions are exactly the ones separated by finding three below, on this same
+page. The figure came from a probe in `cpp/claim26.hpp` that asked only the feature-test
+macro:
+
+    #if defined(__cpp_static_assert) && __cpp_static_assert >= 202306L
+
+clang defines that macro in `-std=c++17` mode because it supports the feature as an
+extension, so the probe was true in a translation unit that may not legally use it, and
+`-Wpedantic -Werror` would refuse the syntax it unlocked. The probe now asks the macro and
+`__cplusplus` together, and the two cells read no: this column reports what the code may
+use, and the implementation's wider offer is finding three's subject rather than this
+table's.
+
+The same defect in P01's `presence26.hpp` turned two matrix jobs red on Monday 9 November
+2026, when the runner's compiler changed. Here the build stayed green and the defect
+arrived as these two cells instead, which is the worse of the two outcomes: **a red
+workflow is looked at and a table is not.**
+
+**And the first run named no compiler, which is why this page appeared to contradict
+P01's.** That page reports `std::expected` as unavailable on clang at c++23 and c++2c;
+this one reports it available. Both are right. P01's figures of Monday 5 October 2026 came
+from the CI runner, gcc 13.3 and clang 18.1.3; this page's came from WSL on the demo
+laptop a day later, whose compilers were newer. Neither table said so, and the same
+omission explains the `__cplusplus` column: 202100 at 23 g++ on the runner's gcc 13.3,
+202302 here. **A measured table names the instrument that produced it**, which is this
+volume's rule for a meter and is no different for a compiler.
 
 ## Finding one: the compile-time proof did not need C++23
 
@@ -79,6 +117,18 @@ standard carrying it ships. What follows is practical: **a feature macro cannot 
 infer which standard is in force**, and a project that gates behaviour on one is gating on
 the compiler, not on the language version it thinks it named. Reading `__cplusplus` is the
 only answer to the second question.
+
+**And this project then did the thing this finding warns against, for five weeks.** The
+paragraph above was written on Tuesday 6 October 2026 and names the remedy in its last
+sentence. Both `cpp/claim26.hpp` here and `presence26.hpp` in P01 went on gating purely on
+the feature macro, so on Monday 9 November 2026, when the runner's compiler changed to one
+that offers more as an extension, P01's two clang jobs failed on syntax its probe had
+unlocked under `-std=c++17`. The table at the top of this page had been carrying the same
+mistake in two cells the whole time, visible and unread.
+
+**A pitfall named in prose is not a gate**, which is the most repeated defect in this
+volume and is recorded here because this is the clearest instance of it: the diagnosis, the
+remedy and the code that ignored both were one directory apart.
 
 This is the mirror of a P01 finding, where an edition changed what the language permitted
 rather than what the library offered. Here an implementation changed what the library
