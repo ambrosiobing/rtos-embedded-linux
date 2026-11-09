@@ -37,26 +37,53 @@
 #include <version>
 #endif
 
-#if defined(__cpp_lib_inplace_vector) && __cpp_lib_inplace_vector >= 202406L
+// A FEATURE-TEST MACRO SAYS WHAT THE COMPILER KNOWS, NOT WHAT THIS STANDARD ADMITS, and the
+// difference turned two passing matrix jobs red on Monday 9 November 2026 with no commit having
+// touched this file. The runner's `ubuntu-latest` moved to Ubuntu 26 and brought clang 21, which
+// defines `__cpp_deleted_function` in `-std=c++17` mode because it supports the feature as an
+// extension. So the probe below was true under c++17, the C++26 form was emitted, and
+// `-Wpedantic -Werror` refused it as an extension use. Exactly right of the compiler, and the
+// probe was asking the wrong question.
+//
+// THE SECOND HALF ALSO CORRECTS THE FEATURE REPORT, which matters more than the build. A
+// translation unit compiled as c++17 cannot use a C++26 feature whatever the compiler privately
+// knows, so reporting it available there was false before it was a failure. The workflow already
+// said this is what should happen, in a comment promising that a compiler with no C++26 mode will
+// have "every one of them report NOT available". That was true of gcc, which has no such mode and
+// so defines none of the macros, and silently untrue of clang.
+//
+// So each C++26 probe asks two questions rather than one. `__cplusplus` is 201703L at c++17,
+// 202302L at c++23 and above that only for a C++26 mode, so one comparison separates them.
+#if __cplusplus > 202302L
+#define PRESENCE_STD_ADMITS_26 1
+#else
+#define PRESENCE_STD_ADMITS_26 0
+#endif
+
+#if PRESENCE_STD_ADMITS_26 && defined(__cpp_lib_inplace_vector) \
+    && __cpp_lib_inplace_vector >= 202406L
 #include <inplace_vector>
 #define PRESENCE_HAS_INPLACE_VECTOR 1
 #else
 #define PRESENCE_HAS_INPLACE_VECTOR 0
 #endif
 
-#if defined(__cpp_static_assert) && __cpp_static_assert >= 202306L
+#if PRESENCE_STD_ADMITS_26 && defined(__cpp_static_assert) \
+    && __cpp_static_assert >= 202306L
 #define PRESENCE_HAS_STATIC_ASSERT_MSG 1
 #else
 #define PRESENCE_HAS_STATIC_ASSERT_MSG 0
 #endif
 
-#if defined(__cpp_deleted_function) && __cpp_deleted_function >= 202403L
+#if PRESENCE_STD_ADMITS_26 && defined(__cpp_deleted_function) \
+    && __cpp_deleted_function >= 202403L
 #define PRESENCE_HAS_DELETE_REASON 1
 #else
 #define PRESENCE_HAS_DELETE_REASON 0
 #endif
 
-#if defined(__cpp_pack_indexing) && __cpp_pack_indexing >= 202311L
+#if PRESENCE_STD_ADMITS_26 && defined(__cpp_pack_indexing) \
+    && __cpp_pack_indexing >= 202311L
 #define PRESENCE_HAS_PACK_INDEXING 1
 #else
 #define PRESENCE_HAS_PACK_INDEXING 0
