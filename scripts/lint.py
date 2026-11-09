@@ -30,6 +30,7 @@ and every word of the prose is hashed and compared. The plaintext list lives
 once, in the private catalogue note, and never in this repository.
 """
 import hashlib
+import datetime
 import re
 import sys
 from pathlib import Path
@@ -127,6 +128,45 @@ def name_scan(text):
     return problems
 
 
+WEEKDAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+MONTH_NUMBER = {m: i + 1 for i, m in enumerate(
+    ("January", "February", "March", "April", "May", "June",
+     "July", "August", "September", "October", "November", "December"))}
+
+# A WEEKDAY THAT IS PRESENT IS NOT A WEEKDAY THAT IS RIGHT. The house rule asks for the weekday
+# on every date, and this file enforced it by requiring one to be there. On Monday 9 November
+# 2026 a sweep that computed the weekday instead of counting it found three published pairs
+# that named 5 October 2026 as a Sunday when it is a Monday, two in a chapter's documentation and
+# one in another gate's own comments. The rule had been satisfied in form for five weeks while
+# being wrong in fact.
+#
+# The wrong pair is described here rather than quoted, because a checker whose own comment
+# contains the thing it refuses is the defect this repository has now met five times.
+#
+# The whitespace is collapsed before matching because a date wraps across lines in prose and a
+# line sweep cannot see a wrapped construct.
+DATE_PAIR = re.compile(r"\b(%s)\s+(\d{1,2})\s+([A-Z][a-z]+)\s+(\d{4})\b"
+                       % "|".join(WEEKDAYS))
+
+
+def wrong_weekdays(text):
+    """Every weekday-and-date pair whose weekday disagrees with the calendar."""
+    found = []
+    for m in DATE_PAIR.finditer(" ".join(text.split())):
+        day, dd, month, yyyy = m.group(1), int(m.group(2)), m.group(3), int(m.group(4))
+        if month not in MONTH_NUMBER:
+            continue
+        try:
+            actual = WEEKDAYS[datetime.date(yyyy, MONTH_NUMBER[month], dd).weekday()]
+        except ValueError:
+            found.append("impossible date: %s %d %s %d" % (day, dd, month, yyyy))
+            continue
+        if actual != day:
+            found.append("wrong weekday: %s %d %s %d is a %s"
+                         % (day, dd, month, yyyy, actual))
+    return found
+
+
 def check(path):
     s = path.read_text(encoding="utf-8")
     problems = []
@@ -147,11 +187,20 @@ def check(path):
     bad = sorted({c for c in prose if ord(c) > 126})
     if bad:
         problems.append(f"non-ASCII in prose: {codepoints(bad)}")
+    # AND A CONTROL CHARACTER IS NOT NON-ASCII. The sweep above tests ord(c) > 126, so anything
+    # below 32 passed through every file this gate reads. On Monday 9 November 2026 a backspace
+    # byte reached the regular expression two screens above this line, by way of a shell heredoc
+    # that turned a written word boundary into the character it names. It printed as nothing, the
+    # pattern matched nothing, and the gate reported a clean tree while checking for nothing.
+    ctrl = sorted({c for c in s if ord(c) < 32 and c not in "\t\n\r"})
+    if ctrl:
+        problems.append(f"control character in the file: {codepoints(ctrl)}")
     for m in VIOLENT.finditer(prose):
         problems.append(f"violent idiom: {m.group(0)!r} near "
                         f"{prose[max(0, m.start()-40):m.end()+40]!r}")
 
     problems += name_scan(s)
+    problems += wrong_weekdays(s)
 
     for env, code in codes:
         bad = sorted({c for c in code if ord(c) > 126})

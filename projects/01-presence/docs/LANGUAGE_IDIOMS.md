@@ -66,7 +66,7 @@ toolchain. **The gap between what a standard contains and what a compiler provid
 is the finding of this page**, and it is why every idiom here is probed and
 reported rather than assumed.
 
-## Measured, Sunday 5 October 2026
+## Measured, Monday 5 October 2026
 
 Two runs. The first was twelve of fifteen green and the three failures are below.
 The second, after the fixes, was fifteen of fifteen, and its logs are where every

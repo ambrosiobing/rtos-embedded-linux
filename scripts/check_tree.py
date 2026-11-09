@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # Markdown, SVG and the scripts that produce them are what a clone is for; a reader should not be
 # asked to download anything.
 #
-# Extended on Sunday 5 October 2026, when P01 brought the first code. The purpose of this guard is
+# Extended on Monday 5 October 2026, when P01 brought the first code. The purpose of this guard is
 # unchanged and is not about source types: it keeps out the PDF, the HTML and the LaTeX. Source
 # files are what the repository is for, so the allowlist names the ones the projects carry.
 #

@@ -1,6 +1,6 @@
 # P01 design: the table is the specification
 
-Written Sunday 5 October 2026, before any code in this directory. Amended Tuesday
+Written Monday 5 October 2026, before any code in this directory. Amended Tuesday
 6 October 2026 with the memory section and with row 18, the only change the table
 itself has needed; `RTOS_VARIANTS.md` carries the argument for that row and was
 written before it.
