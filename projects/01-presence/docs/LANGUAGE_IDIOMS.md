@@ -57,10 +57,13 @@ are unconditional. C++23's `consteval` checks move totality and guard order from
 run-time test to the compiler, on both compilers. Those three are the page's solid
 ground.
 
-**What does not:** C++26 contributed exactly one cell of twelve, on one compiler.
-Three of its four idioms here were available nowhere, so the code written for them
-has never compiled in its intended form and every claim made for them is a
-prediction. Reflection and contracts, which would generate the diagram from the
+**What does not, as of Monday 9 November 2026:** C++26 contributes three idioms
+of its four, on both compilers. One remains available nowhere, `std::inplace_vector`,
+so the code written for it has still never compiled in its intended form and every
+claim made for it is a prediction. **In October 2026 that sentence read the other
+way round**, one idiom on one compiler and three available nowhere, and the tables
+below carry both runs because the five weeks between them are the most useful
+measurement on this page. Reflection and contracts, which would generate the diagram from the
 table and make the invariant a precondition, are in the standard and in neither
 toolchain. **The gap between what a standard contains and what a compiler provides
 is the finding of this page**, and it is why every idiom here is probed and
@@ -92,10 +95,28 @@ The same two source files compiled and the row-coverage test passed under every
 one. **C17 and C23 changed nothing about this table**, which was the prediction
 and is now a result.
 
-### C++: the twelve feature reports
+### C++: the twelve feature reports, measured twice a month apart
 
 Each cell is what that compiler at that standard actually provided. This is the
-table the page exists for.
+table the page exists for, and **it is now two tables**, because the first one
+stopped being true without a line of this code changing.
+
+**Monday 9 November 2026, on the demo laptop, g++ 15.2.0 and clang++ 21.1.8.**
+Every column is the standard it names: neither compiler fell back.
+
+| Idiom | 17 g++ | 17 clang | 23 g++ | 23 clang | 26 g++ | 26 clang |
+|---|---|---|---|---|---|---|
+| `__cplusplus` | 201703 | 201703 | 202302 | 202302 | 202400 | 202400 |
+| `std::expected` return | no | no | **yes** | **yes** | **yes** | **yes** |
+| `std::to_underlying` | no | no | yes | yes | yes | yes |
+| `consteval` checks | no | no | yes | yes | yes | yes |
+| `std::inplace_vector` | no | no | no | no | **no** | **no** |
+| `static_assert` message | no | no | no | no | **yes** | **yes** |
+| `= delete("reason")` | no | no | no | no | **yes** | **yes** |
+| pack indexing | no | no | no | no | **yes** | **yes** |
+
+**Monday 5 October 2026, the first run, gcc 13.3 and clang 18.1.3.** Kept because
+the difference between the two is the most useful thing on this page.
 
 | Idiom | 17 g++ | 17 clang | 23 g++ | 23 clang | 26 g++ | 26 clang |
 |---|---|---|---|---|---|---|
@@ -108,19 +129,48 @@ table the page exists for.
 | `= delete("reason")` | no | no | no | no | **no** | **no** |
 | pack indexing | no | no | no | no | **no** | **no** |
 
-The 26 g++ column is `-std=c++23`, because gcc 13.3 has no C++26 mode at all and
-the probe fell back. That is why its numbers are identical to the 23 g++ column.
+In that run the 26 g++ column was really `-std=c++23`, because gcc 13.3 had no
+C++26 mode and the probe fell back, which is why its numbers matched the 23 g++
+column. **gcc 15.2.0 has one**, reports `__cplusplus=202400`, and the fallback no
+longer fires.
+
+**What moved in five weeks, with no commit touching this code.** Four of the
+differences are the toolchain catching up and one is a defect of ours:
+
+| cell | October | November | why |
+|---|---|---|---|
+| `__cplusplus` at 23 g++ | 202100 | 202302 | gcc 13 reported the draft value, gcc 15 the ratified one |
+| 26 g++, the whole column | a fallback to c++23 | a real C++26 mode | gcc gained one |
+| `std::expected` on clang | not available at either standard | available at both | the library caught up |
+| `= delete("reason")` and pack indexing at 26 | not available | available on both compilers | the compilers caught up |
+| `= delete("reason")` at 17 and 23 clang | no | no, and now for the right reason | see below |
+
+**The last row is ours and not the toolchain's.** Until Monday 9 November 2026 the
+probe for that idiom asked only its feature-test macro, and clang 21 defines that
+macro in `-std=c++17` mode because it supports the feature as an extension. So the
+probe was true where the standard forbids the syntax, the C++26 form was emitted,
+and `-Wpedantic -Werror` refused it: two matrix jobs red for a day. The probe now
+asks the macro and `__cplusplus` together. A feature-test macro says what the
+compiler knows, not what the selected standard admits.
 
 ### Four findings, and two of them correct what this page previously claimed
+
+**All four are the first run's, Monday 5 October 2026, on gcc 13.3 and clang
+18.1.3. Three of them no longer describe the current toolchain**, and each says so
+underneath rather than being deleted: a finding that expired is evidence about how
+fast this ground moves, and that is the thesis of the page.
 
 **1. Availability is the compiler's and the library's jointly, not the standard's,
 and the newer compiler can have less.** `std::expected` is available on g++ 13.3
 at `c++23` and **not** on clang 18.1.3 at `c++23` or at `c++2c`. So the one idiom
-here that removes a real defect class has only ever been exercised by one of the
-two compilers, and the `C++23: the row index is the return value` test is silently
-skipped on clang. Why clang with the same libstdc++ does not expose the macro is
-**not established** and would need checking before it is asserted; the observation
-is recorded, the mechanism is not.
+here that removes a real defect class had only ever been exercised by one of the
+two compilers, and the `C++23: the row index is the return value` test was silently
+skipped on clang. Why clang with the same libstdc++ did not expose the macro was
+**never established**, and it will not be now: on Monday 9 November 2026 clang
+21.1.8 reports it available at both c++23 and c++2c, so the test runs on both
+compilers and the question has closed without being answered. **The caution
+outlives the case**: the newer compiler can have less, it did here for five weeks,
+and nothing on this page would have noticed if the table had not been taken twice.
 
 **2. gcc 13.3 at `-std=c++23` is the draft, not the standard.** It reports
 `__cplusplus=202100`; clang 18 at the same flag reports `202302`, the ratified
@@ -129,16 +179,22 @@ pre-C++23 path on gcc 13 while the job name said C++23. This is the strongest
 argument on the page for probing features rather than versions.
 
 **3. `std::inplace_vector` was not available anywhere, so the claim made for it
-here has never been tested.** This page previously called it "the single most
+here has never been tested.** Still true on Monday 9 November 2026, and the only
+one of the four C++26 idioms of which it remains true. This page previously called it "the single most
 useful thing a new standard has handed an embedded queue in years". That may still
 be true and it is now explicitly **unverified**: in all twelve jobs the
-array-and-count fallback is what compiled and what the queue test exercised. The
-same applies to `= delete("reason")` and to pack indexing, neither of which was
-available on any compiler. **Three of the four C++26 idioms probed here have never
-run in their intended form.**
+array-and-count fallback is what compiled and what the queue test exercised. In October 2026 the
+same applied to `= delete("reason")` and to pack indexing, neither of which was
+available on any compiler, and this page then read **three of the four C++26
+idioms probed here have never run in their intended form**. On Monday 9 November
+2026 both are available on both compilers at `-std=c++2c`, so that sentence is now
+**one of the four**, and it is this idiom.
 
 **4. One idiom of twelve cells was genuinely new.** `static_assert` with a built
-message, on clang++ at `-std=c++2c` only.
+message, on clang++ at `-std=c++2c` only. On Monday 9 November 2026 it is three
+idioms on both compilers, so the count that made this finding striking has
+quadrupled in five weeks. **The finding worth keeping is not the number.** It is
+that the number has to be measured again to be quoted at all.
 
 ### The three failures from the first run
 
@@ -149,6 +205,10 @@ workflow now probes and reports which flag it used.
 **gcc 13.3 has no C++26 mode.** Neither `-std=c++2c` nor `-std=c++26`; it
 suggested `c++20`. The probe falls back to `c++23` and the log says so in a
 sentence, so a green badge on that job cannot be read as C++26 support.
+**gcc 15.2.0 does have one**, measured on Monday 9 November 2026, so the fallback
+no longer fires and that column is now a real C++26 measurement. The fallback
+stays in `code.yml` because it is what makes the column honest whenever it does
+fire, and because the compiler a runner offers is not this repository's to choose.
 
 **gcc 13.3 under the sanitisers will not compare a function pointer with
 `nullptr` in a constant expression.** The `consteval` guard-order proof did
