@@ -153,7 +153,13 @@ def main(argv: list[str]) -> int:
     print()
 
     lookup = {"header": header_present, "symbol": symbol_present, "kconfig": kconfig_present}
-    surprises, blockers = [], []
+    # MOVED IS COUNTED SEPARATELY FROM ABSENT, and that distinction was missing on the first
+    # real run. Four of the five headers were reported present with a note saying they had moved,
+    # because at v3.0.0 the public headers are not under include/zephyr/ at all, and the summary
+    # then said arm C needed "an include path" to respell when it needed five. **A gate that
+    # knows something and does not say it in its conclusion is a gate whose conclusion is read
+    # instead of its table.**
+    surprises, blockers, moved, absent = [], [], [], []
 
     for name, kind, in_bracket, predicted in SURFACE:
         present, note = lookup[kind](tree, tag, name)
@@ -165,6 +171,10 @@ def main(argv: list[str]) -> int:
             surprises.append((name, kind, predicted, present))
         if in_bracket and not present:
             blockers.append(name)
+        if present and note.startswith("moved"):
+            moved.append((name, note))
+        if not present:
+            absent.append(name)
 
     print()
     print("=" * 78)
@@ -196,9 +206,28 @@ def main(argv: list[str]) -> int:
         print("Every prediction held, in all %d rows." % len(SURFACE))
 
     print()
-    print("Preparation arm C needs, from the ABSENT rows above: an include path to spell")
-    print("differently, and a Kconfig symbol to stop asking IS_ENABLED about. Both sit outside")
-    print("every bracket, so neither changes a measured quantity.")
+    print("PREPARATION ARM C NEEDS, counting the moved rows and not only the absent ones:")
+    print("  %d include path(s) to respell, %d of them because the header moved and %d because"
+          % (len(moved) + len([a for a in absent if a.startswith("include/")]),
+             len(moved), len([a for a in absent if a.startswith("include/")])))
+    print("  it is not in this release at all")
+    for name, note in moved:
+        print("      %-32s %s" % (name, note))
+    for name in absent:
+        if name.startswith("include/"):
+            print("      %-32s absent, needs the arch-specific spelling of this release" % name)
+    kconf = [a for a in absent if not a.startswith("include/")]
+    if kconf:
+        print("  %d Kconfig symbol(s) to stop asking IS_ENABLED about, since a symbol that does"
+              % len(kconf))
+        print("  not exist answers 0 with no diagnostic: %s" % ", ".join(kconf))
+    print()
+    print("Every one of those sits outside every bracket, so none changes a measured quantity.")
+    print()
+    print("WHAT THIS DOES NOT PROVE. A symbol row says the name occurs in a header at this tag,")
+    print("not that its signature is unchanged, and some of the files named above mention a name")
+    print("incidentally rather than declaring it. Signatures are settled by the compiler, which")
+    print("is the second step and needs the workspace this check was written to justify.")
     return 0
 
 

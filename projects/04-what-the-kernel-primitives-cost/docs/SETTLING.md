@@ -229,12 +229,59 @@ ground as the run it replaced, and this page says so rather than running it anyw
 *Also refuted if* the two predicted absences turn out to be present, which would mean the
 preparation below is unnecessary and the arm is cheaper than this section claims.
 
-### What the check is, and it needs no toolchain
+### What the check was, and it needed no toolchain
 
-The Zephyr clone on the demo laptop is at v4.5.0-rc1. With its tags fetched, every row above is a
-question about one tag's tree and one tag's Kconfig, answered by `git cat-file` and `git grep`
-against `v3.0.0` without configuring or building anything. Only after the table is settled is a
-second workspace worth creating, and only then does the development kit of that era matter.
+`scripts/check_arm_c_surface.py` asks each row of the table above as a question about one tag's
+tree and one tag's Kconfig, by `git cat-file`, `git ls-tree` and `git grep`, with no configure and
+no build. `scripts/test_check_arm_c_surface.py` exercises its refusals on synthetic clones first,
+twelve checks, because a checker whose verdict will start hours of setup is acted on rather than
+read.
+
+### The result, Monday 9 November 2026: every prediction held, in all 41 rows
+
+Run on the demo laptop against the workspace clone, which carries the tags. **Arm C is not
+refused.** No name used inside a bracket is missing at v3.0.0, so measuring there does not move
+the harness and the kernel version together, and the objection the originally proposed run was
+refused on does not apply.
+
+Both predicted absences were confirmed, and they are the two that matter:
+
+| found absent at v3.0.0 | what it costs |
+|---|---|
+| `cmsis_core.h` | the unified spelling is later; the cold pass reaches it for `SCB_InvalidateICache`, `__DSB`, `__ISB` and `SCB->CCR`, all of which are ARM's and unchanged, so only the include line moves |
+| `CONFIG_ICACHE` and `CONFIG_DCACHE` | no `config ICACHE` or `config DCACHE` anywhere in that tree. The generic cache symbols are later, so `IS_ENABLED` on them answers 0 with no diagnostic, which is the false provenance line this page was worried about |
+
+**And the run found one thing the prediction did not, which raises the preparation from one
+include to five.** The four headers predicted present are present, and none of them is where this
+application includes it from: at v3.0.0 the public headers are not under `include/zephyr/` at all.
+
+| this application includes | at v3.0.0 it is at |
+|---|---|
+| `zephyr/kernel.h` | `include/kernel.h` |
+| `zephyr/sys/util.h` | `include/sys/util.h` |
+| `zephyr/drivers/gpio.h` | `include/drivers/gpio.h` |
+| `zephyr/timing/timing.h` | `include/timing/timing.h` |
+
+That is still only include lines, so the rule this page adopted holds and nothing inside a bracket
+changes. It does mean the preparation is five respelled includes and two symbols to stop asking
+`IS_ENABLED` about, rather than the single line the first summary reported. **The checker knew
+this and did not say it**, because its conclusion counted only the rows it called absent while the
+table above it said "moved"; the summary now counts both, which is the reason that wording changed.
+
+**What the check does not prove, stated here so the next step is not read as smaller than it is.**
+A symbol row says the name occurs in a header at that tag, not that its signature is unchanged,
+and some files it names mention a name incidentally rather than declaring it. `timing_freq_get`
+and friends are present; whether they take and return what this harness expects is settled by a
+compiler. So the remaining risk in arm C is signature drift inside names that are all present, and
+that is found in the first build rather than by reading.
+
+### What arm C costs now, and what it still waits on
+
+The surface question is closed and the answer is favourable. What remains is a second workspace at
+v3.0.0 and the SDK of that era, five include lines, and a decision about the two cache symbols.
+The decision is not cosmetic: the honest form is for the provenance line to say that the symbol
+does not exist in this release rather than to print `n`, because `n` and "no such symbol" are
+different facts and only one of them is true.
 
 **And one outcome would stop arm C here**, which is worth naming so the section can end badly:
 if the stopwatch itself is not available at 3.0.0 in the form this harness uses, then the two
