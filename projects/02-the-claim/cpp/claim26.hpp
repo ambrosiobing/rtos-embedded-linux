@@ -39,7 +39,29 @@
 #include <version>
 #endif
 
-#if defined(__cpp_lib_inplace_vector) && __cpp_lib_inplace_vector >= 202406L
+// A FEATURE-TEST MACRO SAYS WHAT THE COMPILER KNOWS, NOT WHAT THIS STANDARD ADMITS. The same
+// two probes in P01's presence26.hpp turned two matrix jobs red on Monday 9 November 2026, when
+// the runner moved to Ubuntu 26 and brought clang 21: that compiler defines these C++26 macros
+// in -std=c++17 mode because it supports the features as extensions, so a probe asking only the
+// macro is true in a translation unit that may not legally use them.
+//
+// THIS FILE WAS FOUND BY LOOKING AND NOT BY A FAILURE, which is the part worth keeping. Its
+// build stayed green, so the defect arrived as a **false published table** instead: the page
+// projects/02-the-claim/docs/LANGUAGE_IDIOMS.md records the computed static_assert message as
+// available at clang++ c++17 and c++23, which it is not, because the figure was taken through
+// this probe. A wrong number in a document outlives a red workflow, because nothing goes looking
+// for it.
+//
+// So each C++26 probe asks two questions. __cplusplus is 201703L at c++17, 202302L at c++23 and
+// above that only in a C++26 mode, so one comparison separates them.
+#if __cplusplus > 202302L
+#define CLAIM_STD_ADMITS_26 1
+#else
+#define CLAIM_STD_ADMITS_26 0
+#endif
+
+#if CLAIM_STD_ADMITS_26 && defined(__cpp_lib_inplace_vector) \
+    && __cpp_lib_inplace_vector >= 202406L
 #include <inplace_vector>
 #define CLAIM_HAS_INPLACE_VECTOR 1
 #else
@@ -49,7 +71,8 @@
 // C++26's user-generated static_assert message, which lets a failing proof print a
 // computed string rather than a fixed one. C++17 already allowed static_assert with no
 // message at all; this is the later and different thing.
-#if defined(__cpp_static_assert) && __cpp_static_assert >= 202306L
+#if CLAIM_STD_ADMITS_26 && defined(__cpp_static_assert) \
+    && __cpp_static_assert >= 202306L
 #define CLAIM_HAS_STATIC_ASSERT_MSG 1
 #else
 #define CLAIM_HAS_STATIC_ASSERT_MSG 0
