@@ -27,6 +27,11 @@ that decision with the radio down.
 
 ## The twenty projects
 
+Before the table, [about this edition](chapters/00-about-this-volume.md) says
+what the volume is and how to read it; after it, [the appendix](chapters/21-appendix.md)
+says what the volume does not contain and why. Both are published chapters and
+neither appears in the table below, so they are linked here.
+
 | NN | Title | Target | Idiom it proves |
 |----|-------|--------|-----------------|
 | [01](projects/01-presence) | [Presence: free, occupied, held, fault](chapters/01-presence.md) | Nucleo alone | maintainability |

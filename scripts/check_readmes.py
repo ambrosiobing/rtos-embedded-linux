@@ -167,6 +167,32 @@ def rule_four(root: Path, problems: list[str]) -> None:
                 % (claim, len(with_code), ", ".join(with_code[:6])))
 
 
+def rule_five(root: Path, problems: list[str]) -> None:
+    """Every published chapter is reachable, and the front page's links resolve.
+
+    Until Sunday 8 November 2026 chapters/00-about-this-volume.md and
+    chapters/21-appendix.md were published and named by neither README.md nor
+    CONTENTS.md, which lists only the twenty numbered chapters. They were
+    reachable from no page at all. A dead link still reads as a link and
+    somebody eventually clicks it; an orphan reads as nothing.
+    """
+    front = (root / "README.md").read_text(encoding="utf-8")
+    contents = root / "CONTENTS.md"
+    reachable = front + (
+        contents.read_text(encoding="utf-8") if contents.exists() else "")
+    for page in sorted((root / "chapters").glob("*.md")):
+        if page.name not in reachable:
+            problems.append(
+                "chapters/%s is published and named by neither README.md nor "
+                "CONTENTS.md, so it is reachable from no page." % page.name)
+    for target in re.findall(r"\]\(([^)\s]+)\)", front):
+        if target.startswith(("http://", "https://", "#", "mailto:")):
+            continue
+        head = target.split("#", 1)[0]
+        if head and not (root / head).exists():
+            problems.append("README.md links %s, which does not exist." % target)
+
+
 def main(argv: list[str]) -> int:
     if len(argv) > 2:
         print(__doc__.splitlines()[2].strip())
@@ -181,6 +207,7 @@ def main(argv: list[str]) -> int:
     rule_two(root, problems)
     rule_three(root, problems)
     rule_four(root, problems)
+    rule_five(root, problems)
 
     projects = project_dirs(root)
     pages = sum(len(prose_pages(p)) for p in projects)
