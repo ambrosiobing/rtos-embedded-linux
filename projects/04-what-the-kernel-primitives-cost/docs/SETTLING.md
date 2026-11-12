@@ -278,10 +278,21 @@ that is found in the first build rather than by reading.
 ### What arm C costs now, and what it still waits on
 
 The surface question is closed and the answer is favourable. What remains is a second workspace at
-v3.0.0 and the SDK of that era, five include lines, and a decision about the two cache symbols.
-The decision is not cosmetic: the honest form is for the provenance line to say that the symbol
-does not exist in this release rather than to print `n`, because `n` and "no such symbol" are
-different facts and only one of them is true.
+v3.0.0 and the SDK of that era, and five include lines.
+
+**The two cache symbols were listed here as a decision, and the decision this page recommended
+turned out to be unreachable.** It said the provenance line should report that the symbol does not
+exist in this release rather than print `n`, because those are different facts. They are, and the
+program cannot tell them apart: Kconfig writes no definition at all for a bool whose value is `n`,
+so `IS_ENABLED` returns 0 both for a symbol the build switched off and for a symbol the tree does
+not have. The preprocessor sees the same absence for each.
+
+So `zephyr/src/main.c` now reports what it has and names both causes, rather than asserting one of
+them. **Telling them apart needs the build and not the program**: a bool set to `n` appears in
+`.config` as a commented line while an unknown symbol appears nowhere, so a CMake step could pass
+the distinction in. That is not done, and it is recorded as the missing half rather than as an
+oversight, here and in a comment on the function itself. Nothing about arm C waits on it: the line
+no longer prints a false claim either way.
 
 **And one outcome would stop arm C here**, which is worth naming so the section can end badly:
 if the stopwatch itself is not available at 3.0.0 in the form this harness uses, then the two

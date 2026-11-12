@@ -651,12 +651,30 @@ static bool wall_clock_rate_agrees(void)
  * between two cache states, and with no cache there is only one state and nothing to
  * compare, so a run showing both off would retire that criterion rather than fail it.
  */
+/* AND IT USED TO SAY "the build asked for CONFIG_ICACHE n", WHICH IT CANNOT KNOW. Kconfig
+ * writes no definition at all for a bool whose value is n, so `IS_ENABLED` returns 0 both for a
+ * symbol the build switched off and for a symbol this release of the operating system does not
+ * have. Those are different facts and the preprocessor sees the same absence for each.
+ *
+ * It matters for a run that is already planned. docs/SETTLING.md's arm C builds this harness
+ * against Zephyr 3.0.0, where `scripts/check_arm_c_surface.py` established on Monday 9 November
+ * 2026 that there is no `config ICACHE` or `config DCACHE` anywhere in the tree. The old wording
+ * would have printed that the build asked for n, under a hardware line reporting the cache ON,
+ * and a reader comparing two captures would have read a difference that was only a spelling.
+ *
+ * So the line reports what it has and names both causes of the absence. **Telling them apart
+ * needs the build and not the program**: a bool set to n appears in `.config` as a commented
+ * line while an unknown symbol appears nowhere, so a CMake step could pass the distinction in.
+ * That is not done here, and this comment is the record that it is the missing half rather than
+ * an oversight.
+ */
 static void report_caches(void)
 {
-	printf("# caches, as the build asked and as the hardware reports\n");
-	printf("#   the build asked for CONFIG_ICACHE %s and CONFIG_DCACHE %s\n",
-	       IS_ENABLED(CONFIG_ICACHE) ? "y" : "n",
-	       IS_ENABLED(CONFIG_DCACHE) ? "y" : "n");
+	printf("# caches, as the build records and as the hardware reports\n");
+	printf("#   CONFIG_ICACHE %s and CONFIG_DCACHE %s, where not set may mean the build\n"
+	       "#   left it off or that this release has no such symbol\n",
+	       IS_ENABLED(CONFIG_ICACHE) ? "is y" : "is not set",
+	       IS_ENABLED(CONFIG_DCACHE) ? "is y" : "is not set");
 	printf("#   the control register says instruction cache %s, data cache %s\n",
 	       (SCB->CCR & SCB_CCR_IC_Msk) ? "ON" : "OFF",
 	       (SCB->CCR & SCB_CCR_DC_Msk) ? "ON" : "OFF");
