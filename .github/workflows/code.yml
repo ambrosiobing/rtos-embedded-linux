@@ -423,6 +423,48 @@ jobs:
         run: |
           grep -q "^PASSED: 0 failure(s)$" phases.log
 
+      # ------------------------------------------------- P05's criterion 6, settled in this job
+      #
+      # WHY HERE. That criterion reduces to one comparison: P01's application object is byte for
+      # byte what it was, while the reading reaching it comes from P05's part through P05's
+      # reduction. The reference side of that comparison is the build three steps above, so this
+      # job is the only place in the workflow where the comparison costs one more configure.
+      #
+      # AND BOTH SIDES MUST BE THE SAME MACHINE. P01's application is native_sim, which compiles
+      # with the host gcc; P05's own builds are cross builds for the board. An object from one
+      # compared against an object from the other would be x86 against ARM, which is not a
+      # comparison, and scripts/check_object_identity.py now refuses such a pair outright.
+      # projects/05-the-zones/docs/CRITERION6.md carries the design and the three refutations.
+      #
+      # NOTHING HERE TOUCHES THE PART. P05's reduction names no operating system and no vendor
+      # interface, so this needs no board, no shield, no vendor clone and no cross toolchain.
+      - name: P05's reduction feeding P01's machine, built the way P01 is built
+        run: |
+          cmake -B build-p05-integration -GNinja -DBOARD=native_sim \
+            -S projects/05-the-zones/integration
+          ninja -C build-p05-integration
+
+      # The three grids in that application are the seam's own cases: a full grid posts its
+      # distance, a grid with no valid zone posts nothing rather than a range of zero, and a
+      # negative distance posts nothing rather than the sixty-five thousand a cast would make of
+      # it. The printed verdict is the gate, for the same reason it is above: a run that never
+      # reached the cases would also exit 0.
+      - name: The seam decides its three cases
+        run: |
+          ./build-p05-integration/zephyr/zephyr.exe | tee integration.log
+          grep -q "^PASSED: 0 failure(s)$" integration.log
+
+      # THE OBJECT PATH IS DERIVED AND NOT WRITTEN DOWN, which is the one thing this step has to
+      # get right. CMake hangs the absolute source path under CMakeFiles/app.dir/, so the path
+      # holds this checkout's directory and differs between a bench and a runner. It is the same
+      # in both builds, because both compile the same absolute presence.c, which is why one
+      # argument addresses both.
+      - name: P01's machine is byte for byte what it was
+        run: |
+          obj="CMakeFiles/app.dir$PWD/projects/01-presence/c/presence.c.obj"
+          echo "comparing $obj"
+          python3 scripts/check_object_identity.py build-zephyr build-p05-integration "$obj"
+
   # P02's cascade under the same two kernels, from the same shared phases.c. The pair is
   # worth having for a reason that proved itself on Tuesday 6 October 2026: a stale local
   # binary printed a pass for a change it had not been built with, and the only thing that

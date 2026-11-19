@@ -196,7 +196,8 @@ directory. [`.github/workflows/code.yml`](.github/workflows/code.yml) is the
 second workflow and builds what can be built without the bench: C at four
 standards and C++ at four under two compilers, Rust at three editions, the host
 suites, and the Zephyr and FreeRTOS images for this board, including two builds
-of one application that must differ only in the bus they name.
+of one application that must differ only in the bus they name, and two builds of one
+state machine that must not differ at all.
 
 The authoring machine has three more that a clone does not need, because they
 read the LaTeX: `python lint.py`, `python crosscheck.py`, and
