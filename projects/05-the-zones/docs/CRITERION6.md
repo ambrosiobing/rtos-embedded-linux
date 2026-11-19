@@ -36,14 +36,34 @@ proves nothing**, and this one does not have that problem.
 
 ## The two builds, and the one that does not exist yet
 
-| | build | what posts the reading |
-|---|---|---|
-| the reference | P01's own Zephyr application | P01's own source of readings |
-| the subject | an application linking P01's `presence.c` and its adapter unchanged, plus this project's driver and `src/reduce_nearest_valid.c` | this part, through the reduction |
+**Both builds must target the same board, and that is a requirement rather than a
+convenience.** P01's Zephyr application is built for `native_sim`, which compiles with the host
+compiler; this project's own builds target the Nucleo through the cross toolchain. An object from
+one and an object from the other differ in their instruction set, so comparing them would be
+comparing x86 with ARM and would mean nothing at all. The comparison therefore happens where the
+reference already is.
 
-The subject build is the work. It is an integration rather than a port: the driver already
-exists, the reduction already exists with its suite, and what is missing is an application that
-wires the reduction's one number into `presence_adapter_post` and nothing else.
+| | build | board | what posts the reading |
+|---|---|---|---|
+| the reference | P01's own Zephyr application, unchanged | `native_sim` | P01's own source of readings |
+| the subject | an application linking P01's `presence.c`, `presence_adapter.c` and `phases.c` unchanged, plus this project's `src/reduce_nearest_valid.c` and `src/zone_status.h` | `native_sim` | the reduction, over a grid supplied by the test rather than by the part |
+
+**The subject build needs no board, no shield, no vendor clone and no cross toolchain**, and
+that is worth stating because this page said the opposite when it was first written on Thursday
+19 November 2026. The reason it needs none of them is that `src/reduce_nearest_valid.c` includes
+only its own header and `src/zone_status.h`: it names no operating system and no vendor
+interface, which is also why it already has a host suite under `host/`. So the claim this
+criterion makes can be shown with a grid the test writes.
+
+**That also means it belongs in continuous integration rather than in a sitting at the build
+machine.** `code.yml` already configures and runs the reference, `cmake -B build-zephyr -GNinja
+-DBOARD=native_sim -S projects/01-presence/zephyr`, and gates it on the printed
+`PASSED: 0 failure(s)`. A second configure beside it and one call to the object checker is the
+whole of the remaining work, and then the criterion is enforced on every push instead of being
+true on the day somebody looked.
+
+The integration is still the real content: an application that wires the reduction's one number
+into `presence_adapter_post` and does nothing else.
 
 ## What compares them, and why the checker already takes an argument
 
@@ -88,10 +108,16 @@ reduction and breaking it four ways with `make mutants`.
 
 ## Order, and what it costs
 
-The subject build needs the cross toolchain and the vendor clone, so it is built where those are
-and not on the authoring laptop. The comparison itself needs neither a board nor a shield. So
-this criterion is reachable in one sitting at the build machine, which is why `docs/DESIGN.md`
-puts it before the hardware rather than after it.
+**This section is a correction.** It first read that the subject build needs the cross toolchain
+and the vendor clone, written before P01's build file had been read. It needs neither, for the
+reasons above, and it must not use them: the reference is a `native_sim` build and an object
+compared across two architectures is not a comparison. The error was assuming this project's
+build shape applied to P01's, which is the opposite of predicting from contents.
+
+So the cost is a second `native_sim` configure and one call to the object checker, both of which
+run wherever the Zephyr tree is, including the workflow that already builds the reference. That
+is cheaper than `docs/DESIGN.md` promised when it put this criterion in the host-only column,
+and it is the reason that column was right.
 
 ## Sources
 
@@ -103,4 +129,8 @@ puts it before the hardware rather than after it.
   call, and `projects/01-presence/zephyr/presence_adapter.c` for how a reading is stamped.
 - `scripts/check_object_identity.py` for the comparison and for the object-path argument this
   criterion needs.
-- `docs/REDUCTION.md` and `host/` for the reduction and the suite that already proves it.
+- `docs/REDUCTION.md` and `host/` for the reduction and the suite that already proves it, and
+  `src/reduce_nearest_valid.c` itself, read on Thursday 19 November 2026 for the two includes
+  that make it free of the operating system and of the vendor.
+- `projects/01-presence/zephyr/CMakeLists.txt` for the board the reference is built for, and
+  `.github/workflows/code.yml` for the configure line and the gate that already run it.
