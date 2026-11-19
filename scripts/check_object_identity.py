@@ -47,13 +47,44 @@ OBJ = "CMakeFiles/app.dir/src/main.c.obj"   # P03's, and the default when none i
 ORD = re.compile(r"__device_dts_ord_(\d+)")
 
 
-def tool(name):
-    """The SDK's binutils, found where west sdk install puts them."""
-    for sdk in sorted(Path.home().glob("zephyr-sdk-*"), reverse=True):
-        exe = sdk / "gnu" / "arm-zephyr-eabi" / "bin" / ("arm-zephyr-eabi-" + name)
-        if exe.is_file():
-            return str(exe)
-    return "arm-zephyr-eabi-" + name
+# WHICH MACHINE AN OBJECT IS FOR, READ FROM THE OBJECT. The ELF header carries it in
+# e_machine, two bytes at offset 18, in the byte order byte 5 declares. Only the two this
+# repository produces are named; anything else is refused by name rather than guessed at.
+ELF_MACHINES = {0x28: "arm", 0x3E: "host", 0x03: "host"}
+
+
+def architecture(path):
+    """("arm" or "host", a sentence), or (None, why not)."""
+    with open(str(path), "rb") as f:
+        head = f.read(20)
+    if len(head) < 20 or head[:4] != b"\x7fELF":
+        return None, "%s is not an ELF object" % path
+    big = head[5] == 2
+    machine = (head[18] << 8 | head[19]) if big else (head[19] << 8 | head[18])
+    arch = ELF_MACHINES.get(machine)
+    if arch is None:
+        return None, ("%s is for ELF machine 0x%02x, which this script has no binutils for"
+                      % (path, machine))
+    return arch, "%s is %s, ELF machine 0x%02x" % (path, arch, machine)
+
+
+def tool(name, arch):
+    """The binutils that can read this object, which is not always the SDK's.
+
+    AND IT USED TO BE THE SDK'S ALWAYS, which made this script unusable for half of what it is
+    for. It was written for P03, whose two builds are cross builds for the board, so the ARM
+    prefix was hard-coded and correct. On Thursday 19 November 2026 P05's criterion 6 pointed it
+    at two `native_sim` builds, which are host objects, and the ARM objdump answered "can't
+    disassemble for architecture UNKNOWN". The script refused rather than passing, which was the
+    right failure, and it could not do the comparison at all.
+    """
+    if arch == "arm":
+        for sdk in sorted(Path.home().glob("zephyr-sdk-*"), reverse=True):
+            exe = sdk / "gnu" / "arm-zephyr-eabi" / "bin" / ("arm-zephyr-eabi-" + name)
+            if exe.is_file():
+                return str(exe)
+        return "arm-zephyr-eabi-" + name
+    return name   # the host's own, which is what reads a native_sim object
 
 
 def run(exe, *args):
@@ -64,10 +95,10 @@ def run(exe, *args):
     return out.stdout
 
 
-def disassembly(path):
+def disassembly(path, arch):
     """Instructions only. The objdump header names the file, which differs by construction
     and says nothing about the code."""
-    text = run(tool("objdump"), "-d", str(path))
+    text = run(tool("objdump", arch), "-d", str(path))
     if text is None:
         return None
     return [ln for ln in text.splitlines() if "file format" not in ln]
@@ -89,10 +120,29 @@ def main(argv):
             print("FAIL no object at %s" % p)
             return 1
 
+    # BOTH OBJECTS MUST BE FOR THE SAME MACHINE, and this is a refusal rather than a detail.
+    # P01's Zephyr application is built for native_sim with the host compiler while this
+    # repository's board applications are cross built, so an invocation that pairs one of each
+    # would be comparing x86 with ARM. That is not a comparison, and the objects would differ in
+    # every line while saying nothing about the source. projects/05-the-zones/docs/CRITERION6.md
+    # names it as one of the ways its comparison could appear to run and prove nothing.
+    arch_a, why_a = architecture(a)
+    arch_b, why_b = architecture(b)
+    for why, arch in ((why_a, arch_a), (why_b, arch_b)):
+        if arch is None:
+            print("FAIL %s" % why)
+            return 1
+    if arch_a != arch_b:
+        print("FAIL the two objects are for different machines, so there is nothing to compare:")
+        print("    %s" % why_a)
+        print("    %s" % why_b)
+        return 1
+    print("both objects are %s" % arch_a)
+
     problems = 0
 
     # The instructions, which must not differ at all.
-    da, db = disassembly(a), disassembly(b)
+    da, db = disassembly(a, arch_a), disassembly(b, arch_a)
     if da is None or db is None:
         return 1
     if da != db:
@@ -104,8 +154,8 @@ def main(argv):
         problems += 1
 
     # The symbols, which may differ in exactly one ordinal and nothing else.
-    sa = run(tool("nm"), str(a))
-    sb = run(tool("nm"), str(b))
+    sa = run(tool("nm", arch_a), str(a))
+    sb = run(tool("nm", arch_a), str(b))
     if sa is None or sb is None:
         return 1
 

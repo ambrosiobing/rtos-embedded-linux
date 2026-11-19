@@ -92,6 +92,20 @@ Monday 26 October 2026 because P14's replicated claim described it that way, and
 needs that argument for its own reason**: the object to compare here is P01's machine and not an
 application's `main.c`, so the default is the wrong file.
 
+**And it could not read these objects at all until Thursday 19 November 2026, which only the run
+found.** The script hard-coded the Zephyr SDK's ARM binutils, correct for the cross builds it was
+written for and useless for two `native_sim` builds: the ARM objdump answered "can't disassemble
+for architecture UNKNOWN". It refused rather than passing, which was the right failure. It now
+reads `e_machine` out of the ELF header and picks binutils accordingly, and **it refuses a pair
+of objects built for different machines**, which is the trap this page warns about put into the
+tool instead of only into prose. `scripts/test_check_object_identity.py` exercises that refusal on
+synthetic headers in both byte orders.
+
+One thing the run settled that this page had worried about for no reason: **the object path is the
+same in both builds.** CMake hangs the absolute source path under `CMakeFiles/app.dir/`, and since
+both builds compile the same absolute `presence.c`, one path argument addresses both. It is
+machine-specific, though, so a workflow step derives it rather than hard-coding it.
+
     python scripts/check_object_identity.py <reference build> <subject build> \
         CMakeFiles/app.dir/<path to>/presence.c.obj
 

@@ -163,8 +163,9 @@ These run on a clone, with nothing but a Python interpreter:
     python scripts/test_check_arm_c_surface.py  the arm C surface checker refuses what it should
     python scripts/check_readmes.py        every README still describes its own directory
     python scripts/test_check_readmes.py   the README gate refuses what it should
+    python scripts/test_check_object_identity.py  the object checker reads the machine
 
-The five `test_` scripts are there because a gate that has only ever passed is
+The six `test_` scripts are there because a gate that has only ever passed is
 not a gate. Each builds the state it is supposed to catch and fails if the
 checker lets it through. `test_build_stamp.py` needs cmake and ninja for its
 second half and says in its own output when it has not run them; the other three

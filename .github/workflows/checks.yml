@@ -263,3 +263,16 @@ jobs:
         run: |
           python scripts/test_check_readmes.py
           python scripts/check_readmes.py
+
+      # THE OBJECT CHECKER READS THE MACHINE OUT OF THE OBJECT NOW. It hard-coded the Zephyr
+      # SDK's ARM binutils, which was right for the cross builds it was written for and left it
+      # unable to read a native_sim object at all. P05's criterion 6 needs exactly that, and on
+      # Thursday 19 November 2026 the ARM objdump answered "can't disassemble for architecture
+      # UNKNOWN". It refused rather than passing, which was the right failure.
+      #
+      # The refusal worth testing is a pair of objects built for different machines: comparing
+      # x86 with ARM would differ in every line while saying nothing about the source. Synthetic
+      # ELF headers in both byte orders, nineteen checks. The agreeing case needs real objects
+      # and is exercised in code.yml against P03's two builds.
+      - name: The object checker reads the machine, and refuses a mismatched pair
+        run: python scripts/test_check_object_identity.py
