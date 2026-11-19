@@ -190,11 +190,17 @@ bus being printed about a reduction. A shared tool must not put one chapter's co
 another chapter's mouth, so that sentence now belongs to P03's invocation and any other
 invocation gets one that names the two builds it compared.
 
-**What remains.** The comparison has been run by hand and is not yet in `code.yml`. Until it is,
-this criterion is true as of a date rather than at every push, which is the weaker of the two
-and is the same distinction this volume makes everywhere else. The step needs the object path
-derived rather than hard-coded, because CMake hangs the absolute source path under
-`CMakeFiles/app.dir/` and that differs between this bench and a runner.
+**And it holds at every push, not only on the day it was run.** Three steps were added to the
+`zephyr` job of `code.yml`, which is the only place in the workflow where this costs one more
+configure, because the reference side of the comparison is already built there. They ran green on
+Thursday 19 November 2026: the integration build, the three seam cases gated on the printed
+verdict, and the object comparison.
+
+That run is worth more than a repeat of the bench result, because it happened on a machine whose
+checkout sits at a different absolute path. The object path carries that path, since CMake hangs
+the absolute source under `CMakeFiles/app.dir/`, so the step derives it rather than writing it
+down. **The derivation is the part the runner proved**; the comparison itself the bench had
+already settled.
 
 And the half that needs hardware is untouched: a byte-identical object says nothing about whether
 the reduction feeds P01 a sensible number from a real scene. That is criteria 1 to 5.
