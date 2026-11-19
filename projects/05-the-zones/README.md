@@ -46,6 +46,10 @@ is the right one to compare, and the three ways the comparison could be satisfie
 proving nothing. That criterion needs a host and no hardware, and not the cross toolchain
 either: both builds target `native_sim`, because an object compared across two
 architectures is not a comparison.
+[integration/](integration) is that subject build, written on Thursday 19 November 2026
+and not yet compiled: it links P01's machine and adapter unchanged, feeds them this
+project's reduction over a grid written in the file, and refuses both a reading with no
+valid zone and a negative distance rather than casting one into a range.
 
 [docs/DESIGN.md](docs/DESIGN.md) sorts the chapter's seven acceptance criteria by what each
 costs, and **two of them need no hardware at all**: that P01's application object is byte for

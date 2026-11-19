@@ -34,7 +34,7 @@ either a real change to P01 or a difference in how the compiler was invoked, and
 distinguishable. **A criterion that compares an object whose content depends on its surroundings
 proves nothing**, and this one does not have that problem.
 
-## The two builds, and the one that does not exist yet
+## The two builds, and what the subject one is
 
 **Both builds must target the same board, and that is a requirement rather than a
 convenience.** P01's Zephyr application is built for `native_sim`, which compiles with the host
@@ -46,7 +46,7 @@ reference already is.
 | | build | board | what posts the reading |
 |---|---|---|---|
 | the reference | P01's own Zephyr application, unchanged | `native_sim` | P01's own source of readings |
-| the subject | an application linking P01's `presence.c`, `presence_adapter.c` and `phases.c` unchanged, plus this project's `src/reduce_nearest_valid.c` and `src/zone_status.h` | `native_sim` | the reduction, over a grid supplied by the test rather than by the part |
+| the subject | `integration/`, linking P01's `presence.c` and `presence_adapter.c` unchanged, plus this project's `src/reduce_nearest_valid.c` and `src/zone_status.h` | `native_sim` | the reduction, over a grid written in `integration/main.c` |
 
 **The subject build needs no board, no shield, no vendor clone and no cross toolchain**, and
 that is worth stating because this page said the opposite when it was first written on Thursday
@@ -62,8 +62,28 @@ machine.** `code.yml` already configures and runs the reference, `cmake -B build
 whole of the remaining work, and then the criterion is enforced on every push instead of being
 true on the day somebody looked.
 
-The integration is still the real content: an application that wires the reduction's one number
-into `presence_adapter_post` and does nothing else.
+**`phases.c` is deliberately not linked**, and the page said otherwise before the build was
+written. It is P01's four-phase test harness, shared across P01's adapters; this build is a
+consumer of the machine and not a second test of the adapter, so linking it would add a test to
+the subject and prove nothing extra about the object.
+
+### The seam, which is the only content this build adds
+
+`integration/main.c` turns a grid into at most one event, and it makes two decisions that are the
+whole of the integration:
+
+- **A refusal is not a distance.** When no zone carries a status the vendor calls a reading, the
+  reduction reports `found == false` and this build posts no event at all. That is
+  `docs/REDUCTION.md`'s rule in the words it uses: P01 "would be posted no reading event at all,
+  which is not the same as being told the range is zero".
+- **The types do not match and the mismatch is refused rather than cast.** The reduction reports
+  `int16_t distance_mm`, because an object at the lens reports two to ten millimetres or a small
+  negative number. P01's event carries `uint16_t range_mm`. A blind cast would turn minus three
+  into 65533, which P01 reads as nobody there, so a negative distance posts nothing.
+
+Three grids exercise exactly those cases, written in the file rather than generated so a reader
+can see what each asks of the seam. They are not a test of the reduction, which has its own suite
+and a mutation run under `host/`.
 
 ## What compares them, and why the checker already takes an argument
 
@@ -88,9 +108,19 @@ anything that reaches code generation.** Two different Zephyr applications have 
 `prj.conf` files, so they have different generated `autoconf.h`, and Zephyr force-includes it.
 `presence.c` names no `CONFIG_` symbol, so that difference cannot reach its object, but the
 optimisation level, the architecture flags and the standard version can. **A difference there
-makes this criterion either vacuous or spuriously red, and neither is a result.** So the run
-records both compile command lines for that one object and shows them equal except for the output
-path.
+makes this criterion either vacuous or spuriously red, and neither is a result.**
+
+Two things in `integration/CMakeLists.txt` answer that, and they are not the same kind of answer:
+
+| | how | what it costs to keep true |
+|---|---|---|
+| the configuration | `CONF_FILE` points at `../../01-presence/zephyr/prj.conf` rather than copying it | nothing, it cannot drift |
+| the standard | `-std=c11` is set on `presence.c` here, as P01's build file sets it there | the two build files must agree by hand |
+
+A copy of the configuration would have satisfied the comparison on the day it was made and
+quietly stopped the first time either file was edited. The standard is the one the two build
+files have to agree on deliberately, so the run still records both compile command lines for that
+object and shows them equal except for the output path.
 
 **Refuted a third way if the two builds did not compile the same source.** The objects can only
 be compared if both read the same `presence.c` and the same `presence.h`, so the run records the
@@ -118,6 +148,13 @@ So the cost is a second `native_sim` configure and one call to the object checke
 run wherever the Zephyr tree is, including the workflow that already builds the reference. That
 is cheaper than `docs/DESIGN.md` promised when it put this criterion in the host-only column,
 and it is the reason that column was right.
+
+**What remains, as of Thursday 19 November 2026.** `integration/` is written and has never been
+compiled, because no compiler runs on the authoring laptop. The order is: build it where the
+Zephyr tree is, run it and read the three lines it prints, then run the object checker against
+P01's own build, then add both to `code.yml` beside the reference so the criterion holds at every
+push. **Nothing is claimed for this criterion until that comparison has been run**, and this page
+says so rather than reading as though the build settled it.
 
 ## Sources
 
