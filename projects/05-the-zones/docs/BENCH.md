@@ -1896,3 +1896,39 @@ interpreted. Three things change before the repeat, and none of them is about th
 
 The orientation remains unestablished, and the state of this criterion is unchanged by the
 evening: no reading of it has been taken that the page would accept.
+
+## Thursday 19 November 2026, at a desk and on the build machine: criterion 6 is met in its host half
+
+No board, no shield, nothing measured about the part. **The object comparison that criterion 6
+reduces to was built, run and settled**, and it came out identical: 424 lines of disassembly, no
+difference, both objects reported as host builds.
+
+`integration/` is the subject build, written on the authoring laptop and compiled on the build
+machine on the first attempt, 102 of 102. It links P01's `presence.c` and its Zephyr adapter
+unmodified, adds this project's reduction, and posts at most one event per grid.
+[CRITERION6.md](CRITERION6.md) has the design, the three refutations written before the run and
+the result.
+
+Its three grids decided as the seam was written to:
+
+    # a full grid at 1200 mm posted 1200 mm from zone 0
+    # a grid with no target posted nothing, which is not a range of zero
+    # a negative distance posted nothing rather than 65533 mm
+
+The second is the rule [REDUCTION.md](REDUCTION.md) exists to keep, and the third is the one the
+types make necessary: the reduction reports a signed distance because an object at the lens
+reports two to ten millimetres or a small negative number, P01's event carries an unsigned range,
+and a blind cast would turn minus three into 65533, which P01 reads as nobody there.
+
+**Both faults of the afternoon were in the tooling and neither touched the claim.**
+`scripts/check_object_identity.py` hard-coded the Zephyr SDK's ARM binutils, so it could not read
+a `native_sim` object at all and answered "can't disassemble for architecture UNKNOWN" twice
+before refusing. Refusing was the right failure. It now reads the machine out of the ELF header
+and refuses a pair of objects built for different machines, which is a trap that page had only
+warned about in prose. Then, fixed, it closed by printing P03's conclusion about a bus while
+comparing a reduction; that sentence now belongs to P03's invocation alone.
+
+**What is not done is the workflow step.** The comparison was run by hand, so the criterion is
+true as of today rather than at every push, and the step has to derive the object path rather than
+hard-code it: CMake hangs the absolute source path under `CMakeFiles/app.dir/`, which differs
+between this bench and a runner.

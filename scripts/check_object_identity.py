@@ -181,7 +181,16 @@ def main(argv):
                   "differs: %s against %s" % (ords_a[0], ords_b[0]))
         else:
             print("no devicetree ordinal differs either, so the objects are identical")
-        print("one application, two buses, the same code")
+        # THE CONCLUDING SENTENCE IS P03'S AND IS PRINTED ONLY FOR P03'S INVOCATION. This
+        # script serves three chapters now, and on Thursday 19 November 2026 it told P05's
+        # criterion 6 run "one application, two buses, the same code", which is a sentence
+        # about a bus and was being printed about a reduction. A shared tool must not put one
+        # chapter's conclusion in another chapter's mouth. P03's README quotes the line as
+        # expected output, so it stays exactly as it was for the invocation it belongs to.
+        if obj == OBJ:
+            print("one application, two buses, the same code")
+        else:
+            print("%s and %s contain the same code" % (argv[1], argv[2]))
 
     return 1 if problems else 0
 

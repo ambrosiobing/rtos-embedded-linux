@@ -163,12 +163,41 @@ run wherever the Zephyr tree is, including the workflow that already builds the 
 is cheaper than `docs/DESIGN.md` promised when it put this criterion in the host-only column,
 and it is the reason that column was right.
 
-**What remains, as of Thursday 19 November 2026.** `integration/` is written and has never been
-compiled, because no compiler runs on the authoring laptop. The order is: build it where the
-Zephyr tree is, run it and read the three lines it prints, then run the object checker against
-P01's own build, then add both to `code.yml` beside the reference so the criterion holds at every
-push. **Nothing is claimed for this criterion until that comparison has been run**, and this page
-says so rather than reading as though the build settled it.
+## The result, Thursday 19 November 2026: identical, 424 lines, no difference
+
+Run on the demo laptop, both builds configured for `native_sim` and both rebuilt first.
+
+    both objects are host
+    the instructions are identical: 424 lines of disassembly, no difference
+    no devicetree ordinal differs either, so the objects are identical
+
+**So criterion 6 is met in the half that can be shown without hardware.** P01's application
+object is byte for byte what P01's own build produces, while the reading reaching it comes from
+this part's grid through this project's reduction. The claim that the machine is indifferent to
+its range source is now a measurement rather than an argument, and the file that chooses one
+number from sixty-four is `src/reduce_nearest_valid.c`, which is this project's and not P01's.
+
+The subject build also ran, and its three grids decided as the seam was written to decide:
+
+    # a full grid at 1200 mm posted 1200 mm from zone 0
+    # a grid with no target posted nothing, which is not a range of zero
+    # a negative distance posted nothing rather than 65533 mm
+
+**Two things went wrong on the way and both were in the tooling rather than in the claim.** The
+checker could not read a host object at all, which is recorded above. And having been fixed, it
+closed by printing "one application, two buses, the same code", which is P03's conclusion about a
+bus being printed about a reduction. A shared tool must not put one chapter's conclusion in
+another chapter's mouth, so that sentence now belongs to P03's invocation and any other
+invocation gets one that names the two builds it compared.
+
+**What remains.** The comparison has been run by hand and is not yet in `code.yml`. Until it is,
+this criterion is true as of a date rather than at every push, which is the weaker of the two
+and is the same distinction this volume makes everywhere else. The step needs the object path
+derived rather than hard-coded, because CMake hangs the absolute source path under
+`CMakeFiles/app.dir/` and that differs between this bench and a runner.
+
+And the half that needs hardware is untouched: a byte-identical object says nothing about whether
+the reduction feeds P01 a sensible number from a real scene. That is criteria 1 to 5.
 
 ## Sources
 
