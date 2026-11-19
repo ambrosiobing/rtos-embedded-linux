@@ -40,6 +40,10 @@ in a compiled help file. [docs/ORIENTATION.md](docs/ORIENTATION.md) is criterion
 that measure which way up the printed grid is, written because the documentary chain for it
 cannot be read from this bench, with the eight possible maps and what refutes each run.
 Those two runs have not yet been performed.
+[docs/CRITERION6.md](docs/CRITERION6.md) settles the remaining half of criterion 6 before
+the build that produces it exists: which object is compared, why `../01-presence/c/presence.c`
+is the right one to compare, and the three ways the comparison could be satisfied while
+proving nothing. That criterion needs a host and no hardware.
 
 [docs/DESIGN.md](docs/DESIGN.md) sorts the chapter's seven acceptance criteria by what each
 costs, and **two of them need no hardware at all**: that P01's application object is byte for
